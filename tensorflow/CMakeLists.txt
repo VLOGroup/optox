@@ -1,0 +1,46 @@
+# @project optox - GPU Operators to X
+# @author Erich Kobler <erich.kobler@icg.tugraz.at>
+# @date 09.07.2018
+
+project(optoX)
+
+##----------------------------------------------------------------------------
+## CMake definitions
+##----------------------------------------------------------------------------
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
+include("../cmake/macros.cmake")
+
+##----------------------------------------------------------------------------
+## Tensorflow (for wrappers)
+##----------------------------------------------------------------------------
+
+
+execute_process(COMMAND python3 -c "import tensorflow as tf; print(tf.sysconfig.get_include(), end='')" OUTPUT_VARIABLE Tensorflow_INCLUDE_DIRS)
+execute_process(COMMAND python3 -c "import tensorflow as tf; print(tf.sysconfig.get_lib(), end='')" OUTPUT_VARIABLE Tensorflow_LIB_DIRS)
+
+message("tensorflow include dir: ${Tensorflow_INCLUDE_DIRS}")
+message("tensorflow link dir: ${Tensorflow_LIB_DIRS}")
+
+include_directories(${Tensorflow_INCLUDE_DIRS})
+link_directories(${Tensorflow_LIB_DIRS})
+
+##-----------------------------------------------------------------------------
+## compiler flags
+##-----------------------------------------------------------------------------
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11  -fPIC -O2 -D_GLIBCXX_USE_CXX11_ABI=0 -D GOOGLE_CUDA=1")
+set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --expt-relaxed-constexpr -D GOOGLE_CUDA=1" )
+
+#pass flags to c++ compiler
+#SET(CUDA_PROPAGATE_HOST_FLAGS ON)
+
+##----------------------------------------------------------------------------
+## add operator
+##----------------------------------------------------------------------------
+cuda_add_library(tfaddoperator SHARED tfaddoperator.cpp tfaddoperator.cu)
+
+target_link_libraries(tfaddoperator optox ${IMAGEUTILITIES_LIBRARIES} "tensorflow_framework")
+# remove lib prefix
+set_target_properties(tfaddoperator PROPERTIES PREFIX "" LINKER_LANGUAGE CXX)
+if(WIN32)
+    SET_TARGET_PROPERTIES(tfaddoperator PROPERTIES SUFFIX ".pyd")
+endif(WIN32)
