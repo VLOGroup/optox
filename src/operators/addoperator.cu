@@ -8,6 +8,8 @@
 #include <iu/iucore.h>
 #include <iu/iumath.h>
 
+// #include <thrust/fill.h>
+#include "optoxmath.h"
 
 template<typename T, unsigned int N>
 void optox::AddOperator<T, N>::apply()
@@ -24,7 +26,10 @@ void optox::AddOperator<T, N>::apply()
     T w_2 = this->config_.template getValue<T>("w_2");
     std::cout << "addop weights" << std::endl;
 
-    iu::math::addWeighted(*in_0, w_1, *in_1, w_2, *out);
+    // iu::math::addWeighted(*in_0, w_1, *in_1, w_2, *out);
+    std::cout << "optox: " << out->data() << std::endl;
+    // iu::math::fill(*out, 1);
+    optox::math::fill(*out, 1, this->stream_);
     std::cout << "addop done" << std::endl;
 }
 

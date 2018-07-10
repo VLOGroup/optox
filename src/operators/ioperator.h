@@ -189,7 +189,7 @@ public:
   virtual void apply() = 0;
 
   template<typename T, unsigned int N>
-  void appendInput(iu::LinearDeviceMemory<T, N> &input, bool copy = true)
+  void appendInput(iu::LinearDeviceMemory<T, N> &input, bool copy = false)
   {
     inputs_.push_back(new Tensor<T, N>(input, not copy));
   }
@@ -210,7 +210,7 @@ public:
   }
 
   template<typename T, unsigned int N>
-  void appendOutput(iu::LinearDeviceMemory<T, N> &output, bool copy = true)
+  void appendOutput(iu::LinearDeviceMemory<T, N> &output, bool copy = false)
   {
     outputs_.push_back(new Tensor<T, N>(output, not copy));
   }
@@ -242,7 +242,7 @@ public:
   }
 
   template<typename T>
-  void setParameter(const char *name, T val)
+  void setParameter(const char *name, const T &val)
   {
     config_.setValue<T>(std::string(name), val);
   }
@@ -252,7 +252,7 @@ public:
     stream_ = stream;
   }
 
-  const cudaStream_t getStream() const
+  cudaStream_t getStream() const
   {
     return stream_;
   }

@@ -18,7 +18,7 @@ set(OPERATOR_HEADER
 )
 
 set(OPERATOR_SOURCE
-    operators/addoperator.cpp
+    operators/addoperator.cu
 )
 
 set(HEADERS
