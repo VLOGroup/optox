@@ -27,5 +27,5 @@ include_directories(${Boost_INCLUDE_DIRS})
 ##----------------------------------------------------------------------------
 ## Generate lib for MRI Reconstruction
 ##----------------------------------------------------------------------------
-cuda_add_library(pyaddoperator SHARED  pyaddoperator.cpp)
-finish_python_lib(pyaddoperator)
+cuda_add_library(PyAddOperator SHARED  pyaddoperator.cpp)
+finish_python_lib(PyAddOperator)

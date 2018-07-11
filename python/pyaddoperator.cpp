@@ -26,35 +26,58 @@ void mapFromPyObject(const bp::object &py_ob, optox::OperatorConfigDict &out_map
     bp::object py_val = py_val_fun();
     std::string value = std::string(bp::extract<const char *>(py_val));
     out_map[key] = value;
-    // unsigned int key = bp::extract<unsigned int>(keys[i]);
-    // out_map[key] = bp::extract<double>(py_dict[key]);
   }
 }
 
-template<template <typename, unsigned int> class TOperator, typename T, unsigned int N>
-void appendInput(bp::object& self, bp::object& py_arr)
+template <template <typename, unsigned int> class TOperator, typename T, unsigned int N>
+void appendInput(bp::object &self, bp::object &py_arr)
 {
-  TOperator<T, N>& op = bp::extract<TOperator<T, N>&>(self);
+  TOperator<T, N> &op = bp::extract<TOperator<T, N> &>(self);
   iu::LinearHostMemory<T, N> host_mem(py_arr);
   iu::LinearDeviceMemory<T, N> device_mem(host_mem.size());
   iu::copy(&host_mem, &device_mem);
-  op.appendInput(device_mem);
+  op.template appendInput<T, N>(device_mem);
 }
 
-template<template <typename, unsigned int> class TOperator, typename T, unsigned int N>
-void appendOutput(bp::object& self, bp::object& py_arr)
+template <template <typename, unsigned int> class TOperator, typename T, unsigned int N>
+void setInput(bp::object &self, bp::object &py_ob, bp::object &py_arr)
 {
-  TOperator<T, N>& op = bp::extract<TOperator<T, N>&>(self);
+  TOperator<T, N> &op = bp::extract<TOperator<T, N> &>(self);
+  int index = bp::extract<int>(py_ob);
+  iu::LinearHostMemory<T, N> host_mem(py_arr);
+  std::cout << host_mem << std::endl;
+  iu::LinearDeviceMemory<T, N> device_mem(host_mem.size());
+  iu::copy(&host_mem, &device_mem);
+  op.template setInput<T, N>(index, device_mem);
+}
+
+template <template <typename, unsigned int> class TOperator, typename T, unsigned int N>
+void appendOutput(bp::object &self, bp::object &py_arr)
+{
+  TOperator<T, N> &op = bp::extract<TOperator<T, N> &>(self);
   iu::LinearHostMemory<T, N> host_mem(py_arr);
   iu::LinearDeviceMemory<T, N> device_mem(host_mem.size());
   iu::copy(&host_mem, &device_mem);
-  op.appendOutput(device_mem);
+  op.template appendOutput<T, N>(device_mem);
 }
 
-template<template <typename, unsigned int> class TOperator, typename T, unsigned int N>
-void setConfig(bp::object& self, bp::object& py_ob)
+template <template <typename, unsigned int> class TOperator, typename T, unsigned int N>
+PyObject *getOutput(bp::object &self, bp::object &py_ob)
 {
-  TOperator<T, N>& op = bp::extract<TOperator<T, N>&>(self);
+  TOperator<T, N> &op = bp::extract<TOperator<T, N> &>(self);
+  int index = bp::extract<int>(py_ob);
+  iu::LinearDeviceMemory<T, N> *output = op.template getOutput<T, N>(index);
+
+  std::cout << "start copy" << output->size() << std::endl;
+  PyObject * res = iu::python::PyArray_from_LinearDeviceMemory(*output);
+  std::cout << "done copy" << std::endl;
+  return res;
+}
+
+template <template <typename, unsigned int> class TOperator, typename T, unsigned int N>
+void setConfig(bp::object &self, bp::object &py_ob)
+{
+  TOperator<T, N> &op = bp::extract<TOperator<T, N> &>(self);
   // extract the python dictionary
   optox::OperatorConfigDict config;
   mapFromPyObject(py_ob, config);
@@ -65,30 +88,21 @@ void setConfig(bp::object& self, bp::object& py_ob)
 // create python module
 //==============================================================================
 
-BOOST_PYTHON_MODULE(pyaddoperator)  // name must (!) be the same as the resulting *.so file
+BOOST_PYTHON_MODULE(PyAddOperator) // name must (!) be the same as the resulting *.so file
 // get python ImportError about missing init function otherwise
 // probably best to sort it out in cmake...
 {
-    import_array();                   // initialize numpy c-api
-    bp::register_exception_translator<iu::python::Exc>(
-        &iu::python::ExcTranslator);
+  import_array(); // initialize numpy c-api
+  bp::register_exception_translator<iu::python::Exc>(
+      &iu::python::ExcTranslator);
 
-    // // Cartesian MRI operator
-    // bp::class_<MriCartesianOperator<InputType, OutputType>,
-    //     std::shared_ptr<MriCartesianOperator<InputType, OutputType>>,
-    //     boost::noncopyable>("MriCartesianOperator", bp::init<>())
-    //     .def(bp::self_ns::str(bp::self))  // allow debug printing
-    //     .def("setMask", setMask<MriCartesianOperator, InputType, OutputType>)
-    //     .def("setCoilSens", setCoilSens<MriCartesianOperator, InputType, OutputType>)
-    //     .def("forward", forward<MriCartesianOperator, InputType, OutputType>)
-    //     .def("adjoint", adjoint<MriCartesianOperator, InputType, OutputType>);
-
-
-    bp::class_<optox::AddOperator<float, 1>,
-        std::shared_ptr<optox::AddOperator<float, 1>>,
-        boost::noncopyable>("AddOperator", bp::init<>())
-        .def("appendInput", appendInput<optox::AddOperator, float, 1>)
-        .def("appendOutput", appendOutput<optox::AddOperator, float, 1>)
-        .def("setConfig", setConfig<optox::AddOperator, float, 1>)
-        .def("apply", &optox::AddOperator<float, 1>::apply);
+  bp::class_<optox::AddOperator<float, 1>,
+             std::shared_ptr<optox::AddOperator<float, 1>>,
+             boost::noncopyable>("AddOperator", bp::init<>())
+      .def("append_input", appendInput<optox::AddOperator, float, 1>)
+      .def("set_input", setInput<optox::AddOperator, float, 1>)
+      .def("append_output", appendOutput<optox::AddOperator, float, 1>)
+      .def("get_output", getOutput<optox::AddOperator, float, 1>)
+      .def("set_config", setConfig<optox::AddOperator, float, 1>)
+      .def("apply", &optox::AddOperator<float, 1>::apply);
 }

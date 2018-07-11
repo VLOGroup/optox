@@ -197,16 +197,14 @@ public:
   template<typename T, unsigned int N>
   iu::LinearDeviceMemory<T, N> *getInput(int index)
   {
-    if (index >= 0 && index < inputs_.size())
-    {
-      Tensor<T, N> *t = dynamic_cast<Tensor<T, N> *>(inputs_[index]);
-      if (t != nullptr)
-        return t->getLinearDeviceMemory();
-      else
-        THROW_IUEXCEPTION("Cannot cast input to desired type!");
-    }
-    else
-      THROW_IUEXCEPTION("Inputss index out of bounds!");
+    return getIO<T, N>(index, inputs_);
+  }
+
+  template<typename T, unsigned int N>
+  void setInput(int index, iu::LinearDeviceMemory<T, N> &new_input)
+  {
+    auto input = getIO<T, N>(index, inputs_);
+    iu::copy(&new_input, input);
   }
 
   template<typename T, unsigned int N>
@@ -218,16 +216,7 @@ public:
   template<typename T, unsigned int N>
   iu::LinearDeviceMemory<T, N> *getOutput(int index)
   {
-    if (index >= 0 && index < inputs_.size())
-    {
-      Tensor<T, N> *t = dynamic_cast<Tensor<T, N> *>(outputs_[index]);
-      if (t != nullptr)
-        return t->getLinearDeviceMemory();
-      else
-        THROW_IUEXCEPTION("Cannot cast output to desired type!");
-    }
-    else
-      THROW_IUEXCEPTION("Outputss index out of bounds!");
+    return getIO<T, N>(index, outputs_);
   }
 
   void setConfig(const OperatorConfigDict &dict)
@@ -262,6 +251,22 @@ public:
 
   /** No assignments are allowed. */
   void operator=(IOperator const&) = delete;
+
+private:
+  template<typename T, unsigned int N>
+  iu::LinearDeviceMemory<T, N> *getIO(int index, const OperatorIOs &ios)
+  {
+    if (index >= 0 && index < ios.size())
+    {
+      Tensor<T, N> *t = dynamic_cast<Tensor<T, N> *>(ios[index]);
+      if (t != nullptr)
+        return t->getLinearDeviceMemory();
+      else
+        THROW_IUEXCEPTION("Cannot cast io to desired type!");
+    }
+    else
+      THROW_IUEXCEPTION("IO index out of bounds!");
+  }
 
 protected:
   /** Operator configuration */
