@@ -10,10 +10,9 @@
 #include "tensorflow/core/framework/tensor.h"
 
 #include <iu/iucore/lineardevicememory.h>
-#include <iu/iumath.h>
 
-#include "tfaddoperator.h"
-#include "operators/addoperator.h"
+#include "tf_add_operator.h"
+#include "operators/add_operator.h"
 
 using namespace tensorflow;
 

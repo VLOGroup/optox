@@ -41,11 +41,11 @@ set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --expt-relaxed-constexpr -D GOOGLE_CUDA=
 ##----------------------------------------------------------------------------
 ## add operator
 ##----------------------------------------------------------------------------
-cuda_add_library(tfaddoperator SHARED tfaddoperator.cpp tfaddoperator.cu)
+cuda_add_library(TfAddOperator SHARED tf_add_operator.cpp tf_add_operator.cu)
 
-target_link_libraries(tfaddoperator optox ${IMAGEUTILITIES_LIBRARIES} "tensorflow_framework")
+target_link_libraries(TfAddOperator optox ${IMAGEUTILITIES_LIBRARIES} "tensorflow_framework")
 # remove lib prefix
-set_target_properties(tfaddoperator PROPERTIES PREFIX "" LINKER_LANGUAGE CXX)
+set_target_properties(TfAddOperator PROPERTIES PREFIX "" LINKER_LANGUAGE CXX)
 if(WIN32)
-    SET_TARGET_PROPERTIES(tfaddoperator PROPERTIES SUFFIX ".pyd")
+    SET_TARGET_PROPERTIES(TfAddOperator PROPERTIES SUFFIX ".pyd")
 endif(WIN32)

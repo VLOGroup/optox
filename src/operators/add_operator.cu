@@ -3,12 +3,11 @@
 ///@author Erich Kobler <erich.kobler@icg.tugraz.at>
 ///@date 09.07.2018
 
-#include "addoperator.h"
 
 #include <iu/iucore.h>
-#include <iu/iumath.h>
 
-#include "optoxmath.h"
+#include "add_operator.h"
+#include "optox_math.h"
 
 template<typename T, unsigned int N>
 void optox::AddOperator<T, N>::apply()

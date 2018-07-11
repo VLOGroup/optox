@@ -11,7 +11,7 @@
 #include <boost/python/overloads.hpp>
 #include <boost/python/dict.hpp>
 
-#include "operators/addoperator.h"
+#include "operators/add_operator.h"
 
 namespace bp = boost::python;
 

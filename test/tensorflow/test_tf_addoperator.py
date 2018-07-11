@@ -4,7 +4,7 @@ from tensorflow.python.client import timeline
 
 import numpy as np
 
-_tutorial = tf.load_op_library('../../lib/tf/tfaddoperator.so')
+_tutorial = tf.load_op_library('../../lib/tf/TfAddOperator.so')
 custom_add = _tutorial.custom_add
 
 shape = (1,10,10,1)

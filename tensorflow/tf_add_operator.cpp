@@ -15,7 +15,7 @@
 #include "tensorflow/core/util/tensor_format.h"
 #include "tensorflow/core/util/padding.h"
 
-#include "tfaddoperator.h"
+#include "tf_add_operator.h"
 
 using namespace tensorflow;
 using namespace std;

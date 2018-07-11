@@ -4,7 +4,7 @@
 #include <iu/iucore.h>
 #include <iu/iumatlab.h>
 
-#include "operators/addoperator.h"
+#include "operators/add_operator.h"
 
 typedef double real_type;
 

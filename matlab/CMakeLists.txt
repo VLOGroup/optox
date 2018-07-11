@@ -17,7 +17,7 @@ FIND_PACKAGE(Matlab_ICG)
 if(MATLAB_FOUND)
     INCLUDE_DIRECTORIES(${MATLAB_INCLUDE_DIR})
 
-    CUDA_ADD_LIBRARY(mex_add_operator SHARED  mexaddoperator.cpp OPTIONS "-DOPTOX_EXPORTS")
+    CUDA_ADD_LIBRARY(mex_add_operator SHARED  mex_add_operator.cpp OPTIONS "-DOPTOX_EXPORTS")
     finish_mex_lib(mex_add_operator)
 else(MATLAB_FOUND)
     message("   [-] Omitting matlab module. Matlab not found.")

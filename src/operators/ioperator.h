@@ -12,7 +12,6 @@
 #include <sstream>
 #include <map>
 
-#include <iu/iumath/typetraits.h>
 #include <iu/iucore.h>
 
 #include "optox_api.h"

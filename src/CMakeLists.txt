@@ -10,24 +10,24 @@ project(optoX)
 
 set(COMMON_HEADER
     optox_api.h
+    optox_math.h
 )
 
 set(OPERATOR_HEADER
     operators/ioperator.h
-    operators/addoperator.h
+    operators/add_operator.h
 )
 
 set(OPERATOR_SOURCE
-    operators/addoperator.cu
+    operators/add_operator.cu
 )
 
 set(HEADERS
-    #${COMMON_HEADER}
+    ${COMMON_HEADER}
     ${OPERATOR_HEADER}
 )
 
 set(SOURCES
-    #${COMMON_SOURCE}
     ${OPERATOR_SOURCE}
 )
 
