@@ -18,9 +18,9 @@ template<typename T, unsigned int N>
 void fill(iu::LinearDeviceMemory<T, N> &dst, const T &val, const cudaStream_t &stream)
 {
     thrust::fill(thrust::cuda::par.on(stream), dst.begin(),dst.end(),val);
-    #ifdef OPTOX_MATH_DEBUG
-        IU_CUDA_CHECK;
-    #endif
+#ifdef OPTOX_MATH_DEBUG
+    IU_CUDA_CHECK;
+#endif
 }
 
 template<typename T, unsigned int N>
@@ -29,9 +29,9 @@ void mulC(iu::LinearDeviceMemory<T, N> &src, const T &val,
 {
     thrust::transform(thrust::cuda::par.on(stream), src.begin(), src.end(),
         thrust::constant_iterator<T>(val),dst.begin(), thrust::multiplies<T>());
-    #ifdef OPTOX_MATH_DEBUG
-        IU_CUDA_CHECK;
-    #endif
+#ifdef OPTOX_MATH_DEBUG
+    IU_CUDA_CHECK;
+#endif
 }
 
 template <typename T>
@@ -60,9 +60,9 @@ void addWeighted(iu::LinearDeviceMemory<T, N> &src1, const T &weight1,
                         thrust::make_zip_iterator(thrust::make_tuple(src1.end(), src2.end())),
                         dst.begin(),
                         unary_op);
-    #ifdef OPTOX_MATH_DEBUG
-        IU_CUDA_CHECK;
-    #endif
+#ifdef OPTOX_MATH_DEBUG
+    IU_CUDA_CHECK;
+#endif
 }
 
 }
