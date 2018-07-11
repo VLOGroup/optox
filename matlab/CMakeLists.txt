@@ -4,6 +4,12 @@
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 include("../cmake/macros.cmake")
 
+##-----------------------------------------------------------------------------
+## Library output directory
+##-----------------------------------------------------------------------------
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib/matlab)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib/matlab)
+
 ##----------------------------------------------------------------------------
 ## Matlab
 ##----------------------------------------------------------------------------

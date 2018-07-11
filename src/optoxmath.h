@@ -12,14 +12,14 @@ namespace optox{
 
 namespace math{
 
-template<typename T, unsigned int N, typename L>
-void fill(iu::LinearDeviceMemory<T, N> &dst, const L &val, const cudaStream_t &stream)
+template<typename T, unsigned int N>
+void fill(iu::LinearDeviceMemory<T, N> &dst, const T &val, const cudaStream_t &stream)
 {
     thrust::fill(thrust::cuda::par.on(stream), dst.begin(),dst.end(),val);
 }
 
-template<typename T, unsigned int N, typename L>
-void mulC(iu::LinearDeviceMemory<T, N> &src, const L &val,
+template<typename T, unsigned int N>
+void mulC(iu::LinearDeviceMemory<T, N> &src, const T &val,
           iu::LinearDeviceMemory<T, N> &dst, const cudaStream_t &stream)
 {
     thrust::transform(thrust::cuda::par.on(stream), src.begin(), src.end(),
@@ -41,8 +41,8 @@ struct weightedsum_transform_tuple :
 };
 
 template<typename T, unsigned int N>
-void addWeighted(const iu::LinearDeviceMemory<T, N> &src1, const T &weight1,
-                 const iu::LinearDeviceMemory<T, N> &src2, const T &weight2,
+void addWeighted(iu::LinearDeviceMemory<T, N> &src1, const T &weight1,
+                 iu::LinearDeviceMemory<T, N> &src2, const T &weight2,
                  iu::LinearDeviceMemory<T, N> &dst,
                  const cudaStream_t &stream)
 {

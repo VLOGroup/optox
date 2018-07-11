@@ -1,5 +1,5 @@
 import sys
-sys.path.insert(0, '../../lib/')
+sys.path.insert(0, '../../lib/python')
 
 import PyAddOperator
 
@@ -17,7 +17,7 @@ op.append_output(c)
 
 op.set_config({"w_1": 1.0, "w_2": 1.0})
 
-op.set_input(0, a)
+#op.set_input(0, a)
 
 op.apply()
 

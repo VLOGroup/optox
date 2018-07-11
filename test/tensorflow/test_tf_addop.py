@@ -4,7 +4,7 @@ from tensorflow.python.client import timeline
 
 import numpy as np
 
-_tutorial = tf.load_op_library('../../lib/tfaddoperator.so')
+_tutorial = tf.load_op_library('../../lib/tf/tfaddoperator.so')
 custom_add = _tutorial.custom_add
 
 shape = (1,10,10,1)
@@ -32,14 +32,13 @@ run_metadata = tf.RunMetadata()
 with tf.Session(config=config) as sess:
     feed = {a: a_data, b: b_data}
     result, _ = sess.run([c, c_cust], feed)
-    _, result = sess.run([c, c_cust], feed_dict=feed, options=options, run_metadata=run_metadata)
+#    _, result = sess.run([c, c_cust], feed_dict=feed, options=options, run_metadata=run_metadata)
     expected = sess.run(c, feed_dict=feed)
     print(np.array_equal(expected,result))
-    print(result)
 
     # Create the Timeline object, and write it to a json file
-    fetched_timeline = timeline.Timeline(run_metadata.step_stats)
-    chrome_trace = fetched_timeline.generate_chrome_trace_format()
-    with open('timeline_01.json', 'w') as f:
-        f.write(chrome_trace)
+#    fetched_timeline = timeline.Timeline(run_metadata.step_stats)
+#    chrome_trace = fetched_timeline.generate_chrome_trace_format()
+#    with open('timeline_01.json', 'w') as f:
+#        f.write(chrome_trace)
 

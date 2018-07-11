@@ -85,8 +85,6 @@ class OPTOX_DLLAPI OperatorConfig
 public:
   OperatorConfig(const OperatorConfigDict &config = OperatorConfigDict()): dict_(config)
   {
-    for (const auto& kv : dict_)
-      std::cout << kv.first << ": " << kv.second << std::endl;
   }
 
   /** Get the value for a specific configuration parameter.
@@ -96,21 +94,15 @@ public:
   template<typename T>
   T getValue(const std::string &key) const
   {
-    for (const auto& kv : dict_)
-      std::cout << kv.first << ": " << kv.second << std::endl;
     auto iter = dict_.find(key);
     if (iter == dict_.end())
-    {
-      std::cout << "key=" << key << std::endl;
       THROW_IUEXCEPTION("key not found!");
-    }
     else
     {
       std::stringstream ss;
       ss << iter->second;
       T ret;
       ss >> ret;
-      std::cout << "key=" << key << " val=" << iter->second << " ret=" << ret << std::endl;
       if (ss.fail())
         THROW_IUEXCEPTION("could not parse!");
       return ret;

@@ -1,4 +1,5 @@
 build*/
+lib/
 doc/
 *.asv
 **/results/
@@ -21,7 +22,12 @@ install_manifest.txt
 *.bin
 *.pkl
 *.mat
+*.json
 out/*
+
+##################
+# VSCode
+##################
 .vscode
 
 ##################

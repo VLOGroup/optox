@@ -31,8 +31,6 @@ void applyAddOperator<T>::operator()(const GPUDevice& d,
 	iu::LinearDeviceMemory<T, 1> iu_b(const_cast<T*>(b_flat.data()), size, true);
 
 	iu::LinearDeviceMemory<T, 1> iu_out(output.data(), size, true);
-	std::cout << "o: " << output.data() << std::endl;
-	std::cout << "iu: " << iu_out.data() << std::endl;
 
 	optox::AddOperator<T, 1> op;
 
