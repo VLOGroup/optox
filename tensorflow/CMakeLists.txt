@@ -49,3 +49,18 @@ set_target_properties(TfAddOperator PROPERTIES PREFIX "" LINKER_LANGUAGE CXX)
 if(WIN32)
     SET_TARGET_PROPERTIES(TfAddOperator PROPERTIES SUFFIX ".pyd")
 endif(WIN32)
+
+
+##----------------------------------------------------------------------------
+## gpuNUFFT operator
+##----------------------------------------------------------------------------
+if(WITH_GPUNUFFT)
+    cuda_add_library(TfGpuNufftOperator SHARED tf_gpu_nufft_operator.cpp)
+
+    target_link_libraries(TfGpuNufftOperator ${GPUNUFFT_LIBRARIES} "tensorflow_framework")
+    # remove lib prefix
+    set_target_properties(TfGpuNufftOperator PROPERTIES PREFIX "" LINKER_LANGUAGE CXX)
+    if(WIN32)
+        SET_TARGET_PROPERTIES(TfGpuNufftOperator PROPERTIES SUFFIX ".pyd")
+    endif(WIN32)
+endif(WITH_GPUNUFFT)

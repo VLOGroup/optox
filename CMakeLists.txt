@@ -26,6 +26,19 @@ set(ImageUtilities_DIR $ENV{IMAGEUTILITIES_ROOT})
 find_package(ImageUtilities REQUIRED COMPONENTS iucore iumath)
 include_directories(${IMAGEUTILITIES_INCLUDE_DIR})
 
+##-----------------------------------------------------------------------------
+## gpuNUFFT
+##-----------------------------------------------------------------------------
+option(WITH_GPUNUFFT "Use gpuNUFFT for non-uniform MRI operator. Requires GPUNUFFT_ROOT to be set." ON)
+
+if(WITH_GPUNUFFT)
+    message(STATUS "Use gpuNUFFT (required for non-uniform MRI operator)")
+    find_package(GPUNUFFT REQUIRED)
+    include_directories(${GPUNUFFT_INCLUDE_DIRS})
+else(WITH_GPUNUFFT)
+    message(STATUS "Disable gpuNUFFT (required for non-uniform MRI operator)")
+endif(WITH_GPUNUFFT)
+
 include_directories(src)
 add_subdirectory(src)
 add_subdirectory(python)
