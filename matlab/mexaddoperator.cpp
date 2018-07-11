@@ -7,7 +7,6 @@
 #include "operators/addoperator.h"
 
 typedef double real_type;
-typedef iu::type_trait<real_type>::vec_type vec_type;
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
