@@ -186,13 +186,13 @@ public:
   }
 
   template<typename T, unsigned int N>
-  iu::LinearDeviceMemory<T, N> *getInput(int index)
+  const iu::LinearDeviceMemory<T, N> *getInput(int index)
   {
     return getIO<T, N>(index, inputs_);
   }
 
   template<typename T, unsigned int N>
-  void setInput(int index, iu::LinearDeviceMemory<T, N> &new_input)
+  void setInput(int index, const iu::LinearDeviceMemory<T, N> &new_input)
   {
     auto input = getIO<T, N>(index, inputs_);
     iu::copy(&new_input, input);

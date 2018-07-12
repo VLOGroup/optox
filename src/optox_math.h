@@ -24,7 +24,7 @@ void fill(iu::LinearDeviceMemory<T, N> &dst, const T &val, const cudaStream_t &s
 }
 
 template<typename T, unsigned int N>
-void mulC(iu::LinearDeviceMemory<T, N> &src, const T &val,
+void mulC(const iu::LinearDeviceMemory<T, N> &src, const T &val,
           iu::LinearDeviceMemory<T, N> &dst, const cudaStream_t &stream)
 {
     thrust::transform(thrust::cuda::par.on(stream), src.begin(), src.end(),
@@ -35,31 +35,29 @@ void mulC(iu::LinearDeviceMemory<T, N> &src, const T &val,
 }
 
 template <typename T>
-struct weightedsum_transform_tuple :
-        public thrust::unary_function< thrust::tuple<T, T>, T>
+struct WeightedSumBinaryFunction : public thrust::binary_function<const T, const T, T>
 {
-    typedef typename thrust::tuple<T,T> InputTuple;
-    T w1,w2;
-    weightedsum_transform_tuple(T _w1, T _w2) : w1(_w1), w2(_w2) {}
+    T w_1, w_2;
+    WeightedSumBinaryFunction(T _w1, T _w2): w_1(_w1), w_2(_w2) {}
     __host__ __device__
-    T operator()(const InputTuple& t) const
-    {
-        return thrust::get<0>(t)*w1+thrust::get<1>(t)*w2;
+    T operator()(const T x, const T y) const
+    { 
+        return w_1 * x + w_2 * y;
     }
 };
 
 template<typename T, unsigned int N>
-void addWeighted(iu::LinearDeviceMemory<T, N> &src1, const T &weight1,
-                 iu::LinearDeviceMemory<T, N> &src2, const T &weight2,
+void addWeighted(const iu::LinearDeviceMemory<T, N> &src_1, const T &weight_1,
+                 const iu::LinearDeviceMemory<T, N> &src_2, const T &weight_2,
                  iu::LinearDeviceMemory<T, N> &dst,
                  const cudaStream_t &stream)
 {
-    weightedsum_transform_tuple<T> unary_op(weight1, weight2);
-    thrust::transform(thrust::cuda::par.on(stream), 
-                        thrust::make_zip_iterator(thrust::make_tuple(src1.begin(), src2.begin())),
-                        thrust::make_zip_iterator(thrust::make_tuple(src1.end(), src2.end())),
+    WeightedSumBinaryFunction<T> binary_op(weight_1, weight_2);
+    thrust::transform(thrust::cuda::par.on(stream),
+                        src_1.begin(), src_1.end(),
+                        src_2.begin(),
                         dst.begin(),
-                        unary_op);
+                        binary_op);
 #ifdef OPTOX_MATH_DEBUG
     IU_CUDA_CHECK;
 #endif
