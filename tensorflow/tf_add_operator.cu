@@ -26,6 +26,7 @@ void applyAddOperator<T>::operator()(const GPUDevice& d,
 {
 	iu::Size<1> size(output.size());
 
+	// FIXME: support const LinearDeviceMemory
 	iu::LinearDeviceMemory<T, 1> iu_a(const_cast<T*>(a_flat.data()), size, true);
 	iu::LinearDeviceMemory<T, 1> iu_b(const_cast<T*>(b_flat.data()), size, true);
 

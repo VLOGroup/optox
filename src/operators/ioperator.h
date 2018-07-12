@@ -43,20 +43,24 @@ template<typename T, unsigned int N>
 class OPTOX_DLLAPI Tensor : public ITensor
 {
 public:
-  Tensor(iu::LinearHostMemory<T, N> &host_mem): device_mem_(nullptr)
+  Tensor(const iu::LinearHostMemory<T, N> &host_mem): device_mem_(nullptr)
   {
     device_mem_ = new iu::LinearDeviceMemory<T, N>(host_mem.size());
     iu::copy(&host_mem, device_mem_);
   }
 
-  Tensor(iu::LinearDeviceMemory<T, N> &dev_mem, bool ext_data_pointer = false): device_mem_(nullptr)
+  Tensor(const iu::LinearDeviceMemory<T, N> &dev_mem, bool ext_data_pointer = false): device_mem_(nullptr)
   {
-    device_mem_ = new iu::LinearDeviceMemory<T, N>(dev_mem.data(), dev_mem.size(), ext_data_pointer);
+    // FIXME: add support for const memory to iu
+    device_mem_ = new iu::LinearDeviceMemory<T, N>(const_cast<T *>(dev_mem.data()), 
+                    dev_mem.size(), ext_data_pointer);
   }
 
-  Tensor(T *dev_ptr, const iu::Size<N> &size, bool ext_data_pointer = false): device_mem_(nullptr)
+  Tensor(const T *dev_ptr, const iu::Size<N> &size, bool ext_data_pointer = false): device_mem_(nullptr)
   {
-    device_mem_ = new iu::LinearDeviceMemory<T, N>(dev_ptr, size, ext_data_pointer);
+    // FIXME: add support for const memory to iu
+    device_mem_ = new iu::LinearDeviceMemory<T, N>(const_cast<T *>(dev_ptr), 
+                    size, ext_data_pointer);
   }
 
   virtual ~Tensor()
@@ -180,9 +184,15 @@ public:
   virtual void apply() = 0;
 
   template<typename T, unsigned int N>
-  void appendInput(iu::LinearDeviceMemory<T, N> &input, bool copy = false)
+  void appendInput(const iu::LinearDeviceMemory<T, N> &input, bool copy = false)
   {
     inputs_.push_back(new Tensor<T, N>(input, not copy));
+  }
+
+  template<typename T, unsigned int N>
+  void appendInput(const iu::LinearHostMemory<T, N> &input)
+  {
+    inputs_.push_back(new Tensor<T, N>(input));
   }
 
   template<typename T, unsigned int N>
@@ -199,9 +209,22 @@ public:
   }
 
   template<typename T, unsigned int N>
+  void setInput(int index, const iu::LinearHostMemory<T, N> &new_input)
+  {
+    auto input = getIO<T, N>(index, inputs_);
+    iu::copy(&new_input, input);
+  }
+
+  template<typename T, unsigned int N>
   void appendOutput(iu::LinearDeviceMemory<T, N> &output, bool copy = false)
   {
     outputs_.push_back(new Tensor<T, N>(output, not copy));
+  }
+
+  template<typename T, unsigned int N>
+  void appendOutput(iu::LinearHostMemory<T, N> &output)
+  {
+    outputs_.push_back(new Tensor<T, N>(output));
   }
 
   template<typename T, unsigned int N>

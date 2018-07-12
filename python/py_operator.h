@@ -35,10 +35,8 @@ void appendInput(bp::object &self, bp::object &py_arr)
 {
   TOperator<T, N> &op = bp::extract<TOperator<T, N> &>(self);
   iu::LinearHostMemory<T, N> host_mem(py_arr);
-  iu::LinearDeviceMemory<T, N> device_mem(host_mem.size());
-  iu::copy(&host_mem, &device_mem);
   // here we need to copy the data since its lifetime continues
-  op.template appendInput<T, N>(device_mem, true);
+  op.template appendInput<T, N>(host_mem);
 }
 
 template <template <typename, unsigned int> class TOperator, typename T, unsigned int N>
@@ -47,9 +45,7 @@ void setInput(bp::object &self, bp::object &py_ob, bp::object &py_arr)
   TOperator<T, N> &op = bp::extract<TOperator<T, N> &>(self);
   int index = bp::extract<int>(py_ob);
   iu::LinearHostMemory<T, N> host_mem(py_arr);
-  iu::LinearDeviceMemory<T, N> device_mem(host_mem.size());
-  iu::copy(&host_mem, &device_mem);
-  op.template setInput<T, N>(index, device_mem);
+  op.template setInput<T, N>(index, host_mem);
 }
 
 template <template <typename, unsigned int> class TOperator, typename T, unsigned int N>
@@ -57,9 +53,7 @@ void appendOutput(bp::object &self, bp::object &py_arr)
 {
   TOperator<T, N> &op = bp::extract<TOperator<T, N> &>(self);
   iu::LinearHostMemory<T, N> host_mem(py_arr);
-  iu::LinearDeviceMemory<T, N> device_mem(host_mem.size());
-  iu::copy(&host_mem, &device_mem);
-  op.template appendOutput<T, N>(device_mem, true);
+  op.template appendOutput<T, N>(host_mem);
 }
 
 template <template <typename, unsigned int> class TOperator, typename T, unsigned int N>
