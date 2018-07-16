@@ -31,7 +31,7 @@ run_metadata = tf.RunMetadata()
 
 with tf.Session(config=config) as sess:
     feed = {a: a_data, b: b_data}
-    result, _ = sess.run([c, c_cust], feed)
+    _, result = sess.run([c, c_cust], feed)
 #    _, result = sess.run([c, c_cust], feed_dict=feed, options=options, run_metadata=run_metadata)
     expected = sess.run(c, feed_dict=feed)
     print(np.array_equal(expected,result))

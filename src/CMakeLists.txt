@@ -10,7 +10,6 @@ project(optoX)
 
 set(COMMON_HEADER
     optox_api.h
-    optox_math.h
 )
 
 set(OPERATOR_HEADER

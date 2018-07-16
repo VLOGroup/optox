@@ -5,9 +5,9 @@
 
 
 #include <iu/iucore.h>
+#include <iu/iumath.h>
 
 #include "add_operator.h"
-#include "optox_math.h"
 
 template<typename T, unsigned int N>
 void optox::AddOperator<T, N>::apply()
@@ -20,7 +20,7 @@ void optox::AddOperator<T, N>::apply()
     T w_1 = this->config_.template getValue<T>("w_1");
     T w_2 = this->config_.template getValue<T>("w_2");
 
-    optox::math::addWeighted<T, N>(*in_0, w_1, *in_1, w_2, *out, this->stream_);
+    iu::math::addWeighted(*in_0, w_1, *in_1, w_2, *out, this->stream_);
 }
 
 template<typename T, unsigned int N>
@@ -34,8 +34,8 @@ void optox::AddOperatorAdjoint<T, N>::apply()
     T w_1 = this->config_.template getValue<T>("w_1");
     T w_2 = this->config_.template getValue<T>("w_2");
 
-    optox::math::mulC<T, N>(*in_0, w_1, *out_0, this->stream_);
-    optox::math::mulC<T, N>(*in_0, w_2, *out_1, this->stream_);
+    iu::math::mulC(*in_0, w_1, *out_0, this->stream_);
+    iu::math::mulC(*in_0, w_2, *out_1, this->stream_);
 }
 
 
