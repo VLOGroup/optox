@@ -15,6 +15,7 @@
 #include "tensorflow/core/util/tensor_format.h"
 #include "tensorflow/core/util/padding.h"
 
+#include "tf_gpu_nufft_operator.h"
 #include <gpuNUFFT_operator_factory.hpp>
 
 using namespace tensorflow;
@@ -91,72 +92,17 @@ public:
 		// Reshape the output
 		auto rawdata = rawdata_tensor->flat_inner_dims<complex64, 3>();
 
-		// create NUFFT operator
-		gpuNUFFT::Dimensions img_dims;
-		img_dims.width = img_dim_;
-		img_dims.height = img_dim_;
-		img_dims.depth = 0;
-
-		gpuNUFFT::GpuNUFFTOperatorFactory factory(true,true,true);
-		gpuNUFFT::GpuNUFFTOperator* nufft_op = nullptr;
-
-		// loop over samples
-		int samples = dcf.dimensions()[0];
-		std::cout << "samples: " << samples << std::endl;
-
-		gpuNUFFT::Array<float> trajectory_gpunufft;
-		std::cout << "dcf length: " << dcf.dimensions()[1] << std::endl;
-		trajectory_gpunufft.dim.length = dcf.dimensions()[1];
-		int trajectory_offset = trajectory.size() / samples;
-
-		gpuNUFFT::Array<float> dcf_gpunufft;
-		dcf_gpunufft.dim.length = dcf.dimensions()[1];
-		int dcf_offset = dcf.size() / samples;
-
-		gpuNUFFT::Array<float2> sensitivities_gpunufft;
-		sensitivities_gpunufft.dim = img_dims;
-		std::cout << "nCoils: " << sensitivities.dimensions()[1] << std::endl;
-		sensitivities_gpunufft.dim.channels = sensitivities.dimensions()[1];
-		int sensitivities_offset = sensitivities.size() / samples;
-
-		gpuNUFFT::Array<float2> img_gpunufft;
-		img_gpunufft.dim = img_dims;
-		int img_offset = img.size() / samples;
-
-		gpuNUFFT::Array<float2> rawdata_gpunufft;
-		std::cout << "rawdata length: " << rawdata.dimensions()[2] << std::endl;
-		std::cout << "rawdata channels: " << rawdata.dimensions()[1] << std::endl;
-		rawdata_gpunufft.dim.length = rawdata.dimensions()[2];
-		rawdata_gpunufft.dim.channels = rawdata.dimensions()[1];
-		int rawdata_offset = rawdata.size() / samples;
-
-		std::cout << "trajectory_offset " << trajectory_offset << std::endl;
-		std::cout << "dcf_offset " << dcf_offset << std::endl;
-		std::cout << "sensitivities_offset " << sensitivities_offset << std::endl;
-		std::cout << "rawdata_offset " << rawdata_offset << std::endl;
-		std::cout << "image_offset " << img_offset << std::endl;
-
-		for (int n = 0; n < samples; n++)
-		{
-			trajectory_gpunufft.data = trajectory.data() + n * trajectory_offset;
-			dcf_gpunufft.data = dcf.data() + n * dcf_offset;
-			sensitivities_gpunufft.data = const_cast<float2*>(reinterpret_cast<const float2*>(sensitivities.data())) + n * sensitivities_offset;
-
-			gpuNUFFT::GpuNUFFTOperator* nufft_op = factory.createGpuNUFFTOperator(trajectory_gpunufft,
-													dcf_gpunufft, 
-													sensitivities_gpunufft,
-													kernel_width_,
-													sector_width_,
-													osf_,
-													img_dims);
-			
-			img_gpunufft.data = const_cast<float2*>(reinterpret_cast<const float2*>(img.data())) + n * img_offset;
-			rawdata_gpunufft.data = const_cast<float2*>(reinterpret_cast<const float2*>(rawdata.data())) + n * rawdata_offset;
-
-			nufft_op->performForwardGpuNUFFT(img_gpunufft, rawdata_gpunufft);
-
-			delete nufft_op;
-		}
+		applyGpuNufftForwardOperator()(context->eigen_device<GPUDevice>(),
+		                               rawdata,
+									   img,
+									   sensitivities,
+									   trajectory,
+									   dcf,
+									   osf_,
+									   sector_width_,
+									   kernel_width_,
+									   img_dim_
+									  );
 	}
 
 protected:
@@ -208,71 +154,17 @@ public:
 		// Reshape the output
 		auto img = img_tensor->flat_inner_dims<complex64, 3>();
 
-		// create NUFFT operator
-		gpuNUFFT::Dimensions img_dims;
-		img_dims.width = img_dim_;
-		img_dims.height = img_dim_;
-		img_dims.depth = 0;
-
-		gpuNUFFT::GpuNUFFTOperatorFactory factory(true,true,true);
-		
-		// loop over samples
-		int samples = dcf.dimensions()[0];
-		std::cout << "samples: " << samples << std::endl;
-
-		gpuNUFFT::Array<float> trajectory_gpunufft;
-		std::cout << "dcf length: " << dcf.dimensions()[1] << std::endl;
-		trajectory_gpunufft.dim.length = dcf.dimensions()[1];
-		int trajectory_offset = trajectory.size() / samples;
-
-		gpuNUFFT::Array<float> dcf_gpunufft;
-		dcf_gpunufft.dim.length = dcf.dimensions()[1];
-		int dcf_offset = dcf.size() / samples;
-
-		gpuNUFFT::Array<float2> sensitivities_gpunufft;
-		sensitivities_gpunufft.dim = img_dims;
-		std::cout << "nCoils: " << sensitivities.dimensions()[1] << std::endl;
-		sensitivities_gpunufft.dim.channels = sensitivities.dimensions()[1];
-		int sensitivities_offset = sensitivities.size() / samples;
-
-		gpuNUFFT::Array<float2> img_gpunufft;
-		img_gpunufft.dim = img_dims;
-		int img_offset = img.size() / samples;
-
-		gpuNUFFT::Array<float2> rawdata_gpunufft;
-		std::cout << "rawdata length: " << rawdata.dimensions()[2] << std::endl;
-		std::cout << "rawdata channels: " << rawdata.dimensions()[1] << std::endl;
-		rawdata_gpunufft.dim.length = rawdata.dimensions()[2];
-		rawdata_gpunufft.dim.channels = rawdata.dimensions()[1];
-		int rawdata_offset = rawdata.size() / samples;
-
-		std::cout << "trajectory_offset " << trajectory_offset << std::endl;
-		std::cout << "dcf_offset " << dcf_offset << std::endl;
-		std::cout << "sensitivities_offset " << sensitivities_offset << std::endl;
-		std::cout << "rawdata_offset " << rawdata_offset << std::endl;
-		std::cout << "img_offset " << img_offset << std::endl;
-
-		for (int n = 0; n < samples; n++)
-		{
-			trajectory_gpunufft.data = trajectory.data() + n * trajectory_offset;
-			dcf_gpunufft.data = dcf.data() + n * dcf_offset;
-			sensitivities_gpunufft.data = const_cast<float2*>(reinterpret_cast<const float2*>(sensitivities.data())) + n * sensitivities_offset;
-
-			gpuNUFFT::GpuNUFFTOperator* nufft_op = factory.createGpuNUFFTOperator(trajectory_gpunufft,
-													dcf_gpunufft, 
-													sensitivities_gpunufft,
-													kernel_width_,
-													sector_width_,
-													osf_,
-													img_dims);
-			
-			img_gpunufft.data = const_cast<float2*>(reinterpret_cast<const float2*>(img.data())) + n * img_offset;
-			rawdata_gpunufft.data = const_cast<float2*>(reinterpret_cast<const float2*>(rawdata.data())) + n * rawdata_offset;
-
-			nufft_op->performGpuNUFFTAdj(rawdata_gpunufft, img_gpunufft);
-
-			delete nufft_op;
-		}
+		applyGpuNufftAdjointOperator()(context->eigen_device<GPUDevice>(),
+		                               img,
+									   rawdata,
+									   sensitivities,
+									   trajectory,
+									   dcf,
+									   osf_,
+									   sector_width_,
+									   kernel_width_,
+									   img_dim_
+									  );
 	}
 
 protected:

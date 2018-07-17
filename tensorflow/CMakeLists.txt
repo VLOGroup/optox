@@ -55,7 +55,7 @@ endif(WIN32)
 ## gpuNUFFT operator
 ##----------------------------------------------------------------------------
 if(WITH_GPUNUFFT)
-    cuda_add_library(TfGpuNufftOperator SHARED tf_gpu_nufft_operator.cpp)
+    cuda_add_library(TfGpuNufftOperator SHARED tf_gpu_nufft_operator.cpp tf_gpu_nufft_operator.cu)
 
     target_link_libraries(TfGpuNufftOperator ${GPUNUFFT_LIBRARIES} "tensorflow_framework")
     # remove lib prefix

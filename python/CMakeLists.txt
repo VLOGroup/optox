@@ -28,7 +28,7 @@ find_package(Boost REQUIRED COMPONENTS python)
 include_directories(${Boost_INCLUDE_DIRS})
 
 ##----------------------------------------------------------------------------
-## Generate lib for MRI Reconstruction
+## Generate lib for Add Operator
 ##----------------------------------------------------------------------------
 cuda_add_library(PyAddOperator SHARED  py_add_operator.cpp)
 finish_python_lib(PyAddOperator)

@@ -29,7 +29,7 @@ include_directories(${IMAGEUTILITIES_INCLUDE_DIR})
 ##-----------------------------------------------------------------------------
 ## gpuNUFFT
 ##-----------------------------------------------------------------------------
-option(WITH_GPUNUFFT "Use gpuNUFFT for non-uniform MRI operator. Requires GPUNUFFT_ROOT to be set." ON)
+option(WITH_GPUNUFFT "Use gpuNUFFT for non-uniform MRI operator. Requires GPUNUFFT_ROOT to be set." OFF)
 
 if(WITH_GPUNUFFT)
     message(STATUS "Use gpuNUFFT (required for non-uniform MRI operator)")
