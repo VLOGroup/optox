@@ -236,9 +236,9 @@ class OPTOX_DLLAPI IOperator
                                 const OperatorInputVector &inputs) = 0;
 
     /** Number of rquired outputs for the forward op */
-    virtual unsigned int getNumOutputsForwad() = 0;
+    virtual unsigned int getNumOutputsForward() = 0;
     /** Number of rquired inputs for the forward op */
-    virtual unsigned int getNumInputsForwad() = 0;
+    virtual unsigned int getNumInputsForward() = 0;
 
     virtual unsigned int getNumOutputsAdjoint()
     {
