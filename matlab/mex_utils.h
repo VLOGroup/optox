@@ -1,3 +1,8 @@
+///@file mex_utils.h
+///@brief utility functions for matlab to optox
+///@author Erich Kobler <erich.kobler@icg.tugraz.at>
+///@date 09.07.2018
+
 #include <mex.h>
 #include <iu/iumatlab.h>
 

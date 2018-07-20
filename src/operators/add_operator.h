@@ -1,4 +1,4 @@
-///@file addoperator.h
+///@file add_operator.h
 ///@brief Operator that adds two inputs and returns the result
 ///@author Erich Kobler <erich.kobler@icg.tugraz.at>
 ///@date 09.07.2018
@@ -12,17 +12,18 @@ template <typename T, unsigned int N>
 class OPTOX_DLLAPI AddOperator : public IOperator
 {
   public:
-    /** Constructor.
-   */
     AddOperator() : IOperator()
     {
     }
 
-    /** Destructor */
     virtual ~AddOperator()
     {
     }
 
+    AddOperator(AddOperator const &) = delete;
+    void operator=(AddOperator const &) = delete;
+
+  protected:
     virtual void computeForward(OperatorOutputVector &&outputs,
                                 const OperatorInputVector &inputs);
 
@@ -48,12 +49,6 @@ class OPTOX_DLLAPI AddOperator : public IOperator
     {
         return 1;
     }
-
-    /** No copies are allowed. */
-    AddOperator(AddOperator const &) = delete;
-
-    /** No assignments are allowed. */
-    void operator=(AddOperator const &) = delete;
 };
 
 } // namespace optox

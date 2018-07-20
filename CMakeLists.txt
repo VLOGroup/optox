@@ -1,6 +1,6 @@
-# @project pdToolbox - Primal-Dual Toolbox
-# @author Kerstin Hammernik <hammernik@icg.tugraz.at>
-# @date 01.09.2016
+# @project optox - operator to X 
+# @author Erich Kobler <erich.kobler@icg.tugraz.at>
+# @date 01.07.2018
 
 project(optoX)
 

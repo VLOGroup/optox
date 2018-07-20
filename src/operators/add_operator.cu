@@ -1,4 +1,4 @@
-///@file addoperator.cpp
+///@file add_operator.cpp
 ///@brief Operator that adds two inputs and returns the result
 ///@author Erich Kobler <erich.kobler@icg.tugraz.at>
 ///@date 09.07.2018

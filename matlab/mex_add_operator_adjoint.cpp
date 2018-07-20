@@ -1,3 +1,8 @@
+///@file mex_add_operator_adjoint.cpp
+///@brief python wrappers for the basic add operator adjoint
+///@author Erich Kobler <erich.kobler@icg.tugraz.at>
+///@date 01.07.2018
+
 #include <mex.h>
 
 #include <iu/iucore.h>

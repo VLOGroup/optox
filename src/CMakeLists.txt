@@ -1,6 +1,6 @@
-# @project optox - GPU Operators to X
+# @project optox - operator to X 
 # @author Erich Kobler <erich.kobler@icg.tugraz.at>
-# @date 09.07.2018
+# @date 01.07.2018
 
 project(optoX)
 

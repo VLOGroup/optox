@@ -1,6 +1,6 @@
-# @project pdToolbox - Primal-Dual Toolbox
-# @author Kerstin Hammernik <hammernik@icg.tugraz.at>
-# @date 01.09.2016
+# @project optox - operator to X 
+# @author Erich Kobler <erich.kobler@icg.tugraz.at>
+# @date 01.07.2018
 
 ##----------------------------------------------------------------------------
 ## CMake definitions
@@ -27,8 +27,6 @@ include_directories(${NUMPY_INCLUDE_DIRS})
 find_package(Boost REQUIRED COMPONENTS python)
 include_directories(${Boost_INCLUDE_DIRS})
 
-#find_package(Eigen3 REQUIRED)
-#INCLUDE_DIRECTORIES( ${EIGEN3_INCLUDE_DIR} )
 ##----------------------------------------------------------------------------
 ## Generate lib for MRI Reconstruction
 ##----------------------------------------------------------------------------

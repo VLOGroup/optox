@@ -38,9 +38,9 @@ class OPTOX_DLLAPI OperatorConfig
     }
 
     /** Get the value for a specific configuration parameter.
-   * \param key configuration parameter
-   * \return configuration value
-   */
+     * \param key configuration parameter
+     * \return configuration value
+     */
     template <typename T>
     T getValue(const std::string &key) const
     {
@@ -59,6 +59,10 @@ class OPTOX_DLLAPI OperatorConfig
         }
     }
 
+    /** Set the value for a specifig configuration parameter
+     * \param key configartion parameter
+     * \val value for the specified parameter
+     */
     template <typename T>
     void setValue(const std::string &key, T val)
     {
@@ -68,9 +72,9 @@ class OPTOX_DLLAPI OperatorConfig
     }
 
     /** Check if the dictionary has a specific configuration parameter.
-   * \param key configuration parameter
-   * \return true if key is in the dictionary.
-   */
+     * \param key configuration parameter
+     * \return true if key is in the dictionary.
+     */
     bool hasKey(const std::string &key) const
     {
         auto iter = dict_.find(key);
@@ -80,15 +84,11 @@ class OPTOX_DLLAPI OperatorConfig
             return true;
     }
 
-    /** Get size of the dictionary
-   */
     int size() const
     {
         return dict_.size();
     }
 
-    /** Overload operator<< for pretty printing.
-   */
     friend std::ostream &operator<<(std::ostream &out, OperatorConfig const &conf)
     {
         int i = 0;
@@ -99,27 +99,33 @@ class OPTOX_DLLAPI OperatorConfig
     }
 
   private:
-    /** Dictionary */
     OperatorConfigDict dict_;
 };
 
+/**
+ * Interface for operators
+ *  It defines 
+ *      - the common functions that *all* operators must implement.
+ *      - auxiliary helper functions
+ */
 class OPTOX_DLLAPI IOperator
 {
   public:
-    /** Constructor.
-   */
     IOperator()
         : config_(), stream_(cudaStreamDefault)
     {
     }
 
-    /** Destructor */
     virtual ~IOperator()
     {
     }
 
-    /** Apply the forward operator
-   */
+    /** apply the operators
+     * \outputs list of the operator outputs `{&out_1, ...}` which are
+     *          typically of type `iu::LinearDeviceMemory`
+     * \inputs list of the operator inputs `{&out_1, ...}` which are
+     *         typically of type `iu::LinearDeviceMemory`
+     */
     void forward(std::initializer_list<iu::ILinearMemory *> outputs,
                  std::initializer_list<const iu::ILinearMemory *> inputs)
     {
@@ -132,6 +138,12 @@ class OPTOX_DLLAPI IOperator
         computeForward(OperatorOutputVector(outputs), OperatorInputVector(inputs));
     }
 
+    /** apply the operator's adjoint
+     * \outputs list of the operator adjoint outputs `{&out_1, ...}` which are
+     *          typically of type `iu::LinearDeviceMemory`
+     * \inputs list of the operator adjoint inputs `{&out_1, ...}` which are
+     *         typically of type `iu::LinearDeviceMemory`
+     */
     void adjoint(std::initializer_list<iu::ILinearMemory *> outputs,
                  std::initializer_list<const iu::ILinearMemory *> inputs)
     {
@@ -143,18 +155,6 @@ class OPTOX_DLLAPI IOperator
 
         computeAdjoint(OperatorOutputVector(outputs), OperatorInputVector(inputs));
     }
-
-    virtual void computeForward(OperatorOutputVector &&outputs,
-                                const OperatorInputVector &inputs) = 0;
-
-    virtual void computeAdjoint(OperatorOutputVector &&outputs,
-                                const OperatorInputVector &inputs) = 0;
-
-    virtual unsigned int getNumOutputsForwad() = 0;
-    virtual unsigned int getNumInputsForwad() = 0;
-
-    virtual unsigned int getNumOutputsAdjoint() = 0;
-    virtual unsigned int getNumInputsAdjoint() = 0;
 
     template <typename T, unsigned int N>
     const iu::LinearDeviceMemory<T, N> *getInput(int index, const OperatorInputVector &inputs)
@@ -220,14 +220,32 @@ class OPTOX_DLLAPI IOperator
     void operator=(IOperator const &) = delete;
 
   protected:
-    /** Operator configuration */
+    /** actual implementation of the forward operator
+     * \outputs outputs that are computed by the forward op
+     * \inputs inputs that are required to compute
+     */
+    virtual void computeForward(OperatorOutputVector &&outputs,
+                                const OperatorInputVector &inputs) = 0;
+
+    /** actual implementation of the adjoint operator
+     * \outputs outputs that are computed by the forward op
+     * \inputs inputs that are required to compute
+     */
+    virtual void computeAdjoint(OperatorOutputVector &&outputs,
+                                const OperatorInputVector &inputs) = 0;
+
+    /** Number of rquired outputs for the forward op */
+    virtual unsigned int getNumOutputsForwad() = 0;
+    /** Number of rquired inputs for the forward op */
+    virtual unsigned int getNumInputsForwad() = 0;
+
+    /** Number of rquired outputs for the adjoint op */
+    virtual unsigned int getNumOutputsAdjoint() = 0;
+    /** Number of rquired inputs for the adjoint op */
+    virtual unsigned int getNumInputsAdjoint() = 0;
+
+  protected:
     OperatorConfig config_;
-
-    unsigned int num_inputs_forward_;
-    unsigned int num_outputs_forward_;
-
-    unsigned int num_inputs_adjoint_;
-    unsigned int num_outputs_adjoint_;
 
     cudaStream_t stream_;
 };

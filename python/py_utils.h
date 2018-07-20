@@ -1,5 +1,5 @@
-///@file py_operator.h
-///@brief Interface for operators
+///@file py_utils.h
+///@brief utility functions for python to optox
 ///@author Erich Kobler <erich.kobler@icg.tugraz.at>
 ///@date 09.07.2018
 

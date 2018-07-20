@@ -1,7 +1,7 @@
-///@file pyMriReconstruction.cpp
-///@brief Python wrapper for MRI reconstruction tools
-///@author Kerstin Hammernik <hammernik@icg.tugraz.at>
-///@date 01.09.2016
+///@file py_add_operator.cpp
+///@brief python wrappers for the basic add operator
+///@author Erich Kobler <erich.kobler@icg.tugraz.at>
+///@date 01.07.2018
 
 #include <iostream>
 #define BOOST_PYTHON_STATIC_LIB
@@ -18,7 +18,7 @@
 namespace bp = boost::python;
 
 template<typename T, unsigned int N>
-PyObject * forward(bp::object &self, bp::object &py_ob_in1, bp::object &py_ob_in2)
+PyObject *forward(bp::object &self, bp::object &py_ob_in1, bp::object &py_ob_in2)
 {
     std::unique_ptr<iu::LinearDeviceMemory<T, N> > iu_in1 = getLinearDeviceFromNumpy<T, N>(py_ob_in1);
     std::unique_ptr<iu::LinearDeviceMemory<T, N> > iu_in2 = getLinearDeviceFromNumpy<T, N>(py_ob_in2);
