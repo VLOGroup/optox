@@ -84,15 +84,11 @@ class OPTOX_DLLAPI OperatorConfig
             return true;
     }
 
-    /** Get size of the dictionary
-     */
     int size() const
     {
         return dict_.size();
     }
 
-    /** Overload operator<< for pretty printing.
-     */
     friend std::ostream &operator<<(std::ostream &out, OperatorConfig const &conf)
     {
         int i = 0;
@@ -103,20 +99,24 @@ class OPTOX_DLLAPI OperatorConfig
     }
 
   private:
-    /** Dictionary */
     OperatorConfigDict dict_;
 };
+
+/**
+ * Interface for operators
+ *  It defines 
+ *      - the common functions that *all* operators must implement.
+ *      - auxiliary helper functions
+ */
 
 class OPTOX_DLLAPI IOperator
 {
   public:
-    /** Constructor */
     IOperator()
         : config_(), stream_(cudaStreamDefault)
     {
     }
 
-    /** Destructor */
     virtual ~IOperator()
     {
     }
@@ -240,14 +240,10 @@ class OPTOX_DLLAPI IOperator
     /** Number of rquired inputs for the forward op */
     virtual unsigned int getNumInputsForward() = 0;
 
-    virtual unsigned int getNumOutputsAdjoint()
-    {
-        return getNumInputsForward();
-    }
-    virtual unsigned int getNumInputsAdjoint()
-    {
-        return getNumOutputsForward();
-    }
+    /** Number of rquired outputs for the adjoint op */
+    virtual unsigned int getNumOutputsAdjoint() = 0;
+    /** Number of rquired inputs for the adjoint op */
+    virtual unsigned int getNumInputsAdjoint() = 0;
 
   protected:
     OperatorConfig config_;

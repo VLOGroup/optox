@@ -43,6 +43,15 @@ class OPTOX_DLLAPI AddOperator : public IOperator
         return 2;
     }
 
+    virtual unsigned int getNumOutputsAdjoint()
+    {
+        return 2;
+    }
+
+    virtual unsigned int getNumInputsAdjoint()
+    {
+        return 1;
+    }
 };
 
 } // namespace optox
