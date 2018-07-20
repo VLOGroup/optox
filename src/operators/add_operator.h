@@ -5,89 +5,55 @@
 
 #include "ioperator.h"
 
-namespace optox{
-
-template<typename T, unsigned int N>
-class OPTOX_DLLAPI IAddOperator: public IOperator<T, N, T, N>
+namespace optox
 {
-public:
-  /** Constructor.
+
+template <typename T, unsigned int N>
+class OPTOX_DLLAPI AddOperator : public IOperator
+{
+  public:
+    /** Constructor.
    */
-  IAddOperator() : IOperator<T, N, T, N>()
-  {
-  }
+    AddOperator() : IOperator()
+    {
+    }
 
-  /** Destructor */
-  virtual ~IAddOperator()
-  {
-  }
+    /** Destructor */
+    virtual ~AddOperator()
+    {
+    }
 
-  /** Apply the operation on src and store it in dst. Additionally make checks
-   * on operator.
-   */
-  virtual void apply() = 0;
+    virtual void computeForward(OperatorOutputVector &&outputs,
+                                const OperatorInputVector &inputs);
 
-  /** No copies are allowed. */
-  IAddOperator(IAddOperator const&) = delete;
+    virtual void computeAdjoint(OperatorOutputVector &&outputs,
+                                const OperatorInputVector &inputs);
 
-  /** No assignments are allowed. */
-  void operator=(IAddOperator const&) = delete;
+    virtual unsigned int getNumOutputsForwad()
+    {
+        return 1;
+    }
+
+    virtual unsigned int getNumInputsForwad()
+    {
+        return 2;
+    }
+
+    virtual unsigned int getNumOutputsAdjoint()
+    {
+        return 2;
+    }
+
+    virtual unsigned int getNumInputsAdjoint()
+    {
+        return 1;
+    }
+
+    /** No copies are allowed. */
+    AddOperator(AddOperator const &) = delete;
+
+    /** No assignments are allowed. */
+    void operator=(AddOperator const &) = delete;
 };
 
-
-template<typename T, unsigned int N>
-class OPTOX_DLLAPI AddOperator: public IAddOperator<T, N>
-{
-public:
-  /** Constructor.
-   */
-  AddOperator() : IAddOperator<T, N>()
-  {
-  }
-
-  /** Destructor */
-  virtual ~AddOperator()
-  {
-  }
-
-  /** Apply the operation on src and store it in dst. Additionally make checks
-   * on operator.
-   */
-  virtual void apply();
-
-  /** No copies are allowed. */
-  AddOperator(AddOperator const&) = delete;
-
-  /** No assignments are allowed. */
-  void operator=(AddOperator const&) = delete;
-};
-
-
-template<typename T, unsigned int N>
-class OPTOX_DLLAPI AddOperatorAdjoint: public IAddOperator<T, N>
-{
-public:
-  /** Constructor.
-   */
-  AddOperatorAdjoint() : IAddOperator<T, N>()
-  {
-  }
-
-  /** Destructor */
-  virtual ~AddOperatorAdjoint()
-  {
-  }
-
-  /** Apply the operation on src and store it in dst. Additionally make checks
-   * on operator.
-   */
-  virtual void apply();
-
-  /** No copies are allowed. */
-  AddOperatorAdjoint(AddOperatorAdjoint const&) = delete;
-
-  /** No assignments are allowed. */
-  void operator=(AddOperatorAdjoint const&) = delete;
-};
-
-}
+} // namespace optox

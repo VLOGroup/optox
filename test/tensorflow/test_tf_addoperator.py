@@ -5,7 +5,7 @@ from tensorflow.python.client import timeline
 import numpy as np
 
 _tutorial = tf.load_op_library('../../lib/tf/TfAddOperator.so')
-custom_add = _tutorial.custom_add
+add_operator = _tutorial.add_operator
 
 shape = (1,10,10,1)
 
@@ -18,7 +18,7 @@ b_data = np.ones_like(b_data) * 2
 a = tf.placeholder(tf.float32, shape=shape, name="a")
 b = tf.placeholder(tf.float32, shape=shape, name="b")
 
-c_cust = custom_add(a,b)
+c_cust = add_operator(a,b)
 print(c_cust)
 c =tf.log(tf.exp(a + b))
 

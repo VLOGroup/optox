@@ -10,12 +10,13 @@
 #include "add_operator.h"
 
 template<typename T, unsigned int N>
-void optox::AddOperator<T, N>::apply()
+void optox::AddOperator<T, N>::computeForward(optox::OperatorOutputVector &&outputs,
+    const optox::OperatorInputVector &inputs)
 {
-    auto in_0 = this->template getInput<T, N>(0);
-    auto in_1 = this->template getInput<T, N>(1);
+    auto in_0 = this->template getInput<T, N>(0, inputs);
+    auto in_1 = this->template getInput<T, N>(1, inputs);
 
-    auto out = this->template getOutput<T, N>(0);
+    auto out = this->template getOutput<T, N>(0, outputs);
 
     T w_1 = this->config_.template getValue<T>("w_1");
     T w_2 = this->config_.template getValue<T>("w_2");
@@ -24,12 +25,13 @@ void optox::AddOperator<T, N>::apply()
 }
 
 template<typename T, unsigned int N>
-void optox::AddOperatorAdjoint<T, N>::apply()
+void optox::AddOperator<T, N>::computeAdjoint(optox::OperatorOutputVector &&outputs,
+    const optox::OperatorInputVector &inputs)
 {
-    auto in_0 = this->template getInput<T, N>(0);
+    auto in_0 = this->template getInput<T, N>(0, inputs);
 
-    auto out_0 = this->template getOutput<T, N>(0);
-    auto out_1 = this->template getOutput<T, N>(0);
+    auto out_0 = this->template getOutput<T, N>(0, outputs);
+    auto out_1 = this->template getOutput<T, N>(1, outputs);
 
     T w_1 = this->config_.template getValue<T>("w_1");
     T w_2 = this->config_.template getValue<T>("w_2");
@@ -40,8 +42,7 @@ void optox::AddOperatorAdjoint<T, N>::apply()
 
 
 #define REGISTER_OP_T(T, N) \
-    template class optox::AddOperator<T, N>; \
-    template class optox::AddOperatorAdjoint<T, N>;
+    template class optox::AddOperator<T, N>;;
 
 #define REGISTER_OP(T) \
     REGISTER_OP_T(T, 1) \

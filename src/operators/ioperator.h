@@ -6,10 +6,12 @@
 #pragma once
 
 #include <iostream>
-#include <vector>
 #include <memory>
 #include <string>
 #include <sstream>
+
+#include <initializer_list>
+#include <vector>
 #include <map>
 
 #include <iu/iucore.h>
@@ -18,66 +20,11 @@
 
 #include <cuda.h>
 
-
-namespace optox{
-
-#define THROW_IUEXCEPTION(str) throw IuException(str, __FILE__, __FUNCTION__, __LINE__)
-
-class OPTOX_DLLAPI ITensor
+namespace optox
 {
-public:
-  ITensor()
-  {
-  }
 
-  virtual ~ITensor()
-  {
-  }
-
-};
-
-
-typedef std::vector<ITensor *> OperatorIOs;
-
-template<typename T, unsigned int N>
-class OPTOX_DLLAPI Tensor : public ITensor
-{
-public:
-  Tensor(const iu::LinearHostMemory<T, N> &host_mem): device_mem_(nullptr)
-  {
-    device_mem_ = new iu::LinearDeviceMemory<T, N>(host_mem.size());
-    iu::copy(&host_mem, device_mem_);
-  }
-
-  Tensor(const iu::LinearDeviceMemory<T, N> &dev_mem, bool ext_data_pointer = false): device_mem_(nullptr)
-  {
-    // FIXME: add support for const memory to iu
-    device_mem_ = new iu::LinearDeviceMemory<T, N>(const_cast<T *>(dev_mem.data()), 
-                    dev_mem.size(), ext_data_pointer);
-  }
-
-  Tensor(const T *dev_ptr, const iu::Size<N> &size, bool ext_data_pointer = false): device_mem_(nullptr)
-  {
-    // FIXME: add support for const memory to iu
-    device_mem_ = new iu::LinearDeviceMemory<T, N>(const_cast<T *>(dev_ptr), 
-                    size, ext_data_pointer);
-  }
-
-  virtual ~Tensor()
-  {
-    if (device_mem_ != nullptr)
-      delete device_mem_;
-  }
-
-  iu::LinearDeviceMemory<T, N> *getLinearDeviceMemory() const
-  {
-    return device_mem_;
-  }
-
-private:
-  iu::LinearDeviceMemory<T, N> *device_mem_;
-};
-
+typedef std::vector<const iu::ILinearMemory *> OperatorInputVector;
+typedef std::vector<iu::ILinearMemory *> OperatorOutputVector;
 
 typedef std::map<std::string, std::string> OperatorConfigDict;
 
@@ -85,277 +32,210 @@ typedef std::map<std::string, std::string> OperatorConfigDict;
  */
 class OPTOX_DLLAPI OperatorConfig
 {
-public:
-  OperatorConfig(const OperatorConfigDict &config = OperatorConfigDict()): dict_(config)
-  {
-  }
+  public:
+    OperatorConfig(const OperatorConfigDict &config = OperatorConfigDict()) : dict_(config)
+    {
+    }
 
-  /** Get the value for a specific configuration parameter.
+    /** Get the value for a specific configuration parameter.
    * \param key configuration parameter
    * \return configuration value
    */
-  template<typename T>
-  T getValue(const std::string &key) const
-  {
-    auto iter = dict_.find(key);
-    if (iter == dict_.end())
-      THROW_IUEXCEPTION("key not found!");
-    else
+    template <typename T>
+    T getValue(const std::string &key) const
     {
-      std::stringstream ss;
-      ss << iter->second;
-      T ret;
-      ss >> ret;
-      if (ss.fail())
-        THROW_IUEXCEPTION("could not parse!");
-      return ret;
+        auto iter = dict_.find(key);
+        if (iter == dict_.end())
+            THROW_IUEXCEPTION("key not found!");
+        else
+        {
+            std::stringstream ss;
+            ss << iter->second;
+            T ret;
+            ss >> ret;
+            if (ss.fail())
+                THROW_IUEXCEPTION("could not parse!");
+            return ret;
+        }
     }
-  }
 
-  template<typename T>
-  void setValue(const std::string &key, T val)
-  {
-    std::stringstream ss;
-    ss << val;
-    dict_[key] = ss.str();
-  }
+    template <typename T>
+    void setValue(const std::string &key, T val)
+    {
+        std::stringstream ss;
+        ss << val;
+        dict_[key] = ss.str();
+    }
 
-  /** Check if the dictionary has a specific configuration parameter.
+    /** Check if the dictionary has a specific configuration parameter.
    * \param key configuration parameter
    * \return true if key is in the dictionary.
    */
-  bool hasKey(const std::string &key) const
-  {
-    auto iter = dict_.find(key);
-    if (iter == dict_.end())
-      return false;
-    else
-      return true;
-  }
+    bool hasKey(const std::string &key) const
+    {
+        auto iter = dict_.find(key);
+        if (iter == dict_.end())
+            return false;
+        else
+            return true;
+    }
 
-  /** Get size of the dictionary
+    /** Get size of the dictionary
    */
-  int size() const
-  {
-    return dict_.size();
-  }
+    int size() const
+    {
+        return dict_.size();
+    }
 
-  /** Overload operator<< for pretty printing.
+    /** Overload operator<< for pretty printing.
    */
-  friend std::ostream& operator<<(std::ostream & out, OperatorConfig const& conf)
-  {
-    int i = 0;
-    for (auto iter = conf.dict_.begin(); iter != conf.dict_.end(); ++iter)
-      out << iter->first << ":" << iter->second
-          << ((++i < conf.dict_.size()) ? "," : "");
-    return out;
-  }
+    friend std::ostream &operator<<(std::ostream &out, OperatorConfig const &conf)
+    {
+        int i = 0;
+        for (auto iter = conf.dict_.begin(); iter != conf.dict_.end(); ++iter)
+            out << iter->first << ":" << iter->second
+                << ((++i < conf.dict_.size()) ? "," : "");
+        return out;
+    }
 
-private:
-  /** Dictionary */
-  OperatorConfigDict dict_;
+  private:
+    /** Dictionary */
+    OperatorConfigDict dict_;
 };
 
-
-template<typename Tin, unsigned int Nin, typename Tout, unsigned int Nout>
 class OPTOX_DLLAPI IOperator
 {
-public:
-  /** Constructor.
+  public:
+    /** Constructor.
    */
-  IOperator(): config_(), inputs_(), outputs_(), stream_(cudaStreamDefault)
-  {
-  }
-
-  /** Destructor */
-  virtual ~IOperator()
-  {
-    for (auto i: inputs_)
-      if (i != nullptr)
-        delete i;
-
-    for (auto i: outputs_)
-      if (i != nullptr)
-        delete i;
-  }
-
-  /** Apply the operation
-   */
-  virtual void apply() = 0;
-
-  template<typename T, unsigned int N>
-  void appendInput(const iu::LinearDeviceMemory<T, N> &input, bool copy = false)
-  {
-    inputs_.push_back(new Tensor<T, N>(input, not copy));
-  }
-
-  template<typename T, unsigned int N>
-  void appendInput(const iu::LinearHostMemory<T, N> &input)
-  {
-    inputs_.push_back(new Tensor<T, N>(input));
-  }
-
-  template<typename T, unsigned int N>
-  const iu::LinearDeviceMemory<T, N> *getInput(int index)
-  {
-    return getIO<T, N>(index, inputs_);
-  }
-
-  template<typename T, unsigned int N>
-  void setInput(int index, const iu::LinearDeviceMemory<T, N> &new_input)
-  {
-    auto input = getIO<T, N>(index, inputs_);
-    iu::copy(&new_input, input);
-  }
-
-  template<typename T, unsigned int N>
-  void setInput(int index, const iu::LinearHostMemory<T, N> &new_input)
-  {
-    auto input = getIO<T, N>(index, inputs_);
-    iu::copy(&new_input, input);
-  }
-
-  template<typename T, unsigned int N>
-  void appendOutput(iu::LinearDeviceMemory<T, N> &output, bool copy = false)
-  {
-    outputs_.push_back(new Tensor<T, N>(output, not copy));
-  }
-
-  template<typename T, unsigned int N>
-  void appendOutput(iu::LinearHostMemory<T, N> &output)
-  {
-    outputs_.push_back(new Tensor<T, N>(output));
-  }
-
-  template<typename T, unsigned int N>
-  iu::LinearDeviceMemory<T, N> *getOutput(int index)
-  {
-    return getIO<T, N>(index, outputs_);
-  }
-
-  void setConfig(const OperatorConfigDict &dict)
-  {
-    config_ = OperatorConfig(dict);
-  }
-
-  template<typename T>
-  T getParameter(const char *name) const
-  {
-    return config_.getValue<T>(std::string(name));
-  }
-
-  template<typename T>
-  void setParameter(const char *name, const T &val)
-  {
-    config_.setValue<T>(std::string(name), val);
-  }
-
-  void setStream(const cudaStream_t &stream)
-  {
-    stream_ = stream;
-  }
-
-  cudaStream_t getStream() const
-  {
-    return stream_;
-  }
-
-  /** No copies are allowed. */
-  IOperator(IOperator const&) = delete;
-
-  /** No assignments are allowed. */
-  void operator=(IOperator const&) = delete;
-
-private:
-  template<typename T, unsigned int N>
-  iu::LinearDeviceMemory<T, N> *getIO(int index, const OperatorIOs &ios)
-  {
-    if (index >= 0 && index < ios.size())
+    IOperator()
+        : config_(), stream_(cudaStreamDefault)
     {
-      Tensor<T, N> *t = dynamic_cast<Tensor<T, N> *>(ios[index]);
-      if (t != nullptr)
-        return t->getLinearDeviceMemory();
-      else
-        THROW_IUEXCEPTION("Cannot cast io to desired type!");
     }
-    else
-      THROW_IUEXCEPTION("IO index out of bounds!");
-  }
 
-protected:
-  /** Operator configuration */
-  OperatorConfig config_;
+    /** Destructor */
+    virtual ~IOperator()
+    {
+    }
 
-  /** Operator inputs */
-  OperatorIOs inputs_;
+    /** Apply the forward operator
+   */
+    void forward(std::initializer_list<iu::ILinearMemory *> outputs,
+                 std::initializer_list<const iu::ILinearMemory *> inputs)
+    {
+        if (outputs.size() != getNumOutputsForwad())
+            THROW_IUEXCEPTION("Provided number of outputs does not match the requied number!");
 
-  /** Operator outputs */
-  OperatorIOs outputs_;
+        if (inputs.size() != getNumInputsForwad())
+            THROW_IUEXCEPTION("Provided number of outputs does not match the requied number!");
 
-  cudaStream_t stream_;
+        computeForward(OperatorOutputVector(outputs), OperatorInputVector(inputs));
+    }
+
+    void adjoint(std::initializer_list<iu::ILinearMemory *> outputs,
+                 std::initializer_list<const iu::ILinearMemory *> inputs)
+    {
+        if (outputs.size() != getNumOutputsAdjoint())
+            THROW_IUEXCEPTION("Provided number of outputs does not match the requied number!");
+
+        if (inputs.size() != getNumInputsAdjoint())
+            THROW_IUEXCEPTION("Provided number of outputs does not match the requied number!");
+
+        computeAdjoint(OperatorOutputVector(outputs), OperatorInputVector(inputs));
+    }
+
+    virtual void computeForward(OperatorOutputVector &&outputs,
+                                const OperatorInputVector &inputs) = 0;
+
+    virtual void computeAdjoint(OperatorOutputVector &&outputs,
+                                const OperatorInputVector &inputs) = 0;
+
+    virtual unsigned int getNumOutputsForwad() = 0;
+    virtual unsigned int getNumInputsForwad() = 0;
+
+    virtual unsigned int getNumOutputsAdjoint() = 0;
+    virtual unsigned int getNumInputsAdjoint() = 0;
+
+    template <typename T, unsigned int N>
+    const iu::LinearDeviceMemory<T, N> *getInput(int index, const OperatorInputVector &inputs)
+    {
+        if (index >= 0 && index < inputs.size())
+        {
+            const iu::LinearDeviceMemory<T, N> *t = dynamic_cast<const iu::LinearDeviceMemory<T, N> *>(inputs[index]);
+            if (t != nullptr)
+                return t;
+            else
+                THROW_IUEXCEPTION("Cannot cast input to desired type!");
+        }
+        else
+            THROW_IUEXCEPTION("input index out of bounds!");
+    }
+
+    template <typename T, unsigned int N>
+    iu::LinearDeviceMemory<T, N> *getOutput(int index, const OperatorOutputVector &outputs)
+    {
+        if (index >= 0 && index < outputs.size())
+        {
+            iu::LinearDeviceMemory<T, N> *t = dynamic_cast<iu::LinearDeviceMemory<T, N> *>(outputs[index]);
+            if (t != nullptr)
+                return t;
+            else
+                THROW_IUEXCEPTION("Cannot cast output to desired type!");
+        }
+        else
+            THROW_IUEXCEPTION("output index out of bounds!");
+    }
+
+    void setConfig(const OperatorConfigDict &dict)
+    {
+        config_ = OperatorConfig(dict);
+    }
+
+    template <typename T>
+    T getParameter(const char *name) const
+    {
+        return config_.getValue<T>(std::string(name));
+    }
+
+    template <typename T>
+    void setParameter(const char *name, const T &val)
+    {
+        config_.setValue<T>(std::string(name), val);
+    }
+
+    void setStream(const cudaStream_t &stream)
+    {
+        stream_ = stream;
+    }
+
+    cudaStream_t getStream() const
+    {
+        return stream_;
+    }
+
+    /** No copies are allowed. */
+    IOperator(IOperator const &) = delete;
+
+    /** No assignments are allowed. */
+    void operator=(IOperator const &) = delete;
+
+  protected:
+    /** Operator configuration */
+    OperatorConfig config_;
+
+    unsigned int num_inputs_forward_;
+    unsigned int num_outputs_forward_;
+
+    unsigned int num_inputs_adjoint_;
+    unsigned int num_outputs_adjoint_;
+
+    cudaStream_t stream_;
 };
 
 #define OPTOX_CALL_float(m) m(float)
 #define OPTOX_CALL_double(m) m(double)
 
 #define OPTOX_CALL_REAL_NUMBER_TYPES(m) \
-   OPTOX_CALL_float(m) OPTOX_CALL_double(m)
+    OPTOX_CALL_float(m) OPTOX_CALL_double(m)
 
-}
-
-/*
-namespace utils{
-
-template<typename T unsigned int Nin, unsigned int Nout>
-typename std::enable_if<!
-    std::is_same<typename Tin, float2>::value && !std::is_same<Tin, double2>::value, ResultType>::type 
-    testAdjointness(const iu::LinearDeviceMemory<T, Nin> &u, 
-                    const iu::LinearDeviceMemory<T, Nout> &Au, 
-                    const iu::LinearDeviceMemory<T, Nout> &p, 
-                    const iu::LinearDeviceMemory<T, Nin> &Atp)
-{
-  T lhs, rhs;
-  iu::math::dotProduct(Au, p, lhs);
-  iu::math::dotProduct(u, Atp, rhs);
-
-  std::cout << "<Au,p>=" << lhs << std::endl;
-  std::cout << "<u,Atp>=" << rhs << std::endl;
-  std::cout << "diff= " << abs(lhs - rhs) << std::endl;
-  if(abs(lhs - rhs) < 1e-12)
-    std::cout << "TEST PASSED" << std::endl;
-  else
-    std::cout << "TEST FAILED" << std::endl;
-  std::cout << std::endl;
-}
-
-template<typename T unsigned int Nin, unsigned int Nout>
-typename std::enable_if<
-    std::is_same<typename Tin, float2>::value || std::is_same<Tin, double2>::value, ResultType>::type 
-    testAdjointness(const iu::LinearDeviceMemory<T, Nin> &u, 
-                    const iu::LinearDeviceMemory<T, Nout> &Au, 
-                    const iu::LinearDeviceMemory<T, Nout> &p, 
-                    const iu::LinearDeviceMemory<T, Nin> &Atp)
-{
-  T lhs, rhs;
-  iu::math::complex::dotProduct(Au, p, lhs);
-  iu::math::complex::dotProduct(u, Atp, rhs);
-
-  std::cout << "<Au,p>=" << lhs << std::endl;
-  std::cout << "<u,Atp>=" << rhs << std::endl;
-  std::cout << "diff: x= " << abs(lhs.x - rhs.x) << " y=" << abs(lhs.y - rhs.y) << std::endl;
-
-  if(abs(lhs.x - rhs.x) < 1e-12 && abs(lhs.y - rhs.y) < 1e-12)
-  {
-    std::cout << "TEST PASSED" << std::endl;
-  }
-  else
-  {
-    std::cout << "TEST FAILED" << std::endl;
-  }
-  std::cout << std::endl;
-}
-}
-
-#define TEST_ADJOINTNESS(u, Au, p, Atp) utils::testAdjointness(u, Au, p, Atp)
-*/
-
+} // namespace optox

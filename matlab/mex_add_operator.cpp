@@ -1,12 +1,13 @@
 #include <mex.h>
 
-
 #include <iu/iucore.h>
 #include <iu/iumatlab.h>
 
+#include "mex_utils.h"
+
 #include "operators/add_operator.h"
 
-typedef float real_type;
+typedef float T;
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
@@ -20,31 +21,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                       "Too many output arguments.");
 
   // parse input image
-  iu::LinearHostMemory<real_type, 2> h_in1(*(prhs[0]), false);
-  iu::LinearHostMemory<real_type, 2> h_in2(*(prhs[1]), false);
+  std::unique_ptr<iu::LinearDeviceMemory<T, 2> > iu_in1 = getLinearDeviceFromMex<T, 2>(*(prhs[0]), false);
+  std::unique_ptr<iu::LinearDeviceMemory<T, 2> > iu_in2 = getLinearDeviceFromMex<T, 2>(*(prhs[1]), false);
 
   // check whether the size matches
-  if (h_in1.size() != h_in2.size())
+  if (iu_in1->size() != iu_in2->size())
     mexErrMsgIdAndTxt("MATLAB:addoperator:size",
                       "Inputs must have same size!");
 
   // output memory
-  iu::LinearDeviceMemory<real_type, 2> d_out(h_in1.size());
+  iu::LinearDeviceMemory<T, 2> iu_out(iu_in1->size());
 
-  optox::AddOperator<real_type, 2> op;
-
+  // setup the operator and apply it
+  optox::AddOperator<T, 2> op;
 	op.setParameter("w_1", 1.0);
 	op.setParameter("w_2", 1.0);
 
-	op.appendInput(h_in1);
-	op.appendInput(h_in2);
-	op.appendOutput(d_out);
+	op.forward({&iu_out}, {iu_in1.get(), iu_in2.get()});
 
-	op.apply();
-
-  iu::LinearHostMemory<real_type, 2> h_out(d_out.size());
-  iu::copy(&d_out, &h_out);
-
-  // push the output back to matlab
-  iu::matlab::convertCToMatlab(h_out, &plhs[0]);
+  // forward the result to matlab
+  linearDeviceToMex(iu_out, &plhs[0], false);
 }
