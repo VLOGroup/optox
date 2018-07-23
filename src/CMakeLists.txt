@@ -15,10 +15,12 @@ set(COMMON_HEADER
 set(OPERATOR_HEADER
     operators/ioperator.h
     operators/add_operator.h
+    operators/nabla_operator.h
 )
 
 set(OPERATOR_SOURCE
     operators/add_operator.cu
+    operators/nabla_operator.cu
 )
 
 set(HEADERS
