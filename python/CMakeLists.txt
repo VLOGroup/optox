@@ -32,3 +32,6 @@ include_directories(${Boost_INCLUDE_DIRS})
 ##----------------------------------------------------------------------------
 cuda_add_library(PyAddOperator SHARED  py_add_operator.cpp)
 finish_python_lib(PyAddOperator)
+
+cuda_add_library(PyNablaOperator SHARED  py_nabla_operator.cpp)
+finish_python_lib(PyNablaOperator)

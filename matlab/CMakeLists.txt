@@ -27,6 +27,12 @@ if(MATLAB_FOUND)
     CUDA_ADD_LIBRARY(mex_add_operator_adjoint SHARED  mex_add_operator_adjoint.cpp OPTIONS "-DOPTOX_EXPORTS")
     finish_mex_lib(mex_add_operator_adjoint)
 
+    CUDA_ADD_LIBRARY(mex_nabla_operator SHARED  mex_nabla_operator.cpp OPTIONS "-DOPTOX_EXPORTS")
+    finish_mex_lib(mex_nabla_operator)
+
+    CUDA_ADD_LIBRARY(mex_nabla_operator_adjoint SHARED  mex_nabla_operator_adjoint.cpp OPTIONS "-DOPTOX_EXPORTS")
+    finish_mex_lib(mex_nabla_operator_adjoint)
+
     CUDA_ADD_LIBRARY(mex_nabla3_operator SHARED  mex_nabla3_operator.cpp OPTIONS "-DOPTOX_EXPORTS")
     finish_mex_lib(mex_nabla3_operator)
 
