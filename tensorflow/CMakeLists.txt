@@ -33,7 +33,7 @@ link_directories(${Tensorflow_LIB_DIRS})
 ## compiler flags
 ##-----------------------------------------------------------------------------
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11  -fPIC -O2 -D_GLIBCXX_USE_CXX11_ABI=0 -D GOOGLE_CUDA=1")
-set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --expt-relaxed-constexpr -D GOOGLE_CUDA=1" )
+set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --expt-relaxed-constexpr -D_GLIBCXX_USE_CXX11_ABI=0 -D GOOGLE_CUDA=1" )
 
 #pass flags to c++ compiler
 #SET(CUDA_PROPAGATE_HOST_FLAGS ON)
@@ -48,6 +48,18 @@ target_link_libraries(TfAddOperator optox ${IMAGEUTILITIES_LIBRARIES} "tensorflo
 set_target_properties(TfAddOperator PROPERTIES PREFIX "" LINKER_LANGUAGE CXX)
 if(WIN32)
     SET_TARGET_PROPERTIES(TfAddOperator PROPERTIES SUFFIX ".pyd")
+endif(WIN32)
+
+##----------------------------------------------------------------------------
+## activation operators
+##----------------------------------------------------------------------------
+cuda_add_library(TfActivationOperators SHARED tf_activations.cpp tf_activations.cu)
+
+target_link_libraries(TfActivationOperators optox ${IMAGEUTILITIES_LIBRARIES} "tensorflow_framework")
+# remove lib prefix
+set_target_properties(TfActivationOperators PROPERTIES PREFIX "" LINKER_LANGUAGE CXX)
+if(WIN32)
+    SET_TARGET_PROPERTIES(TfActivationOperators PROPERTIES SUFFIX ".pyd")
 endif(WIN32)
 
 

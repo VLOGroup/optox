@@ -13,7 +13,6 @@
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/platform/default/integral_types.h"
 #include "tensorflow/core/util/tensor_format.h"
-#include "tensorflow/core/util/padding.h"
 
 #include "tf_add_operator.h"
 
@@ -58,6 +57,10 @@ public:
 		//flatten tensors
 		auto a_flat = a_tensor.flat<dtype>();
 		auto b_flat = b_tensor.flat<dtype>();
+
+		OP_REQUIRES(context, a_tensor.shape() == b_tensor.shape(),
+                  errors::Unimplemented("Invalid shape! ",
+                                        a_tensor.shape(), ", != ", b_tensor.shape()));
 
 		//allocate the output
 		Tensor* output_tensor = nullptr;
