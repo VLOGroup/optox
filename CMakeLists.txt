@@ -39,8 +39,33 @@ else(WITH_GPUNUFFT)
     message(STATUS "Disable gpuNUFFT (required for non-uniform MRI operator)")
 endif(WITH_GPUNUFFT)
 
+##-----------------------------------------------------------------------------
+## sources
+##-----------------------------------------------------------------------------
 include_directories(src)
 add_subdirectory(src)
-add_subdirectory(python)
-add_subdirectory(tensorflow)
-add_subdirectory(matlab)
+
+##-----------------------------------------------------------------------------
+## interfaces
+##-----------------------------------------------------------------------------
+option(WITH_PYTHON "Use Python - build python interface. Requires numpy, boost.python" ON)
+if(WITH_PYTHON)
+    message(STATUS "[+] optox build python interfaces")
+    add_subdirectory(python)
+else(WITH_PYTHON)
+    message(STATUS "[-] optox exclude python interfaces")
+endif(WITH_PYTHON)
+option(WITH_MATLAB "Use Matlab - build matlab interface. Requires matlab" ON)
+if(WITH_MATLAB)
+    message(STATUS "[+] optox build matlab interfaces")
+    add_subdirectory(matlab)
+else(WITH_MATLAB)
+    message(STATUS "[-] optox matlab tensorflow interfaces")
+endif(WITH_MATLAB)
+option(WITH_TENSORFLOW "Use Tensorflow - build tensorflow interface. Requires tensorflow" ON)
+if(WITH_TENSORFLOW)
+    message(STATUS "[+] optox build tensorflow interfaces")
+    add_subdirectory(tensorflow)
+else(WITH_TENSORFLOW)
+    message(STATUS "[-] optox exclude tensorflow interfaces")
+endif(WITH_TENSORFLOW)
