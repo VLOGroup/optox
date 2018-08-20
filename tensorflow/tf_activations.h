@@ -23,15 +23,16 @@ namespace tficg {
     SO_QUADRATIC,
     SO_CUBIC,
   };
-}
 
-#define TF_CALL_ICG_REAL_NUMBER_TYPES(m) \
-   TF_CALL_float(m) TF_CALL_double(m)
+}
 
 using GPUDevice = Eigen::GpuDevice;
 
 template<typename T>
 using Tensor2 = tensorflow::TTypes<T,2>;
+
+#define TF_CALL_ICG_REAL_NUMBER_TYPES(m) \
+   TF_CALL_float(m) TF_CALL_double(m)
 
 // Radial basis function Activation Functor
 template<typename Device, typename T, tficg::DerivativeOrder N>
