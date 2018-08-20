@@ -26,7 +26,9 @@ with open("README.md", "r") as fh:
         platform=distutils.util.get_platform(),
         packages=setuptools.find_packages(),
         include_package_data=True,
-        package_data={'optotf': ['activations/TfActivationOperators.so']},
+        package_data={'optotf': ["activations/TfActivationOperators.so",
+                                 "interpolation/TfRotateFiltersOperator.so",
+                                 "interpolation/TfMetamorphosisOperator.so"]},
         install_requires=REQUIRED_PACKAGES,
         distclass=BinaryDistribution,
         classifiers=[
