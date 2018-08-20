@@ -24,6 +24,9 @@ install_manifest.txt
 *.mat
 *.json
 out/*
+dist*/
+*.egg-info*/
+
 
 ##################
 # VSCode
