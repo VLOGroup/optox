@@ -1049,145 +1049,145 @@ class ActivationBSplineOp : public ActivationBaseOp<Device, T> {
     }
 };
 
-// #define REGISTER_CPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationBSpline") \
-//     .Device(DEVICE_CPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationBSplineOp<CPUDevice, T, tficg::SO_LINEAR, tficg::DO_ZERO>);
+#define REGISTER_CPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationBSpline") \
+    .Device(DEVICE_CPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationBSplineOp<CPUDevice, T, tficg::SO_LINEAR, tficg::DO_ZERO>);
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
-// #undef REGISTER_CPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
+#undef REGISTER_CPU
 
-// #define REGISTER_GPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationBSpline") \
-//     .Device(DEVICE_GPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationBSplineOp<GPUDevice, T, tficg::SO_LINEAR, tficg::DO_ZERO>) \
+#define REGISTER_GPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationBSpline") \
+    .Device(DEVICE_GPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationBSplineOp<GPUDevice, T, tficg::SO_LINEAR, tficg::DO_ZERO>) \
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
-// #undef REGISTER_GPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
+#undef REGISTER_GPU
 
-// #define REGISTER_CPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationPrimeBSpline") \
-//     .Device(DEVICE_CPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationBSplineOp<CPUDevice, T, tficg::SO_LINEAR, tficg::DO_FIRST>);
+#define REGISTER_CPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationPrimeBSpline") \
+    .Device(DEVICE_CPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationBSplineOp<CPUDevice, T, tficg::SO_LINEAR, tficg::DO_FIRST>);
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
-// #undef REGISTER_CPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
+#undef REGISTER_CPU
 
-// #define REGISTER_GPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationPrimeBSpline") \
-//     .Device(DEVICE_GPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationBSplineOp<GPUDevice, T, tficg::SO_LINEAR, tficg::DO_FIRST>) \
+#define REGISTER_GPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationPrimeBSpline") \
+    .Device(DEVICE_GPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationBSplineOp<GPUDevice, T, tficg::SO_LINEAR, tficg::DO_FIRST>) \
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
-// #undef REGISTER_GPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
+#undef REGISTER_GPU
 
-// #define REGISTER_CPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationQuadBSpline") \
-//     .Device(DEVICE_CPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationBSplineOp<CPUDevice, T, tficg::SO_QUADRATIC, tficg::DO_ZERO>);
+#define REGISTER_CPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationQuadBSpline") \
+    .Device(DEVICE_CPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationBSplineOp<CPUDevice, T, tficg::SO_QUADRATIC, tficg::DO_ZERO>);
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
-// #undef REGISTER_CPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
+#undef REGISTER_CPU
 
-// #define REGISTER_GPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationQuadBSpline") \
-//     .Device(DEVICE_GPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationBSplineOp<GPUDevice, T, tficg::SO_QUADRATIC, tficg::DO_ZERO>) \
+#define REGISTER_GPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationQuadBSpline") \
+    .Device(DEVICE_GPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationBSplineOp<GPUDevice, T, tficg::SO_QUADRATIC, tficg::DO_ZERO>) \
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
-// #undef REGISTER_GPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
+#undef REGISTER_GPU
 
-// #define REGISTER_CPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationPrimeQuadBSpline") \
-//     .Device(DEVICE_CPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationBSplineOp<CPUDevice, T, tficg::SO_QUADRATIC, tficg::DO_FIRST>);
+#define REGISTER_CPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationPrimeQuadBSpline") \
+    .Device(DEVICE_CPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationBSplineOp<CPUDevice, T, tficg::SO_QUADRATIC, tficg::DO_FIRST>);
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
-// #undef REGISTER_CPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
+#undef REGISTER_CPU
 
-// #define REGISTER_GPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationPrimeQuadBSpline") \
-//     .Device(DEVICE_GPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationBSplineOp<GPUDevice, T, tficg::SO_QUADRATIC, tficg::DO_FIRST>) \
+#define REGISTER_GPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationPrimeQuadBSpline") \
+    .Device(DEVICE_GPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationBSplineOp<GPUDevice, T, tficg::SO_QUADRATIC, tficg::DO_FIRST>) \
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
-// #undef REGISTER_GPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
+#undef REGISTER_GPU
 
-// #define REGISTER_CPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationCubicBSpline") \
-//     .Device(DEVICE_CPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationBSplineOp<CPUDevice, T, tficg::SO_CUBIC, tficg::DO_ZERO>);
+#define REGISTER_CPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationCubicBSpline") \
+    .Device(DEVICE_CPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationBSplineOp<CPUDevice, T, tficg::SO_CUBIC, tficg::DO_ZERO>);
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
-// #undef REGISTER_CPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
+#undef REGISTER_CPU
 
-// #define REGISTER_GPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationCubicBSpline") \
-//     .Device(DEVICE_GPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationBSplineOp<GPUDevice, T, tficg::SO_CUBIC, tficg::DO_ZERO>) \
+#define REGISTER_GPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationCubicBSpline") \
+    .Device(DEVICE_GPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationBSplineOp<GPUDevice, T, tficg::SO_CUBIC, tficg::DO_ZERO>) \
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
-// #undef REGISTER_GPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
+#undef REGISTER_GPU
 
-// #define REGISTER_CPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationPrimeCubicBSpline") \
-//     .Device(DEVICE_CPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationBSplineOp<CPUDevice, T, tficg::SO_CUBIC, tficg::DO_FIRST>);
+#define REGISTER_CPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationPrimeCubicBSpline") \
+    .Device(DEVICE_CPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationBSplineOp<CPUDevice, T, tficg::SO_CUBIC, tficg::DO_FIRST>);
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
-// #undef REGISTER_CPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
+#undef REGISTER_CPU
 
-// #define REGISTER_GPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationPrimeCubicBSpline") \
-//     .Device(DEVICE_GPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationBSplineOp<GPUDevice, T, tficg::SO_CUBIC, tficg::DO_FIRST>) \
+#define REGISTER_GPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationPrimeCubicBSpline") \
+    .Device(DEVICE_GPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationBSplineOp<GPUDevice, T, tficg::SO_CUBIC, tficg::DO_FIRST>) \
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
-// #undef REGISTER_GPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
+#undef REGISTER_GPU
 
-// #define REGISTER_CPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationDoublePrimeCubicBSpline") \
-//     .Device(DEVICE_CPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationBSplineOp<CPUDevice, T, tficg::SO_CUBIC, tficg::DO_SECOND>);
+#define REGISTER_CPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationDoublePrimeCubicBSpline") \
+    .Device(DEVICE_CPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationBSplineOp<CPUDevice, T, tficg::SO_CUBIC, tficg::DO_SECOND>);
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
-// #undef REGISTER_CPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
+#undef REGISTER_CPU
 
-// #define REGISTER_GPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationDoublePrimeCubicBSpline") \
-//     .Device(DEVICE_GPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationBSplineOp<GPUDevice, T, tficg::SO_CUBIC, tficg::DO_SECOND>) \
+#define REGISTER_GPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationDoublePrimeCubicBSpline") \
+    .Device(DEVICE_GPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationBSplineOp<GPUDevice, T, tficg::SO_CUBIC, tficg::DO_SECOND>) \
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
-// #undef REGISTER_GPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
+#undef REGISTER_GPU
 
 template <typename T, tficg::SplineOrder S, tficg::DerivativeOrder N>
 struct ActivationBSplineGradWFunctor<CPUDevice, T, S, N> {
@@ -1270,85 +1270,85 @@ class ActivationBSplineGradWOp : public ActivationBaseGradWOp<Device, T> {
     }
 };
 
-// #define REGISTER_CPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationBSplineGradW") \
-//     .Device(DEVICE_CPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationBSplineGradWOp<CPUDevice, T, tficg::SO_LINEAR, tficg::DO_ZERO>);
+#define REGISTER_CPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationBSplineGradW") \
+    .Device(DEVICE_CPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationBSplineGradWOp<CPUDevice, T, tficg::SO_LINEAR, tficg::DO_ZERO>);
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
-// #undef REGISTER_CPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
+#undef REGISTER_CPU
 
-// #define REGISTER_GPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationBSplineGradW") \
-//     .Device(DEVICE_GPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationBSplineGradWOp<GPUDevice, T, tficg::SO_LINEAR, tficg::DO_ZERO>) \
+#define REGISTER_GPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationBSplineGradW") \
+    .Device(DEVICE_GPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationBSplineGradWOp<GPUDevice, T, tficg::SO_LINEAR, tficg::DO_ZERO>) \
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
-// #undef REGISTER_GPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
+#undef REGISTER_GPU
 
-// #define REGISTER_CPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationQuadBSplineGradW") \
-//     .Device(DEVICE_CPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationBSplineGradWOp<CPUDevice, T, tficg::SO_QUADRATIC, tficg::DO_ZERO>);
+#define REGISTER_CPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationQuadBSplineGradW") \
+    .Device(DEVICE_CPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationBSplineGradWOp<CPUDevice, T, tficg::SO_QUADRATIC, tficg::DO_ZERO>);
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
-// #undef REGISTER_CPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
+#undef REGISTER_CPU
 
-// #define REGISTER_GPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationQuadBSplineGradW") \
-//     .Device(DEVICE_GPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationBSplineGradWOp<GPUDevice, T, tficg::SO_QUADRATIC, tficg::DO_ZERO>) \
+#define REGISTER_GPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationQuadBSplineGradW") \
+    .Device(DEVICE_GPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationBSplineGradWOp<GPUDevice, T, tficg::SO_QUADRATIC, tficg::DO_ZERO>) \
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
-// #undef REGISTER_GPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
+#undef REGISTER_GPU
 
-// #define REGISTER_CPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationCubicBSplineGradW") \
-//     .Device(DEVICE_CPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationBSplineGradWOp<CPUDevice, T, tficg::SO_CUBIC, tficg::DO_ZERO>);
+#define REGISTER_CPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationCubicBSplineGradW") \
+    .Device(DEVICE_CPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationBSplineGradWOp<CPUDevice, T, tficg::SO_CUBIC, tficg::DO_ZERO>);
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
-// #undef REGISTER_CPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
+#undef REGISTER_CPU
 
-// #define REGISTER_GPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationCubicBSplineGradW") \
-//     .Device(DEVICE_GPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationBSplineGradWOp<GPUDevice, T, tficg::SO_CUBIC, tficg::DO_ZERO>) \
+#define REGISTER_GPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationCubicBSplineGradW") \
+    .Device(DEVICE_GPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationBSplineGradWOp<GPUDevice, T, tficg::SO_CUBIC, tficg::DO_ZERO>) \
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
-// #undef REGISTER_GPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
+#undef REGISTER_GPU
 
-// #define REGISTER_CPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationPrimeCubicBSplineGradW") \
-//     .Device(DEVICE_CPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationBSplineGradWOp<CPUDevice, T, tficg::SO_CUBIC, tficg::DO_FIRST>);
+#define REGISTER_CPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationPrimeCubicBSplineGradW") \
+    .Device(DEVICE_CPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationBSplineGradWOp<CPUDevice, T, tficg::SO_CUBIC, tficg::DO_FIRST>);
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
-// #undef REGISTER_CPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
+#undef REGISTER_CPU
 
-// #define REGISTER_GPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationPrimeCubicBSplineGradW") \
-//     .Device(DEVICE_GPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationBSplineGradWOp<GPUDevice, T, tficg::SO_CUBIC, tficg::DO_FIRST>) \
+#define REGISTER_GPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationPrimeCubicBSplineGradW") \
+    .Device(DEVICE_GPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationBSplineGradWOp<GPUDevice, T, tficg::SO_CUBIC, tficg::DO_FIRST>) \
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
-// #undef REGISTER_GPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
+#undef REGISTER_GPU
 
 
 // Linear interpolation Activation
@@ -1445,55 +1445,55 @@ class ActivationInterpolateLinearOp : public ActivationBaseOp<Device, T> {
 };
 
 
-// #define REGISTER_CPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationInterpolateLinear") \
-//     .Device(DEVICE_CPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationInterpolateLinearOp<CPUDevice, T, tficg::DO_ZERO>);
+#define REGISTER_CPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationInterpolateLinear") \
+    .Device(DEVICE_CPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationInterpolateLinearOp<CPUDevice, T, tficg::DO_ZERO>);
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
-// #undef REGISTER_CPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
+#undef REGISTER_CPU
 
-// #define REGISTER_GPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationInterpolateLinear") \
-//     .Device(DEVICE_GPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationInterpolateLinearOp<GPUDevice, T, tficg::DO_ZERO>) \
+#define REGISTER_GPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationInterpolateLinear") \
+    .Device(DEVICE_GPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationInterpolateLinearOp<GPUDevice, T, tficg::DO_ZERO>) \
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
-// #undef REGISTER_GPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
+#undef REGISTER_GPU
 
-// #define REGISTER_CPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationPrimeInterpolateLinear") \
-//     .Device(DEVICE_CPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationInterpolateLinearOp<CPUDevice, T, tficg::DO_FIRST>);
+#define REGISTER_CPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationPrimeInterpolateLinear") \
+    .Device(DEVICE_CPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationInterpolateLinearOp<CPUDevice, T, tficg::DO_FIRST>);
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
-// #undef REGISTER_CPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
+#undef REGISTER_CPU
 
-// #define REGISTER_GPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationPrimeInterpolateLinear") \
-//     .Device(DEVICE_GPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationInterpolateLinearOp<GPUDevice, T, tficg::DO_FIRST>) \
+#define REGISTER_GPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationPrimeInterpolateLinear") \
+    .Device(DEVICE_GPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationInterpolateLinearOp<GPUDevice, T, tficg::DO_FIRST>) \
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
-// #undef REGISTER_GPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
+#undef REGISTER_GPU
 
-// #define REGISTER_GPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationIntegralInterpolateLinear") \
-//     .Device(DEVICE_GPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationInterpolateLinearOp<GPUDevice, T, tficg::DO_INT>) \
+#define REGISTER_GPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationIntegralInterpolateLinear") \
+    .Device(DEVICE_GPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationInterpolateLinearOp<GPUDevice, T, tficg::DO_INT>) \
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
-// #undef REGISTER_GPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
+#undef REGISTER_GPU
 
 // Gradient Implementation
 template <typename T, tficg::DerivativeOrder N>
@@ -1564,32 +1564,32 @@ class ActivationInterpolateLinearGradWOp : public ActivationBaseGradWOp<Device, 
     }
 };
 
-// #define REGISTER_CPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationInterpolateLinearGradW") \
-//     .Device(DEVICE_CPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationInterpolateLinearGradWOp<CPUDevice, T, tficg::DO_ZERO>);
+#define REGISTER_CPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationInterpolateLinearGradW") \
+    .Device(DEVICE_CPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationInterpolateLinearGradWOp<CPUDevice, T, tficg::DO_ZERO>);
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
-// #undef REGISTER_CPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
+#undef REGISTER_CPU
 
-// #define REGISTER_GPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationInterpolateLinearGradW") \
-//     .Device(DEVICE_GPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationInterpolateLinearGradWOp<GPUDevice, T, tficg::DO_ZERO>) \
+#define REGISTER_GPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationInterpolateLinearGradW") \
+    .Device(DEVICE_GPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationInterpolateLinearGradWOp<GPUDevice, T, tficg::DO_ZERO>) \
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
-// #undef REGISTER_GPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
+#undef REGISTER_GPU
 
-// #define REGISTER_GPU(T) \
-// REGISTER_KERNEL_BUILDER(  \
-//     Name("ActivationIntegralInterpolateLinearGradW") \
-//     .Device(DEVICE_GPU) \
-//     .TypeConstraint<T>("T"), \
-//     ActivationInterpolateLinearGradWOp<GPUDevice, T, tficg::DO_INT>) \
+#define REGISTER_GPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationIntegralInterpolateLinearGradW") \
+    .Device(DEVICE_GPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationInterpolateLinearGradWOp<GPUDevice, T, tficg::DO_INT>) \
 
-// TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
-// #undef REGISTER_GPU
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
+#undef REGISTER_GPU
