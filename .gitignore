@@ -24,6 +24,7 @@ install_manifest.txt
 *.mat
 *.json
 out/*
+__pycache__*/
 dist*/
 *.egg-info*/
 
