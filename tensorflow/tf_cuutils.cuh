@@ -10,7 +10,27 @@
 
 using GPUDevice = Eigen::GpuDevice;
 
-namespace tficg {
+
+#if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
+#else
+__device__ double atomicAdd(double *address, double val)
+{
+  unsigned long long int *address_as_ull = (unsigned long long int *)address;
+
+  unsigned long long int old = *address_as_ull, assumed;
+
+  do
+  {
+    assumed = old;
+    old = atomicCAS(address_as_ull, assumed, __double_as_longlong(val + __longlong_as_double(assumed)));
+  } while (assumed != old);
+
+  return __longlong_as_double(old);
+}
+#endif
+
+namespace tficg
+{
 
 unsigned int nextPowerof2(unsigned int v)
 {
@@ -24,35 +44,20 @@ unsigned int nextPowerof2(unsigned int v)
   return v;
 }
 
-template<typename T, int NDIMS>
+template <typename T, int NDIMS>
 void fill(const GPUDevice &d,
-          typename tensorflow::TTypes<T,NDIMS>::Tensor &x, T value)
+          typename tensorflow::TTypes<T, NDIMS>::Tensor &x, T value)
 {
   thrust::fill(thrust::cuda::par.on(d.stream()),
-                thrust::device_ptr<T>(x.data()),
-                thrust::device_ptr<T>(x.data() + x.size()),
-                value);
+               thrust::device_ptr<T>(x.data()),
+               thrust::device_ptr<T>(x.data() + x.size()),
+               value);
 }
 
 template <typename T>
-__device__ inline T CudaAtomicAdd(T* ptr, T value) {
+__device__ inline T CudaAtomicAdd(T *ptr, T value)
+{
   return atomicAdd(ptr, value);
 }
 
-template <typename T, typename F>
-__device__ T CudaAtomicCasHelper(T* ptr, F accumulate) {
-  T old = *ptr;
-  T assumed;
-  do {
-    assumed = old;
-    old = atomicCAS(ptr, assumed, accumulate(assumed));
-  } while (assumed != old);
-  return old;
-}
-
-#if __CUDA_ARCH__ < 600
-__device__ inline double CudaAtomicAdd(double* ptr, double value) {
-  return CudaAtomicCasHelper(ptr, [value](double a) { return a + value; });
-}
-#endif
-}
+} // namespace tficg
