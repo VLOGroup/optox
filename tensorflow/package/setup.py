@@ -2,10 +2,25 @@ import setuptools
 from setuptools.dist import Distribution
 import distutils
 import tensorflow as tf
+import subprocess
+
+# If precompiled tensorflow isused, one has to destinguish between "tensorflow" and "tensorflow-gpu"
+tfCPU = not subprocess.call(["pip","-q","show","tensorflow"] )
+tfGPU = not subprocess.call(["pip","-q","show","tensorflow-gpu"] )
+if tfCPU:
+  tfstr = "tensorflow == {}".format(tf.VERSION)
+if tfGPU:
+  tfstr = "tensorflow-gpu == {}".format(tf.VERSION)
+if (tfGPU and tfCPU) or not (tfGPU or tfCPU):
+  tfstr = ""
+  assert False, "\n\nunexpected error, is tensorflow or tensorflow-gpu installed with pip?\n\n"
+  exit(1)
+print ("=>required tensorflow for pip: %s\n"% tfstr)
+
 
 # define requirements
 REQUIRED_PACKAGES = [
-    "tensorflow == {}".format(tf.VERSION)
+    tfstr, # tensorflow or tensorflow-gpu
 ]
 
 class BinaryDistribution(Distribution):
