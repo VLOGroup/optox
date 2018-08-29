@@ -1,3 +1,5 @@
+# copy the libraries
+cp ../../lib/python/PyNablaOperator.so ./optopy/nabla/PyNablaOperator.so
 
 # build the package
 python setup.py sdist bdist_wheel

@@ -1,3 +1,7 @@
+# copy the libraries
+cp ../../lib/tf/TfActivationOperators.so ./optotf/activations/TfActivationOperators.so
+cp ../../lib/tf/TfMetamorphosisOperator.so ./optotf/interpolation/TfMetamorphosisOperator.so
+cp ../../lib/tf/TfRotateFiltersOperator.so ./optotf/interpolation/TfRotateFiltersOperator.so
 
 # build the package
 python setup.py sdist bdist_wheel

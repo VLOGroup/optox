@@ -35,7 +35,6 @@ with open("README.md", "r") as fh:
             "Programming Language :: Python :: 3",
             "License :: OSI Approved :: MIT License",
             'Intended Audience :: Science/Research',
-            'Programming Language :: Python :: 3',
             'Topic :: Scientific/Engineering',
             'Topic :: Scientific/Engineering :: Mathematics',
             'Topic :: Scientific/Engineering :: Artificial Intelligence',
