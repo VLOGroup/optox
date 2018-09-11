@@ -24,6 +24,11 @@ namespace tficg {
     SO_CUBIC,
   };
 
+  enum BorderMode
+  {
+    DO_NONE,
+    DO_EXTRAPOLATE,
+  };
 }
 
 using GPUDevice = Eigen::GpuDevice;
@@ -71,7 +76,7 @@ struct ActivationBSplineGradWFunctor {
 };
 
 // Linear interpolation Activation Functor
-template<typename Device, typename T, tficg::DerivativeOrder N>
+template<typename Device, typename T, tficg::DerivativeOrder N, tficg::BorderMode TBorderMode>
 struct ActivationInterpolateLinearFunctor {
   void operator()(tensorflow::OpKernelContext *context,
                   const typename Tensor2<T>::ConstTensor &x,
@@ -79,7 +84,7 @@ struct ActivationInterpolateLinearFunctor {
                   typename Tensor2<T>::Tensor &out,
                   T v_min, T v_max, int feature_stride);
 };
-template<typename Device, typename T, tficg::DerivativeOrder N>
+template<typename Device, typename T, tficg::DerivativeOrder N, tficg::BorderMode TBorderMode>
 struct ActivationInterpolateLinearGradWFunctor {
   void operator()(tensorflow::OpKernelContext *context,
                   const typename Tensor2<T>::ConstTensor &x,

@@ -475,6 +475,104 @@ interpolation activation integration operator.
 ActivationGradWCommonIOs,
 ActivationCommonAttrs))*/;
 
+// Linear interpolation activation
+REGISTER_OP("ActivationInterpolateLinearExtrapolate")
+    .Attr("T: realnumbertype")
+    .Input("x: T")
+    .Input("w: T")
+    .Output("output: T")
+    .Attr("v_min: float")
+    .Attr("v_max: float")
+    .Attr("num_weights: int >= 1")
+    .Attr("feature_stride: int >= 1")
+    .SetShapeFn(shape_inference::UnchangedShape)
+/*    .Doc(strings::StrCat(R"doc(
+Computes an activation function parameterized by a linear interpolation between
+weighted dirac delta basis functions.)doc",
+ActivationCommonIOs,
+ActivationCommonAttrs))*/;
+
+REGISTER_OP("ActivationPrimeInterpolateLinearExtrapolate")
+    .Attr("T: realnumbertype")
+    .Input("x: T")
+    .Input("w: T")
+    .Output("output: T")
+    .Attr("v_min: float")
+    .Attr("v_max: float")
+    .Attr("num_weights: int >= 1")
+    .Attr("feature_stride: int >= 1")
+    .SetShapeFn(shape_inference::UnchangedShape)
+/*    .Doc(strings::StrCat(R"doc(
+Backpropagates the gradient from the output to the input of the linear
+interpolation activation operator.
+)doc",
+ActivationCommonIOs,
+ActivationCommonAttrs))*/;
+
+REGISTER_OP("ActivationInterpolateLinearExtrapolateGradW")
+    .Attr("T: realnumbertype")
+    .Input("x: T")
+    .Input("grad_out: T")
+    .Output("output: T")
+    .Attr("v_min: float")
+    .Attr("v_max: float")
+    .Attr("num_channels: int >= 1")
+    .Attr("num_weights: int >= 1")
+    .Attr("feature_stride: int >= 1")
+    .SetShapeFn([](shape_inference::InferenceContext *c) {
+      int num_weights, num_channels;
+      TF_RETURN_IF_ERROR(c->GetAttr("num_weights", &num_weights));
+      TF_RETURN_IF_ERROR(c->GetAttr("num_channels", &num_channels));
+      c->set_output(0, c->Matrix(num_channels, num_weights));
+      return Status::OK();
+    })
+/*    .Doc(strings::StrCat(R"doc(
+Backpropagates the gradient from the output to the weights of the linear
+interpolation activation operator.
+)doc",
+ActivationGradWCommonIOs,
+ActivationCommonAttrs))*/;
+
+REGISTER_OP("ActivationIntegralInterpolateLinearExtrapolate")
+    .Attr("T: realnumbertype")
+    .Input("x: T")
+    .Input("w: T")
+    .Output("output: T")
+    .Attr("v_min: float")
+    .Attr("v_max: float")
+    .Attr("num_weights: int >= 1")
+    .Attr("feature_stride: int >= 1")
+    .SetShapeFn(shape_inference::UnchangedShape)
+/*    .Doc(strings::StrCat(R"doc(
+Computes the integral of an activation function parameterized by a linear interpolation between
+weighted dirac delta basis functions.)doc",
+ActivationCommonIOs,
+ActivationCommonAttrs))*/;
+
+REGISTER_OP("ActivationIntegralInterpolateLinearExtrapolateGradW")
+    .Attr("T: realnumbertype")
+    .Input("x: T")
+    .Input("grad_out: T")
+    .Output("output: T")
+    .Attr("v_min: float")
+    .Attr("v_max: float")
+    .Attr("num_channels: int >= 1")
+    .Attr("num_weights: int >= 1")
+    .Attr("feature_stride: int >= 1")
+    .SetShapeFn([](shape_inference::InferenceContext *c) {
+      int num_weights, num_channels;
+      TF_RETURN_IF_ERROR(c->GetAttr("num_weights", &num_weights));
+      TF_RETURN_IF_ERROR(c->GetAttr("num_channels", &num_channels));
+      c->set_output(0, c->Matrix(num_channels, num_weights));
+      return Status::OK();
+    })
+/*    .Doc(strings::StrCat(R"doc(
+Backpropagates the gradient from the output to the weights of the linear
+interpolation activation integration operator.
+)doc",
+ActivationGradWCommonIOs,
+ActivationCommonAttrs))*/;
+
 const unsigned int max_num_weights = 128;
 
 /**
@@ -1353,8 +1451,8 @@ TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
 
 // Linear interpolation Activation
 
-template <typename T, tficg::DerivativeOrder N>
-struct ActivationInterpolateLinearFunctor<CPUDevice, T, N> {
+template <typename T, tficg::DerivativeOrder N, tficg::BorderMode TBorderMode>
+struct ActivationInterpolateLinearFunctor<CPUDevice, T, N, TBorderMode> {
   void operator()(OpKernelContext *context,
                   const typename Tensor2<T>::ConstTensor &x,
                   const typename Tensor2<T>::ConstTensor &w,
@@ -1425,7 +1523,7 @@ struct ActivationInterpolateLinearFunctor<CPUDevice, T, N> {
   }
 };
 
-template<typename Device, typename T, tficg::DerivativeOrder N>
+template<typename Device, typename T, tficg::DerivativeOrder N, tficg::BorderMode TBorderMode>
 class ActivationInterpolateLinearOp : public ActivationBaseOp<Device, T> {
   public:
     explicit ActivationInterpolateLinearOp(OpKernelConstruction* context) :
@@ -1439,7 +1537,7 @@ class ActivationInterpolateLinearOp : public ActivationBaseOp<Device, T> {
                          const typename Tensor2<T>::ConstTensor &w,
                          typename Tensor2<T>::Tensor &out) override
     {
-      ActivationInterpolateLinearFunctor<Device, T, N>()(context,
+      ActivationInterpolateLinearFunctor<Device, T, N, TBorderMode>()(context,
         x, w, out, this->v_min_, this->v_max_, this->feature_stride_);
     }
 };
@@ -1450,7 +1548,7 @@ REGISTER_KERNEL_BUILDER(  \
     Name("ActivationInterpolateLinear") \
     .Device(DEVICE_CPU) \
     .TypeConstraint<T>("T"), \
-    ActivationInterpolateLinearOp<CPUDevice, T, tficg::DO_ZERO>);
+    ActivationInterpolateLinearOp<CPUDevice, T, tficg::DO_ZERO, tficg::DO_NONE>);
 
 TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
 #undef REGISTER_CPU
@@ -1460,7 +1558,17 @@ REGISTER_KERNEL_BUILDER(  \
     Name("ActivationInterpolateLinear") \
     .Device(DEVICE_GPU) \
     .TypeConstraint<T>("T"), \
-    ActivationInterpolateLinearOp<GPUDevice, T, tficg::DO_ZERO>) \
+    ActivationInterpolateLinearOp<GPUDevice, T, tficg::DO_ZERO, tficg::DO_NONE>) \
+
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
+#undef REGISTER_GPU
+
+#define REGISTER_GPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationInterpolateLinearExtrapolate") \
+    .Device(DEVICE_GPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationInterpolateLinearOp<GPUDevice, T, tficg::DO_ZERO, tficg::DO_EXTRAPOLATE>) \
 
 TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
 #undef REGISTER_GPU
@@ -1470,7 +1578,7 @@ REGISTER_KERNEL_BUILDER(  \
     Name("ActivationPrimeInterpolateLinear") \
     .Device(DEVICE_CPU) \
     .TypeConstraint<T>("T"), \
-    ActivationInterpolateLinearOp<CPUDevice, T, tficg::DO_FIRST>);
+    ActivationInterpolateLinearOp<CPUDevice, T, tficg::DO_FIRST, tficg::DO_NONE>);
 
 TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
 #undef REGISTER_CPU
@@ -1480,7 +1588,17 @@ REGISTER_KERNEL_BUILDER(  \
     Name("ActivationPrimeInterpolateLinear") \
     .Device(DEVICE_GPU) \
     .TypeConstraint<T>("T"), \
-    ActivationInterpolateLinearOp<GPUDevice, T, tficg::DO_FIRST>) \
+    ActivationInterpolateLinearOp<GPUDevice, T, tficg::DO_FIRST, tficg::DO_NONE>) \
+
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
+#undef REGISTER_GPU
+
+#define REGISTER_GPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationPrimeInterpolateLinearExtrapolate") \
+    .Device(DEVICE_GPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationInterpolateLinearOp<GPUDevice, T, tficg::DO_FIRST, tficg::DO_EXTRAPOLATE>) \
 
 TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
 #undef REGISTER_GPU
@@ -1490,14 +1608,24 @@ REGISTER_KERNEL_BUILDER(  \
     Name("ActivationIntegralInterpolateLinear") \
     .Device(DEVICE_GPU) \
     .TypeConstraint<T>("T"), \
-    ActivationInterpolateLinearOp<GPUDevice, T, tficg::DO_INT>) \
+    ActivationInterpolateLinearOp<GPUDevice, T, tficg::DO_INT, tficg::DO_NONE>) \
+
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
+#undef REGISTER_GPU
+
+#define REGISTER_GPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationIntegralInterpolateLinearExtrapolate") \
+    .Device(DEVICE_GPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationInterpolateLinearOp<GPUDevice, T, tficg::DO_INT, tficg::DO_EXTRAPOLATE>) \
 
 TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
 #undef REGISTER_GPU
 
 // Gradient Implementation
-template <typename T, tficg::DerivativeOrder N>
-struct ActivationInterpolateLinearGradWFunctor<CPUDevice, T, N> {
+template <typename T, tficg::DerivativeOrder N, tficg::BorderMode TBorderMode>
+struct ActivationInterpolateLinearGradWFunctor<CPUDevice, T, N, TBorderMode> {
   void operator()(OpKernelContext* context,
                   const typename Tensor2<T>::ConstTensor &x,
                   const typename Tensor2<T>::ConstTensor &grad_out,
@@ -1545,7 +1673,7 @@ struct ActivationInterpolateLinearGradWFunctor<CPUDevice, T, N> {
 };
 
 // Linear Interpolation Activation Class
-template<typename Device, typename T, tficg::DerivativeOrder N>
+template<typename Device, typename T, tficg::DerivativeOrder N, tficg::BorderMode TBorderMode>
 class ActivationInterpolateLinearGradWOp : public ActivationBaseGradWOp<Device, T> {
   public:
     explicit ActivationInterpolateLinearGradWOp(OpKernelConstruction* context) :
@@ -1559,7 +1687,7 @@ class ActivationInterpolateLinearGradWOp : public ActivationBaseGradWOp<Device, 
                          const typename Tensor2<T>::ConstTensor &grad_out,
                          typename Tensor2<T>::Tensor &grad_w) override
     {
-      ActivationInterpolateLinearGradWFunctor<Device, T, N>()(context, x, grad_out, grad_w,
+      ActivationInterpolateLinearGradWFunctor<Device, T, N, TBorderMode>()(context, x, grad_out, grad_w,
                 this->v_min_, this->v_max_, this->feature_stride_);
     }
 };
@@ -1569,7 +1697,7 @@ REGISTER_KERNEL_BUILDER(  \
     Name("ActivationInterpolateLinearGradW") \
     .Device(DEVICE_CPU) \
     .TypeConstraint<T>("T"), \
-    ActivationInterpolateLinearGradWOp<CPUDevice, T, tficg::DO_ZERO>);
+    ActivationInterpolateLinearGradWOp<CPUDevice, T, tficg::DO_ZERO, tficg::DO_NONE>);
 
 TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_CPU)
 #undef REGISTER_CPU
@@ -1579,7 +1707,17 @@ REGISTER_KERNEL_BUILDER(  \
     Name("ActivationInterpolateLinearGradW") \
     .Device(DEVICE_GPU) \
     .TypeConstraint<T>("T"), \
-    ActivationInterpolateLinearGradWOp<GPUDevice, T, tficg::DO_ZERO>) \
+    ActivationInterpolateLinearGradWOp<GPUDevice, T, tficg::DO_ZERO, tficg::DO_NONE>) \
+
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
+#undef REGISTER_GPU
+
+#define REGISTER_GPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationInterpolateLinearExtrapolateGradW") \
+    .Device(DEVICE_GPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationInterpolateLinearGradWOp<GPUDevice, T, tficg::DO_ZERO, tficg::DO_EXTRAPOLATE>) \
 
 TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
 #undef REGISTER_GPU
@@ -1589,7 +1727,17 @@ REGISTER_KERNEL_BUILDER(  \
     Name("ActivationIntegralInterpolateLinearGradW") \
     .Device(DEVICE_GPU) \
     .TypeConstraint<T>("T"), \
-    ActivationInterpolateLinearGradWOp<GPUDevice, T, tficg::DO_INT>) \
+    ActivationInterpolateLinearGradWOp<GPUDevice, T, tficg::DO_INT, tficg::DO_NONE>) \
+
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
+#undef REGISTER_GPU
+
+#define REGISTER_GPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationIntegralInterpolateLinearExtrapolateGradW") \
+    .Device(DEVICE_GPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationInterpolateLinearGradWOp<GPUDevice, T, tficg::DO_INT, tficg::DO_EXTRAPOLATE>) \
 
 TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
 #undef REGISTER_GPU

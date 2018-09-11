@@ -628,7 +628,7 @@ TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU_FUNCTOR);
 
 
 // Linear interpolation Activation Functor
-template<typename T, tficg::DerivativeOrder N>
+template<typename T, tficg::DerivativeOrder N, tficg::BorderMode TBorderMode>
 __global__ void activationInterpolateLinearKernel(
     const typename Tensor2<T>::ConstTensor x,
     const typename Tensor2<T>::ConstTensor w,
@@ -674,17 +674,41 @@ __global__ void activationInterpolateLinearKernel(
         }
         else if (x_idx_f < 0)
         {
-          // extrapolation to the left
-          w_f = w_shared[0];
-          w_c = w_shared[1];
-          alpha = x_idx;
+          switch(TBorderMode)
+          {
+            case tficg::DO_NONE:
+              if (x_idx >= -1)
+              {
+                w_c = w_shared[0];
+                alpha = x_idx - x_idx_f;
+              }
+              break;
+            case tficg::DO_EXTRAPOLATE:
+              // extrapolation to the left
+              w_f = w_shared[0];
+              w_c = w_shared[1];
+              alpha = x_idx;
+              break;
+          }
         }
         else if (x_idx_f >= num_weights - 1)
         {
-          // extrapolation to the right
-          w_f = w_shared[num_weights-2];
-          w_c = w_shared[num_weights-1];
-          alpha = x_idx - (num_weights-2);
+          switch(TBorderMode)
+          {
+            case tficg::DO_NONE:
+              if (x_idx < num_weights)
+              {
+                w_f = w_shared[num_weights-1];
+                alpha = x_idx - x_idx_f;
+              }
+              break;
+            case tficg::DO_EXTRAPOLATE:
+              // extrapolation to the right
+              w_f = w_shared[num_weights-2];
+              w_c = w_shared[num_weights-1];
+              alpha = x_idx - (num_weights-2);
+              break;
+          }
         }
 
         // determine the order of the gradient
@@ -705,7 +729,7 @@ __global__ void activationInterpolateLinearKernel(
 }
 
 // Linear interpolation Activation Functor
-template<typename T>
+template<typename T, tficg::BorderMode TBorderMode>
 __global__ void activationIntegralInterpolateLinearKernel(
     const typename Tensor2<T>::ConstTensor x,
     const typename Tensor2<T>::ConstTensor w,
@@ -754,7 +778,7 @@ __global__ void activationIntegralInterpolateLinearKernel(
             w_int += alpha * (alpha*w_shared[x_idx_c] + (2-alpha)*w_shared[x_idx_f]);
             out(idx, idc) = (w_int * delta) / 2;
           }
-          else
+          else if (TBorderMode == tficg::DO_EXTRAPOLATE)
           {
             T w_int = 0;
             for (int j = b; j < num_weights-2; ++j)
@@ -762,6 +786,24 @@ __global__ void activationIntegralInterpolateLinearKernel(
 
             const T alpha = x_idx - (num_weights-2);
             w_int += alpha * (alpha*w_shared[num_weights-1] + (2-alpha)*w_shared[num_weights-2]);
+            out(idx, idc) = (w_int * delta) / 2;
+          }
+          else if (TBorderMode == tficg::DO_NONE)
+          {
+            T w_int = 0;
+            for (int j = b; j < num_weights-2; ++j)
+              w_int += w_shared[j+1] + w_shared[j];
+
+            if (x_idx_f < num_weights)
+            {
+              const T alpha = x_idx - x_idx_f;
+              w_int += w_shared[num_weights-1] + alpha * ((2-alpha)*w_shared[num_weights-1]);
+            }
+            else
+            {
+              w_int += 2*w_shared[num_weights-1];
+            }
+
             out(idx, idc) = (w_int * delta) / 2;
           }
         }
@@ -777,7 +819,7 @@ __global__ void activationIntegralInterpolateLinearKernel(
             w_int += (1 - alpha) * ((1+alpha)*w_shared[x_idx_c] + (1-alpha)*w_shared[x_idx_f]);
             out(idx, idc) = (w_int * -delta) / 2;
           }
-          else
+          else if (TBorderMode == tficg::DO_EXTRAPOLATE)
           {
             T w_int = 0;
             for (int j = b; j > 0; --j)
@@ -787,6 +829,24 @@ __global__ void activationIntegralInterpolateLinearKernel(
             w_int += -alpha * (alpha*w_shared[1] + (2-alpha)*w_shared[0]);
             out(idx, idc) = (w_int * -delta) / 2;
           }
+          else if (TBorderMode == tficg::DO_NONE)
+          {
+            T w_int = 0;
+            for (int j = b; j > 0; --j)
+              w_int += w_shared[j-1] + w_shared[j];
+
+            if (x_idx_f >= -1)
+            {
+              const T alpha = x_idx - x_idx_f;
+              w_int += (1 - alpha) * ((1+alpha)*w_shared[0]);
+            }
+            else
+            {
+              w_int += w_shared[0];
+            }
+
+            out(idx, idc) = (w_int * -delta) / 2;          
+          }
         }
       }
     }
@@ -795,8 +855,8 @@ __global__ void activationIntegralInterpolateLinearKernel(
   }
 }
 
-template <typename T, tficg::DerivativeOrder N>
-struct ActivationInterpolateLinearFunctor<GPUDevice, T, N> {
+template <typename T, tficg::DerivativeOrder N, tficg::BorderMode TBorderMode>
+struct ActivationInterpolateLinearFunctor<GPUDevice, T, N, TBorderMode> {
   void operator()(tensorflow::OpKernelContext* context,
                   const typename Tensor2<T>::ConstTensor &x,
                   const typename Tensor2<T>::ConstTensor &w,
@@ -808,24 +868,27 @@ struct ActivationInterpolateLinearFunctor<GPUDevice, T, N> {
     unsigned int block_count = iu::divUp(out.dimensions()[0], thread_per_block);
     unsigned int smem_size = w.dimensions()[1] * sizeof(T);
     if (N == tficg::DO_INT)
-      activationIntegralInterpolateLinearKernel<T><<<block_count, thread_per_block, smem_size, d.stream()>>>(
+      activationIntegralInterpolateLinearKernel<T, TBorderMode><<<block_count, thread_per_block, smem_size, d.stream()>>>(
           x, w, out, v_min, v_max, feature_stride);
     else
-      activationInterpolateLinearKernel<T,N><<<block_count, thread_per_block, smem_size, d.stream()>>>(
+      activationInterpolateLinearKernel<T, N, TBorderMode><<<block_count, thread_per_block, smem_size, d.stream()>>>(
           x, w, out, v_min, v_max, feature_stride);
   }
 };
 
 #define REGISTER_GPU_FUNCTOR(T) \
-    template struct ActivationInterpolateLinearFunctor<GPUDevice, T, tficg::DO_ZERO>; \
-    template struct ActivationInterpolateLinearFunctor<GPUDevice, T, tficg::DO_FIRST>; \
-    template struct ActivationInterpolateLinearFunctor<GPUDevice, T, tficg::DO_INT>;
+    template struct ActivationInterpolateLinearFunctor<GPUDevice, T, tficg::DO_ZERO, tficg::DO_NONE>; \
+    template struct ActivationInterpolateLinearFunctor<GPUDevice, T, tficg::DO_ZERO, tficg::DO_EXTRAPOLATE>; \
+    template struct ActivationInterpolateLinearFunctor<GPUDevice, T, tficg::DO_FIRST, tficg::DO_NONE>; \
+    template struct ActivationInterpolateLinearFunctor<GPUDevice, T, tficg::DO_FIRST, tficg::DO_EXTRAPOLATE>; \
+    template struct ActivationInterpolateLinearFunctor<GPUDevice, T, tficg::DO_INT, tficg::DO_NONE>; \
+    template struct ActivationInterpolateLinearFunctor<GPUDevice, T, tficg::DO_INT, tficg::DO_EXTRAPOLATE>; 
 TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU_FUNCTOR);
 #undef REGISTER_GPU_FUNCTOR
 
 
 // Gradient Functor
-template<typename T, tficg::DerivativeOrder N>
+template<typename T, tficg::DerivativeOrder N, tficg::BorderMode TBorderMode>
 __global__ void activationInterpolateLinearGradWKernel(
     const typename Tensor2<T>::ConstTensor x,
     const typename Tensor2<T>::ConstTensor grad_out,
@@ -868,19 +931,29 @@ __global__ void activationInterpolateLinearGradWKernel(
           grad_w_shared[tid + x_idx_f*BS] += grad_out(idx, idc) * (1 - alpha);
           grad_w_shared[tid + x_idx_c*BS] += grad_out(idx, idc) * alpha;
         }
-        else if (x_idx_f < 0)
+        else if (x_idx_f < 0 && TBorderMode == tficg::DO_EXTRAPOLATE)
         {
           // extrapolation to the left
           const T alpha = x_idx;
           grad_w_shared[tid + 0*BS] += grad_out(idx, idc) * (1 - alpha);
           grad_w_shared[tid + 1*BS] += grad_out(idx, idc) * alpha;
         }
-        else if (x_idx_f >= num_weights - 1)
+        else if (x_idx_f >= num_weights - 1 && TBorderMode == tficg::DO_EXTRAPOLATE)
         {
           // extrapolation to the right
           const T alpha = x_idx - (num_weights-2);
           grad_w_shared[tid + (num_weights-2)*BS] += grad_out(idx, idc) * (1 - alpha);
           grad_w_shared[tid + (num_weights-1)*BS] += grad_out(idx, idc) * alpha;
+        }
+        else if (x_idx_f >= -1 && x_idx_f < 0 && TBorderMode == tficg::DO_NONE)
+        {
+          const T alpha = x_idx - x_idx_f;
+          grad_w_shared[tid + 0*BS] += grad_out(idx, idc) * alpha;
+        }
+        else if (x_idx_f < num_weights && x_idx_f >= num_weights - 1 && TBorderMode == tficg::DO_NONE)
+        {
+          const T alpha = x_idx - x_idx_f;
+          grad_w_shared[tid + (num_weights-1)*BS] += grad_out(idx, idc) * (1 - alpha);
         }
       }
     }
@@ -900,7 +973,7 @@ __global__ void activationInterpolateLinearGradWKernel(
   }
 }
 
-template<typename T>
+template<typename T, tficg::BorderMode TBorderMode>
 __global__ void activationIntegralInterpolateLinearGradWKernel(
     const typename Tensor2<T>::ConstTensor x,
     const typename Tensor2<T>::ConstTensor grad_out,
@@ -954,7 +1027,7 @@ __global__ void activationIntegralInterpolateLinearGradWKernel(
             grad_w_shared[tid + x_idx_c*BS] += grad_out_pos * alpha * alpha;
             grad_w_shared[tid + x_idx_f*BS] += grad_out_pos * alpha * (2-alpha);
           }
-          else
+          else if (TBorderMode == tficg::DO_EXTRAPOLATE)
           {
             for (int j = b; j < num_weights-2; ++j)
             {
@@ -965,6 +1038,26 @@ __global__ void activationIntegralInterpolateLinearGradWKernel(
             const T alpha = x_idx - (num_weights-2);
             grad_w_shared[tid + (num_weights-1)*BS] += grad_out_pos * alpha * alpha;
             grad_w_shared[tid + (num_weights-2)*BS] += grad_out_pos * alpha * (2-alpha);
+          }
+          else if (TBorderMode == tficg::DO_NONE)
+          {
+            for (int j = b; j < num_weights-2; ++j)
+            {
+              grad_w_shared[tid + j*BS] += grad_out_pos;
+              grad_w_shared[tid + (j+1)*BS] += grad_out_pos;
+            }
+
+            grad_w_shared[tid + (num_weights-1)*BS] += grad_out_pos;
+
+            if (x_idx_f < num_weights)
+            {
+              const T alpha = x_idx - x_idx_f;
+              grad_w_shared[tid + (num_weights-1)*BS] += grad_out_pos * alpha * (2-alpha);
+            }
+            else
+            {
+              grad_w_shared[tid + (num_weights-1)*BS] += grad_out_pos;
+            }
           }
         }
         else 
@@ -981,7 +1074,7 @@ __global__ void activationIntegralInterpolateLinearGradWKernel(
             grad_w_shared[tid + x_idx_c*BS] -= grad_out_pos * (1-alpha) * (1+alpha);
             grad_w_shared[tid + x_idx_f*BS] -= grad_out_pos * (1-alpha) * (1-alpha);
           }
-          else
+          else if (TBorderMode == tficg::DO_EXTRAPOLATE)
           {
             for (int j = b; j > 0; --j)
             {
@@ -992,6 +1085,24 @@ __global__ void activationIntegralInterpolateLinearGradWKernel(
             const T alpha = x_idx;
             grad_w_shared[tid + 1*BS] -= grad_out_pos * (-alpha) * alpha;
             grad_w_shared[tid + 0*BS] -= grad_out_pos * (-alpha) * (2-alpha);
+          }
+          else if (TBorderMode == tficg::DO_NONE)
+          {
+            for (int j = b; j > 0; --j)
+            {
+              grad_w_shared[tid + j*BS] -= grad_out_pos;
+              grad_w_shared[tid + (j-1)*BS] -= grad_out_pos;
+            }
+
+            if (x_idx_f >= -1)
+            {
+              const T alpha = x_idx - x_idx_f;
+              grad_w_shared[tid + 0*BS] -= grad_out_pos * (1-alpha) * (1+alpha);
+            }
+            else
+            {
+              grad_w_shared[tid + 0*BS] -= grad_out_pos;
+            }
           }
         }
       }
@@ -1012,8 +1123,8 @@ __global__ void activationIntegralInterpolateLinearGradWKernel(
   }
 }
 
-template <typename T, tficg::DerivativeOrder N>
-struct ActivationInterpolateLinearGradWFunctor<GPUDevice, T, N> {
+template <typename T, tficg::DerivativeOrder N, tficg::BorderMode TBorderMode>
+struct ActivationInterpolateLinearGradWFunctor<GPUDevice, T, N, TBorderMode> {
   void operator()(tensorflow::OpKernelContext* context,
                   const typename Tensor2<T>::ConstTensor &x,
                   const typename Tensor2<T>::ConstTensor &grad_out,
@@ -1034,16 +1145,18 @@ struct ActivationInterpolateLinearGradWFunctor<GPUDevice, T, N> {
     unsigned int smem_size = thread_per_block* grad_w.dimensions()[1] * sizeof(T);
 
     if (N == tficg::DO_INT)
-      activationIntegralInterpolateLinearGradWKernel<T><<<block_count, thread_per_block, smem_size, d.stream()>>>(
+      activationIntegralInterpolateLinearGradWKernel<T, TBorderMode><<<block_count, thread_per_block, smem_size, d.stream()>>>(
         x, grad_out, grad_w, v_min, v_max, feature_stride);
     else
-      activationInterpolateLinearGradWKernel<T,N><<<block_count, thread_per_block, smem_size, d.stream()>>>(
+      activationInterpolateLinearGradWKernel<T, N, TBorderMode><<<block_count, thread_per_block, smem_size, d.stream()>>>(
         x, grad_out, grad_w, v_min, v_max, feature_stride);
   }
 };
 
 #define REGISTER_GPU_FUNCTOR(T) \
-    template struct ActivationInterpolateLinearGradWFunctor<GPUDevice, T, tficg::DO_ZERO>; \
-    template struct ActivationInterpolateLinearGradWFunctor<GPUDevice, T, tficg::DO_INT>;
+    template struct ActivationInterpolateLinearGradWFunctor<GPUDevice, T, tficg::DO_ZERO, tficg::DO_NONE>; \
+    template struct ActivationInterpolateLinearGradWFunctor<GPUDevice, T, tficg::DO_ZERO, tficg::DO_EXTRAPOLATE>; \
+    template struct ActivationInterpolateLinearGradWFunctor<GPUDevice, T, tficg::DO_INT, tficg::DO_NONE>; \
+    template struct ActivationInterpolateLinearGradWFunctor<GPUDevice, T, tficg::DO_INT, tficg::DO_EXTRAPOLATE>;
 TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU_FUNCTOR);
 #undef REGISTER_GPU_FUNCTOR
