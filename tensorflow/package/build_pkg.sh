@@ -28,6 +28,7 @@ printf "\n${BLUE}copying '.so' libraries into the package/optotf/ folder...${NC}
 check_command cp ../../lib/tf/TfActivationOperators.so ./optotf/activations/TfActivationOperators.so
 check_command cp ../../lib/tf/TfMetamorphosisOperator.so ./optotf/interpolation/TfMetamorphosisOperator.so
 check_command cp ../../lib/tf/TfRotateFiltersOperator.so ./optotf/interpolation/TfRotateFiltersOperator.so
+check_command cp ../../lib/tf/TfFftOperators.so ./optotf/fft/TfFftOperators.so
 
 # build the package
 printf "\n${BLUE}Building the Wheel Package...${NC}\n"

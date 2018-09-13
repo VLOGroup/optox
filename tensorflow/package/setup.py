@@ -43,7 +43,8 @@ with open("README.md", "r") as fh:
         include_package_data=True,
         package_data={'optotf': ["activations/TfActivationOperators.so",
                                  "interpolation/TfRotateFiltersOperator.so",
-                                 "interpolation/TfMetamorphosisOperator.so"]},
+                                 "interpolation/TfMetamorphosisOperator.so",
+                                 "fft/TfFftOperators.so"]},
         install_requires=REQUIRED_PACKAGES,
         distclass=BinaryDistribution,
         classifiers=[

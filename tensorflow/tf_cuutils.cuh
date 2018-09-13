@@ -10,6 +10,12 @@
 
 using GPUDevice = Eigen::GpuDevice;
 
+#define ICGVN_BLOCK_SIZE_3D_X 16
+#define ICGVN_BLOCK_SIZE_3D_Y 8
+#define ICGVN_BLOCK_SIZE_3D_Z 4
+
+#define ICGVN_BLOCK_SIZE_2D_X 32
+#define ICGVN_BLOCK_SIZE_2D_Y 32
 
 #if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
 #else
@@ -58,6 +64,11 @@ template <typename T>
 __device__ inline T CudaAtomicAdd(T *ptr, T value)
 {
   return atomicAdd(ptr, value);
+}
+
+inline int divUp(int length, int block_size)
+{
+  return (length + block_size - 1) / block_size;
 }
 
 } // namespace tficg

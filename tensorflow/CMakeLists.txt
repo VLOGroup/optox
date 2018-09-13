@@ -63,6 +63,18 @@ if(WIN32)
 endif(WIN32)
 
 ##----------------------------------------------------------------------------
+## activation operators
+##----------------------------------------------------------------------------
+cuda_add_library(TfFftOperators SHARED tf_fftutils.cpp tf_fftutils.cu)
+
+target_link_libraries(TfFftOperators optox ${IMAGEUTILITIES_LIBRARIES} "tensorflow_framework")
+# remove lib prefix
+set_target_properties(TfFftOperators PROPERTIES PREFIX "" LINKER_LANGUAGE CXX)
+if(WIN32)
+    SET_TARGET_PROPERTIES(TfFftOperators PROPERTIES SUFFIX ".pyd")
+endif(WIN32)
+
+##----------------------------------------------------------------------------
 ## rotate filters operators
 ##----------------------------------------------------------------------------
 cuda_add_library(TfRotateFiltersOperator SHARED tf_filters.cpp tf_filters.cu)
