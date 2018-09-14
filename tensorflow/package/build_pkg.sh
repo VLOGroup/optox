@@ -6,7 +6,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-printf "\n${BLUE}Removing old build artifacts...${NC}\n"
+printf "\n${GREEN}Removing old build artifacts...${NC}\n"
 rm -rf build
 rm -rf dist
 rm -rf tfoptotf.egg-info
@@ -24,14 +24,15 @@ check_command()
 }
 
 # copy the libraries
-printf "\n${BLUE}copying '.so' libraries into the package/optotf/ folder...${NC}\n"
+printf "\n${GREEN}copying '.so' libraries into the package/optotf/ folder...${NC}\n"
 check_command cp ../../lib/tf/TfActivationOperators.so ./optotf/activations/TfActivationOperators.so
 check_command cp ../../lib/tf/TfMetamorphosisOperator.so ./optotf/interpolation/TfMetamorphosisOperator.so
 check_command cp ../../lib/tf/TfRotateFiltersOperator.so ./optotf/interpolation/TfRotateFiltersOperator.so
 check_command cp ../../lib/tf/TfFftOperators.so ./optotf/fft/TfFftOperators.so
+check_command cp ../../lib/tf/TFDemosaicingOperator.so ./optotf/demosaicing/TFDemosaicingOperator.so
 
 # build the package
-printf "\n${BLUE}Building the Wheel Package...${NC}\n"
+printf "\n${GREEN}Building the Wheel Package...${NC}\n"
 check_command  python setup.py sdist bdist_wheel
 
 
