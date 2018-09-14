@@ -17,11 +17,15 @@ check_command()
 }
 
 # copy the libraries
+printf "\n${GREEN}copying '.so' libraries into the package/optotf/ folder...${NC}\n"
 check_command cp ../../lib/python/PyNablaOperator.so ./optopy/nabla/PyNablaOperator.so
 
 # build the package
-check_command python setup.py sdist bdist_wheel
+printf "\n${GREEN}Building the Wheel Package...${NC}\n"
+check_command  python setup.py sdist bdist_wheel
 
 # install
-#pip install dist/optotf-0.1.dev0-cp36-cp36m-linux_x86_64.whl --upgrade
-
+printf "\nDone, install the following wheel package by using \n"
+printf "   ${GREEN}pip install --upgrade   "
+ls dist/*.whl
+printf "${NC} \n"
