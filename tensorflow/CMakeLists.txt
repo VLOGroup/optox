@@ -99,6 +99,18 @@ if(WIN32)
 endif(WIN32)
 
 ##----------------------------------------------------------------------------
+## demosaicing operators
+##----------------------------------------------------------------------------
+cuda_add_library(TFDemosaicingOperator SHARED tf_demosaicing.cpp tf_demosaicing.cu)
+
+target_link_libraries(TFDemosaicingOperator optox ${IMAGEUTILITIES_LIBRARIES} "tensorflow_framework")
+# remove lib prefix
+set_target_properties(TFDemosaicingOperator PROPERTIES PREFIX "" LINKER_LANGUAGE CXX)
+if(WIN32)
+    SET_TARGET_PROPERTIES(TFDemosaicingOperator PROPERTIES SUFFIX ".pyd")
+endif(WIN32)
+
+##----------------------------------------------------------------------------
 ## gpuNUFFT operator
 ##----------------------------------------------------------------------------
 if(WITH_GPUNUFFT)
