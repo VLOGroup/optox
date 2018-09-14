@@ -10,15 +10,15 @@ from tensorflow.python.framework import ops as _ops
 _lib = _tf.load_op_library(
     _tf.resource_loader.get_path_to_datafile("TFDemosaicingOperator.so"))
 
-demosaicing_operator_forward = _lib.demosaicing_operator_forward
-demosaicing_operator_adjoint = _lib.demosaicing_operator_adjoint
+forward = _lib.demosaicing_operator_forward
+adjoint = _lib.demosaicing_operator_adjoint
 
 @_ops.RegisterGradient("DemosaicingOperatorForward")
 def _demosaicing_forward_grad(op, grad):
-    grad_in = demosaicing_operator_adjoint(grad, op.inputs[1])
+    grad_in = adjoint(grad, op.inputs[1])
     return [grad_in, None]
 
 @_ops.RegisterGradient("DemosaicingOperatorAdjoint")
 def _demosaicing_forward_grad(op, grad):
-    grad_in = demosaicing_operator_forward(grad, op.inputs[1])
+    grad_in = forward(grad, op.inputs[1])
     return [grad_in, None]

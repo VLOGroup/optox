@@ -23,8 +23,8 @@ void DemosaicingOperatorWrapper<T>::forward(const GPUDevice& d,
 	typename Tensor4<T>::Tensor &output, 
 	const typename Tensor4<T>::ConstTensor &input)
 {
-	iu::Size<4> input_size({input.dimensions()[0], input.dimensions()[1], input.dimensions()[2], input.dimensions()[3]});
-    iu::Size<4> output_size({output.dimensions()[0], output.dimensions()[1], output.dimensions()[2], output.dimensions()[3]});
+	iu::Size<4> input_size({input.dimensions()[3], input.dimensions()[2], input.dimensions()[1], input.dimensions()[0]});
+        iu::Size<4> output_size({output.dimensions()[3], output.dimensions()[2], output.dimensions()[1], output.dimensions()[0]});
 
 	iu::LinearDeviceMemory<T, 4> iu_in(const_cast<T*>(input.data()), input_size, true);
 
@@ -40,8 +40,8 @@ void DemosaicingOperatorWrapper<T>::adjoint(const GPUDevice& d,
 	typename Tensor4<T>::Tensor &output, 
 	const typename Tensor4<T>::ConstTensor &input)
 {
-	iu::Size<4> input_size({input.dimensions()[0], input.dimensions()[1], input.dimensions()[2], input.dimensions()[3]});
-    iu::Size<4> output_size({output.dimensions()[0], output.dimensions()[1], output.dimensions()[2], output.dimensions()[3]});
+        iu::Size<4> input_size({input.dimensions()[3], input.dimensions()[2], input.dimensions()[1], input.dimensions()[0]});
+        iu::Size<4> output_size({output.dimensions()[3], output.dimensions()[2], output.dimensions()[1], output.dimensions()[0]});;
 
 	iu::LinearDeviceMemory<T, 4> iu_in(const_cast<T*>(input.data()), input_size, true);
 

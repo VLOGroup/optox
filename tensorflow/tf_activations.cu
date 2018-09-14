@@ -126,7 +126,8 @@ struct ActivationRBFFunctor<GPUDevice, T, N> {
     T delta_mu = (v_max - v_min) / (w.dimensions()[1] - 1);
     T sigma = (v_max - v_min) / ((w.dimensions()[1] - 1));
     T sigma_2 = pow(sigma, -2);
-    T scaling = 1/sqrt(2*CUDART_PI_F*sigma*sigma);
+    // empirical scaling (matches the other activation types)
+    T scaling = 0.4;
 
     unsigned int thread_per_block = 1024;
     unsigned int block_count = iu::divUp(x.dimensions()[0], thread_per_block);
@@ -231,7 +232,8 @@ struct ActivationRBFGradWFunctor<GPUDevice, T, N> {
     T delta_mu = (v_max - v_min) / (grad_w.dimensions()[1] - 1);
     T sigma = (v_max - v_min) / ((grad_w.dimensions()[1] - 1));
     T sigma_2 = pow(sigma, -2);
-    T scaling = 1/sqrt(2*CUDART_PI_F*sigma*sigma);
+    // empirical scaling (matches the other activation types)
+    T scaling = 0.4;
 
     // first clear the weight gradient
     tficg::fill<T, 2>(d, grad_w, 0);
