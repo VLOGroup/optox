@@ -23,7 +23,7 @@ install_manifest.txt
 *.pkl
 *.mat
 *.json
-out/*
+/**/out/
 __pycache__*/
 dist*/
 *.egg-info*/
