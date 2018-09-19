@@ -333,6 +333,16 @@ inline __device__ T b_spline_quad_prime(T x)
   else return 0.f;
 }
 
+// second derivative of quadratic spline base function
+template<typename T>
+inline __device__ T b_spline_quad_double_prime(T x)
+{
+  if (-1.5f <= x && x < -0.5f) return 1.f;
+  else if (-0.5f <= x && x <= 0.5f) return -2.f;
+  else if (0.5f <= x && x <= 1.5f) return 1.f;
+  else return 0.f;
+}
+
 template<typename T, tficg::SplineOrder S, tficg::DerivativeOrder N>
 __global__ void activationBSplineKernel(
     const typename Tensor2<T>::ConstTensor x,
@@ -438,7 +448,15 @@ __global__ void activationBSplineKernel(
                 }
               break;
               case tficg::DO_SECOND:
-                b_spline_x = b_spline_cubic_double_prime<T>(dx-alpha) * (delta_1*delta_1);
+                switch(S)
+                {
+                  case tficg::SO_QUADRATIC:
+                  b_spline_x = b_spline_quad_double_prime<T>(dx-alpha) * (delta_1*delta_1);
+                  break;
+                  case tficg::SO_CUBIC:
+                  b_spline_x = b_spline_cubic_double_prime<T>(dx-alpha) * (delta_1*delta_1);
+                  break;
+                }
               break;
             }
             // compute the current index
@@ -480,6 +498,7 @@ struct ActivationBSplineFunctor<GPUDevice, T, S, N> {
     template struct ActivationBSplineFunctor<GPUDevice, T, tficg::SO_LINEAR, tficg::DO_FIRST>; \
     template struct ActivationBSplineFunctor<GPUDevice, T, tficg::SO_QUADRATIC, tficg::DO_ZERO>; \
     template struct ActivationBSplineFunctor<GPUDevice, T, tficg::SO_QUADRATIC, tficg::DO_FIRST>; \
+    template struct ActivationBSplineFunctor<GPUDevice, T, tficg::SO_QUADRATIC, tficg::DO_SECOND>; \
     template struct ActivationBSplineFunctor<GPUDevice, T, tficg::SO_CUBIC, tficg::DO_ZERO>; \
     template struct ActivationBSplineFunctor<GPUDevice, T, tficg::SO_CUBIC, tficg::DO_FIRST>; \
     template struct ActivationBSplineFunctor<GPUDevice, T, tficg::SO_CUBIC, tficg::DO_SECOND>;
@@ -564,7 +583,15 @@ __global__ void activationBSplineGradWKernel(
                 }
               break;
               case tficg::DO_FIRST:
-                b_spline_x = b_spline_cubic_prime<T>(dx-alpha) * (-delta_1);
+                switch(S)
+                {
+                  case tficg::SO_QUADRATIC:
+                  b_spline_x = b_spline_quad_prime<T>(dx-alpha) * (-delta_1);
+                  break;
+                  case tficg::SO_CUBIC:
+                  b_spline_x = b_spline_cubic_prime<T>(dx-alpha) * (-delta_1);
+                  break;
+                }
               break;
               case tficg::DO_SECOND:
                 b_spline_x = b_spline_cubic_double_prime<T>(dx-alpha) * (delta_1*delta_1);
@@ -622,6 +649,7 @@ struct ActivationBSplineGradWFunctor<GPUDevice, T, S, N> {
 #define REGISTER_GPU_FUNCTOR(T) \
     template struct ActivationBSplineGradWFunctor<GPUDevice, T, tficg::SO_LINEAR, tficg::DO_ZERO>; \
     template struct ActivationBSplineGradWFunctor<GPUDevice, T, tficg::SO_QUADRATIC, tficg::DO_ZERO>; \
+    template struct ActivationBSplineGradWFunctor<GPUDevice, T, tficg::SO_QUADRATIC, tficg::DO_FIRST>; \
     template struct ActivationBSplineGradWFunctor<GPUDevice, T, tficg::SO_CUBIC, tficg::DO_ZERO>; \
     template struct ActivationBSplineGradWFunctor<GPUDevice, T, tficg::SO_CUBIC, tficg::DO_FIRST>; \
     template struct ActivationBSplineGradWFunctor<GPUDevice, T, tficg::SO_CUBIC, tficg::DO_SECOND>;

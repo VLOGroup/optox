@@ -278,6 +278,47 @@ derivative of the basis functions.)doc",
 ActivationCommonIOs,
 ActivationCommonAttrs))*/;
 
+REGISTER_OP("ActivationPrimeQuadBSplineGradW")
+    .Attr("T: realnumbertype")
+    .Input("x: T")
+    .Input("grad_out: T")
+    .Output("output: T")
+    .Attr("v_min: float")
+    .Attr("v_max: float")
+    .Attr("num_channels: int >= 1")
+    .Attr("num_weights: int >= 1")
+    .Attr("feature_stride: int >= 1")
+    .SetShapeFn([](shape_inference::InferenceContext *c) {
+      int num_weights, num_channels;
+      TF_RETURN_IF_ERROR(c->GetAttr("num_weights", &num_weights));
+      TF_RETURN_IF_ERROR(c->GetAttr("num_channels", &num_channels));
+      c->set_output(0, c->Matrix(num_channels, num_weights));
+      return Status::OK();
+    })
+/*    .Doc(strings::StrCat(R"doc(
+Backpropagates the gradient from the prime quadratic B-spline basis activation function
+output to the corresponding weights.
+)doc",
+ActivationGradWCommonIOs,
+ActivationCommonAttrs))*/;
+
+REGISTER_OP("ActivationDoublePrimeQuadBSpline")
+    .Attr("T: realnumbertype")
+    .Input("x: T")
+    .Input("w: T")
+    .Output("output: T")
+    .Attr("v_min: float")
+    .Attr("v_max: float")
+    .Attr("num_weights: int >= 1")
+    .Attr("feature_stride: int >= 1")
+    .SetShapeFn(shape_inference::UnchangedShape)
+/*    .Doc(strings::StrCat(R"doc(
+Applies the second derivative of a quadratic B-spline activation function to the
+input 'x'. Note that the derivative is computed by a weighted sum of the first
+derivative of the basis functions.)doc",
+ActivationCommonIOs,
+ActivationCommonAttrs))*/;
+
 // cubic b-spline activation
 REGISTER_OP("ActivationCubicBSpline")
     .Attr("T: realnumbertype")
@@ -1222,7 +1263,17 @@ REGISTER_KERNEL_BUILDER(  \
     Name("ActivationPrimeQuadBSpline") \
     .Device(DEVICE_GPU) \
     .TypeConstraint<T>("T"), \
-    ActivationBSplineOp<GPUDevice, T, tficg::SO_QUADRATIC, tficg::DO_FIRST>) \
+    ActivationBSplineOp<GPUDevice, T, tficg::SO_QUADRATIC, tficg::DO_FIRST>);
+
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
+#undef REGISTER_GPU
+
+#define REGISTER_GPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationDoublePrimeQuadBSpline") \
+    .Device(DEVICE_GPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationBSplineOp<GPUDevice, T, tficg::SO_QUADRATIC, tficg::DO_SECOND>);
 
 TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
 #undef REGISTER_GPU
@@ -1403,7 +1454,17 @@ REGISTER_KERNEL_BUILDER(  \
     Name("ActivationQuadBSplineGradW") \
     .Device(DEVICE_GPU) \
     .TypeConstraint<T>("T"), \
-    ActivationBSplineGradWOp<GPUDevice, T, tficg::SO_QUADRATIC, tficg::DO_ZERO>) \
+    ActivationBSplineGradWOp<GPUDevice, T, tficg::SO_QUADRATIC, tficg::DO_ZERO>);
+
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
+#undef REGISTER_GPU
+
+#define REGISTER_GPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationPrimeQuadBSplineGradW") \
+    .Device(DEVICE_GPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationBSplineGradWOp<GPUDevice, T, tficg::SO_QUADRATIC, tficg::DO_FIRST>);
 
 TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
 #undef REGISTER_GPU
@@ -1423,7 +1484,7 @@ REGISTER_KERNEL_BUILDER(  \
     Name("ActivationCubicBSplineGradW") \
     .Device(DEVICE_GPU) \
     .TypeConstraint<T>("T"), \
-    ActivationBSplineGradWOp<GPUDevice, T, tficg::SO_CUBIC, tficg::DO_ZERO>) \
+    ActivationBSplineGradWOp<GPUDevice, T, tficg::SO_CUBIC, tficg::DO_ZERO>);
 
 TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
 #undef REGISTER_GPU
@@ -1443,7 +1504,7 @@ REGISTER_KERNEL_BUILDER(  \
     Name("ActivationPrimeCubicBSplineGradW") \
     .Device(DEVICE_GPU) \
     .TypeConstraint<T>("T"), \
-    ActivationBSplineGradWOp<GPUDevice, T, tficg::SO_CUBIC, tficg::DO_FIRST>) \
+    ActivationBSplineGradWOp<GPUDevice, T, tficg::SO_CUBIC, tficg::DO_FIRST>);
 
 TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
 #undef REGISTER_GPU
