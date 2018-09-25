@@ -24,8 +24,8 @@ __device__ inline int mod(int a, int b) {
 template <typename T>
 __device__ T interpolate_bilinear(const typename Tensor5<T>::ConstTensor& x,
                                   int ids, int idc, T idy, T idx, int idalpha) {
-  const int idx_f = floor(idx);
-  const int idy_f = floor(idy);
+  const int idx_f = floorf(idx);
+  const int idy_f = floorf(idy);
 
   const int idx_c = idx_f + 1;
   const int idy_c = idy_f + 1;
@@ -61,7 +61,7 @@ __device__ T interpolate_bilinear(const typename Tensor5<T>::ConstTensor& x,
 
 template <typename T>
 __device__ T interpolate_cubic(volatile T* in, T idx, int kernel_size) {
-  const int idx_f = floor(idx);
+  const int idx_f = floorf(idx);
   const int idx_f_1 = idx_f - 1;
   const int idx_c = idx_f + 1;
   const int idx_c_1 = idx_c + 1;
@@ -97,8 +97,8 @@ __device__ T interpolate_cubic(volatile T* in, T idx, int kernel_size) {
 template <typename T>
 __device__ T interpolate_bicubic(const typename Tensor5<T>::ConstTensor& x,
                                  int ids, int idc, T idy, T idx, int idalpha) {
-  const int idy_f = floor(idy);
-  const int idx_f = floor(idx);
+  const int idy_f = floorf(idy);
+  const int idx_f = floorf(idx);
 
   T buff_y[4];
   T buff_x[4];
@@ -129,7 +129,6 @@ __device__ T interpolate_bicubic(const typename Tensor5<T>::ConstTensor& x,
   return out;
 }
 
-
 template <typename T, tficg::interpolation_t I>
 __global__ void metamorphosisWarpKernel(
     const typename Tensor5<T>::ConstTensor x,
@@ -149,30 +148,56 @@ __global__ void metamorphosisWarpKernel(
 
     const int depth = x.dimensions()[2];
 
-    const int beta_offset = floor(beta);
+    const int beta_offset = floorf(beta);
     const T d = beta - beta_offset;
 
     const int idalpha = idr + beta_offset;
     const int idalpha_f = mod(idalpha, depth);
     const int idalpha_c = mod(idalpha_f + 1, depth);
 
-    T val_f = 0;
-    T val_c = 0;
-
-    switch(I)
+    if (depth == 1)
     {
-      case tficg::INTERPOLATE_BILINEAR:
-        val_f = interpolate_bilinear(x, ids, idc, idy + dy, idx + dx, idalpha_f);
-        val_c = interpolate_bilinear(x, ids, idc, idy + dy, idx + dx, idalpha_c);
-        break;
+      switch (I) {
+        case tficg::INTERPOLATE_BILINEAR:
+        {
+          out(ids, idc, idr, idy, idx) = interpolate_bilinear(x, ids, idc, idy + dy, idx + dx, 0);
+          break;
+        }
 
-      case tficg::INTERPOLATE_BICUBIC:
-        val_f = interpolate_bicubic(x, ids, idc, idy + dy , idx + dx, idalpha_f);
-        val_c = interpolate_bicubic(x, ids, idc, idy + dy , idx + dx, idalpha_c);
-        break;
+        case tficg::INTERPOLATE_BICUBIC:
+        {
+          out(ids, idc, idr, idy, idx) = interpolate_bicubic(x, ids, idc, idy + dy, idx + dx, 0);
+          break;
+        }
+      }
     }
+    else
+    {
+      switch (I) {
+        case tficg::INTERPOLATE_BILINEAR:
+        {
+          T val_f = interpolate_bilinear(x, ids, idc, idy + dy, idx + dx, idalpha_f);
+          T val_c = interpolate_bilinear(x, ids, idc, idy + dy, idx + dx, idalpha_c);
 
-    out(ids, idc, idr, idy, idx) = val_f * (1 - d) + val_c * d;
+          out(ids, idc, idr, idy, idx) = val_f * (1 - d) + val_c * d;
+          break;
+        }
+
+        case tficg::INTERPOLATE_BICUBIC:
+        {
+          T buff[4];
+          const int idalpha_f_1 = mod(idalpha - 1, depth);
+          const int idalpha_c_1 = mod(idalpha + 2, depth);
+
+          buff[0] = interpolate_bicubic(x, ids, idc, idy + dy, idx + dx, idalpha_f_1);
+          buff[1] = interpolate_bicubic(x, ids, idc, idy + dy, idx + dx, idalpha_f);
+          buff[2] = interpolate_bicubic(x, ids, idc, idy + dy, idx + dx, idalpha_c);
+          buff[3] = interpolate_bicubic(x, ids, idc, idy + dy, idx + dx, idalpha_c_1);
+          out(ids, idc, idr, idy, idx) = interpolate_cubic<T>(buff, d + 1, 4);
+          break;
+        }
+      }
+    }
   }
 }
 
@@ -213,8 +238,8 @@ __device__ T backpolate_bilinear(typename Tensor5<T>::Tensor& grad_x,
                                  T& grad_idx, T& grad_idy,
                                  const typename Tensor5<T>::ConstTensor& x,
                                  T val, int ids, int idc, T idy, T idx, int idalpha) {
-  const int idx_f = floor(idx);
-  const int idy_f = floor(idy);
+  const int idx_f = floorf(idx);
+  const int idy_f = floorf(idy);
 
   const int idx_c = idx_f + 1;
   const int idy_c = idy_f + 1;
@@ -271,7 +296,7 @@ template<typename T>
 __device__ void backpolate_cubic(volatile T *grad_x, T& grad_idx,
    T* in, T error, T idx, int kernel_size)
 {
-  const int idx_f = floor(idx);
+  const int idx_f = floorf(idx);
   const int idx_f_1 = idx_f - 1;
   const int idx_c = idx_f+1;
   const int idx_c_1 = idx_c+1;
@@ -341,8 +366,8 @@ __device__ T backpolate_bicubic(typename Tensor5<T>::Tensor& grad_x,
   const typename Tensor5<T>::ConstTensor& x,
   T val, int ids, int idc, T idy, T idx, int idalpha)
 {
-  const int idy_f = floor(idy);
-  const int idx_f = floor(idx);
+  const int idy_f = floorf(idy);
+  const int idx_f = floorf(idx);
 
   T buff_y[4];
   T buff_x[4];
@@ -351,9 +376,6 @@ __device__ T backpolate_bicubic(typename Tensor5<T>::Tensor& grad_x,
   for (int dy = -1; dy < 3; ++dy)
   {
     const int c_idx_y = idy_f + dy;
-
-    // fill the x buffer
-    const int idx_f = floor(idx);
 
     if (c_idx_y >= 0 && c_idx_y < x.dimensions()[3])
     {
@@ -383,9 +405,6 @@ __device__ T backpolate_bicubic(typename Tensor5<T>::Tensor& grad_x,
   {
     const int c_idx_y = idy_f + dy;
 
-    // fill the x buffer
-    const int idx_f = floor(idx);
-
     if (c_idx_y >= 0 && c_idx_y < x.dimensions()[3])
     {
       // get the input values
@@ -409,7 +428,6 @@ __device__ T backpolate_bicubic(typename Tensor5<T>::Tensor& grad_x,
   }
   return out;
 }
-
 
 template <typename T, tficg::interpolation_t I>
 __global__ void metamorphosisWarpGradKernel(
@@ -436,7 +454,7 @@ __global__ void metamorphosisWarpGradKernel(
 
     const int depth = grad_x.dimensions()[2];
 
-    const int beta_offset = floor(beta);
+    const int beta_offset = floorf(beta);
     const T d = beta - beta_offset;
 
     const int idalpha = idr + beta_offset;
@@ -445,33 +463,76 @@ __global__ void metamorphosisWarpGradKernel(
 
     // backpolate the gradient to the input and the deformation
     T grad_val = grad_out(ids, idc, idr, idy, idx);
-    T val_f = 0;
-    T val_c = 0;
-    switch(I)
+
+    if (depth == 1)
     {
-      case tficg::INTERPOLATE_BILINEAR:
-        val_f = backpolate_bilinear(grad_x, grad_dx, grad_dy, x, 
-                                    grad_val * (1 - d),
-                                    ids, idc, idy + dy, idx + dx, idalpha_f);
-        val_c = backpolate_bilinear(grad_x, grad_dx, grad_dy, x, 
-                                    grad_val * d,
-                                    ids, idc, idy + dy, idx + dx, idalpha_c);
-        break;
+      switch (I) {
+        case tficg::INTERPOLATE_BILINEAR:
+        {
+          const T val_f = backpolate_bilinear(grad_x, grad_dx, grad_dy, x, grad_val,
+                                              ids, idc, idy + dy, idx + dx, 0);
+          grad_dr = 0;
+          break;
+        }
 
-      case tficg::INTERPOLATE_BICUBIC:
-        val_f = backpolate_bicubic(grad_x, grad_dx, grad_dy, x, 
-                                  grad_val * (1 - d),
-                                  ids, idc, idy + dy, idx + dx, idalpha_f);
-        val_c = backpolate_bicubic(grad_x, grad_dx, grad_dy, x, 
-                                  grad_val * d,
-                                  ids, idc, idy + dy, idx + dx, idalpha_c);
-        break;
+        case tficg::INTERPOLATE_BICUBIC:
+        {
+          backpolate_bicubic(grad_x, grad_dx, grad_dy, x, grad_val,
+                             ids, idc, idy + dy, idx + dx, 0);
+          grad_dr = 0;
+          break;
+        }
+      }
     }
-    grad_dr = (val_c - val_f) * grad_val;
+    else
+    {
+      switch (I) {
+        case tficg::INTERPOLATE_BILINEAR:
+        {
+          const T val_f = backpolate_bilinear(grad_x, grad_dx, grad_dy, x, grad_val * (1 - d),
+                                      ids, idc, idy + dy, idx + dx, idalpha_f);
+          const T val_c = backpolate_bilinear(grad_x, grad_dx, grad_dy, x, grad_val * d,
+                                      ids, idc, idy + dy, idx + dx, idalpha_c);
 
-    tficg::CudaAtomicAdd(&grad_phi(ids, idy, idx, 0), grad_dx);
-    tficg::CudaAtomicAdd(&grad_phi(ids, idy, idx, 1), grad_dy);
-    tficg::CudaAtomicAdd(&grad_phi(ids, idy, idx, 2), grad_dr);
+          grad_dr = (val_c - val_f) * grad_val;
+          break;
+        }
+
+        case tficg::INTERPOLATE_BICUBIC:
+        {
+          T buff[4];
+          const int idalpha_f_1 = mod(idalpha - 1, depth);
+          const int idalpha_c_1 = mod(idalpha + 2, depth);
+
+          // first interpolate
+          buff[0] = interpolate_bicubic(x, ids, idc, idy + dy, idx + dx, idalpha_f_1);
+          buff[1] = interpolate_bicubic(x, ids, idc, idy + dy, idx + dx, idalpha_f);
+          buff[2] = interpolate_bicubic(x, ids, idc, idy + dy, idx + dx, idalpha_c);
+          buff[3] = interpolate_bicubic(x, ids, idc, idy + dy, idx + dx, idalpha_c_1);
+
+          // distribute the gradient
+          T buff_grad_alpha[4];
+          backpolate_cubic<T>(buff_grad_alpha, grad_dr, buff, grad_val, d + 1, 4);
+
+          backpolate_bicubic(grad_x, grad_dx, grad_dy, x, buff_grad_alpha[0],
+                            ids, idc, idy + dy, idx + dx, idalpha_f_1);
+          backpolate_bicubic(grad_x, grad_dx, grad_dy, x, buff_grad_alpha[1],
+                            ids, idc, idy + dy, idx + dx, idalpha_f);
+          backpolate_bicubic(grad_x, grad_dx, grad_dy, x, buff_grad_alpha[2],
+                            ids, idc, idy + dy, idx + dx, idalpha_c);
+          backpolate_bicubic(grad_x, grad_dx, grad_dy, x, buff_grad_alpha[3],
+                            ids, idc, idy + dy, idx + dx, idalpha_c_1);
+          break;
+        }
+      }
+    }
+
+    if (grad_dx != 0)
+      tficg::CudaAtomicAdd(&grad_phi(ids, idy, idx, 0), grad_dx);
+    if (grad_dy != 0)
+      tficg::CudaAtomicAdd(&grad_phi(ids, idy, idx, 1), grad_dy);
+    if (grad_dr != 0)
+      tficg::CudaAtomicAdd(&grad_phi(ids, idy, idx, 2), grad_dr);
   }
 }
 
