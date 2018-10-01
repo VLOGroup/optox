@@ -716,7 +716,7 @@ __global__ void activationInterpolateLinearKernel(
             case tficg::DO_EXTRAPOLATE:
               // extrapolation to the left
               w_f = w_shared[0];
-              w_c = w_shared[1];
+              w_c = w_shared[0];
               alpha = x_idx;
               break;
           }
@@ -734,7 +734,7 @@ __global__ void activationInterpolateLinearKernel(
               break;
             case tficg::DO_EXTRAPOLATE:
               // extrapolation to the right
-              w_f = w_shared[num_weights-2];
+              w_f = w_shared[num_weights-1];
               w_c = w_shared[num_weights-1];
               alpha = x_idx - (num_weights-2);
               break;
@@ -811,11 +811,11 @@ __global__ void activationIntegralInterpolateLinearKernel(
           else if (TBorderMode == tficg::DO_EXTRAPOLATE)
           {
             T w_int = 0;
-            for (int j = b; j < num_weights-2; ++j)
+            for (int j = b; j < num_weights-1; ++j)
               w_int += w_shared[j+1] + w_shared[j];
 
-            const T alpha = x_idx - (num_weights-2);
-            w_int += alpha * (alpha*w_shared[num_weights-1] + (2-alpha)*w_shared[num_weights-2]);
+            const T alpha = x_idx - (num_weights-1);
+            w_int += alpha * w_shared[num_weights-1] * 2;
             out(idx, idc) = (w_int * delta) / 2;
           }
           else if (TBorderMode == tficg::DO_NONE)
@@ -856,7 +856,7 @@ __global__ void activationIntegralInterpolateLinearKernel(
                 w_int += w_shared[j-1] + w_shared[j];
 
             const T alpha = x_idx;
-            w_int += -alpha * (alpha*w_shared[1] + (2-alpha)*w_shared[0]);
+            w_int += -alpha * w_shared[0] * 2;
             out(idx, idc) = (w_int * -delta) / 2;
           }
           else if (TBorderMode == tficg::DO_NONE)
@@ -966,13 +966,13 @@ __global__ void activationInterpolateLinearGradWKernel(
           // extrapolation to the left
           const T alpha = x_idx;
           grad_w_shared[tid + 0*BS] += grad_out(idx, idc) * (1 - alpha);
-          grad_w_shared[tid + 1*BS] += grad_out(idx, idc) * alpha;
+          grad_w_shared[tid + 0*BS] += grad_out(idx, idc) * alpha;
         }
         else if (x_idx_f >= num_weights - 1 && TBorderMode == tficg::DO_EXTRAPOLATE)
         {
           // extrapolation to the right
           const T alpha = x_idx - (num_weights-2);
-          grad_w_shared[tid + (num_weights-2)*BS] += grad_out(idx, idc) * (1 - alpha);
+          grad_w_shared[tid + (num_weights-1)*BS] += grad_out(idx, idc) * (1 - alpha);
           grad_w_shared[tid + (num_weights-1)*BS] += grad_out(idx, idc) * alpha;
         }
         else if (x_idx_f >= -1 && x_idx_f < 0 && TBorderMode == tficg::DO_NONE)
@@ -1059,15 +1059,14 @@ __global__ void activationIntegralInterpolateLinearGradWKernel(
           }
           else if (TBorderMode == tficg::DO_EXTRAPOLATE)
           {
-            for (int j = b; j < num_weights-2; ++j)
+            for (int j = b; j < num_weights-1; ++j)
             {
               grad_w_shared[tid + j*BS] += grad_out_pos;
               grad_w_shared[tid + (j+1)*BS] += grad_out_pos;
             }
 
-            const T alpha = x_idx - (num_weights-2);
-            grad_w_shared[tid + (num_weights-1)*BS] += grad_out_pos * alpha * alpha;
-            grad_w_shared[tid + (num_weights-2)*BS] += grad_out_pos * alpha * (2-alpha);
+            const T alpha = x_idx - (num_weights-1);
+            grad_w_shared[tid + (num_weights-1)*BS] += grad_out_pos * alpha * 2;
           }
           else if (TBorderMode == tficg::DO_NONE)
           {
@@ -1113,8 +1112,7 @@ __global__ void activationIntegralInterpolateLinearGradWKernel(
             }
 
             const T alpha = x_idx;
-            grad_w_shared[tid + 1*BS] -= grad_out_pos * (-alpha) * alpha;
-            grad_w_shared[tid + 0*BS] -= grad_out_pos * (-alpha) * (2-alpha);
+            grad_w_shared[tid + 0*BS] -= grad_out_pos * (-alpha) * 2;
           }
           else if (TBorderMode == tficg::DO_NONE)
           {
