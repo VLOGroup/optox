@@ -29,6 +29,7 @@ check_command cp ../../lib/tf/TfActivationOperators.so ./optotf/activations/TfAc
 check_command cp ../../lib/tf/TfMetamorphosisOperator.so ./optotf/interpolation/TfMetamorphosisOperator.so
 check_command cp ../../lib/tf/TfRotateFiltersOperator.so ./optotf/interpolation/TfRotateFiltersOperator.so
 check_command cp ../../lib/tf/TfFftOperators.so ./optotf/fft/TfFftOperators.so
+check_command cp ../../lib/tf/TfNablaOperator.so ./optotf/TfNablaOperator.so
 check_command cp ../../lib/tf/TFDemosaicingOperator.so ./optotf/demosaicing/TFDemosaicingOperator.so
 
 # build the package
