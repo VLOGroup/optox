@@ -51,6 +51,18 @@ if(WIN32)
 endif(WIN32)
 
 ##----------------------------------------------------------------------------
+## nabla operator
+##----------------------------------------------------------------------------
+cuda_add_library(TfNablaOperator SHARED tf_nabla_operator.cpp tf_nabla_operator.cu)
+
+target_link_libraries(TfNablaOperator optox ${IMAGEUTILITIES_LIBRARIES} "tensorflow_framework")
+# remove lib prefix
+set_target_properties(TfNablaOperator PROPERTIES PREFIX "" LINKER_LANGUAGE CXX)
+if(WIN32)
+    SET_TARGET_PROPERTIES(TfNablaOperator PROPERTIES SUFFIX ".pyd")
+endif(WIN32)
+
+##----------------------------------------------------------------------------
 ## activation operators
 ##----------------------------------------------------------------------------
 cuda_add_library(TfActivationOperators SHARED tf_activations.cpp tf_activations.cu)
