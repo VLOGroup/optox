@@ -15,32 +15,32 @@ using namespace tensorflow;
 using CPUDevice = Eigen::ThreadPoolDevice;
 using GPUDevice = Eigen::GpuDevice;
 
-constexpr auto ActivationCommonIOs = R"doc(
-x: Input to the activation function. Must be at least a 2D tensor. The last
-    dimmension defines the number of features.
-w: Weights of the parametrized activation function. Must be a 2D tensor. The
-    first dimmension defines the number of distinct activation functions and the
-    last dimmension defines the number of used parameters and must match
-    'num_weights'.
-output: Output of the activation function.
-)doc";
+// constexpr auto ActivationCommonIOs = R"doc(
+// x: Input to the activation function. Must be at least a 2D tensor. The last
+//     dimmension defines the number of features.
+// w: Weights of the parametrized activation function. Must be a 2D tensor. The
+//     first dimmension defines the number of distinct activation functions and the
+//     last dimmension defines the number of used parameters and must match
+//     'num_weights'.
+// output: Output of the activation function.
+// )doc";
 
-constexpr auto ActivationGradWCommonIOs = R"doc(
-x: Input to the activation function.
-grad_out: Gradient that should be backpropagted to the activation function
-    weights.
-output: Backpropagated gradient given the inputs and the output gradient.
-)doc";
+// constexpr auto ActivationGradWCommonIOs = R"doc(
+// x: Input to the activation function.
+// grad_out: Gradient that should be backpropagted to the activation function
+//     weights.
+// output: Backpropagated gradient given the inputs and the output gradient.
+// )doc";
 
-constexpr auto ActivationCommonAttrs = R"doc(
-v_min: Defines the mean of the first basis function.
-v_max: Defines the mean of the last basis function.
-num_weights: Defines the number of used basis functions. All basis functions are
-    equally distributed between 'v_min' and 'v_max'.
-feature_stride: Defines the number of successive input features that share the
-    same activation function. Thus, 'x.shape[-1] == w.shape[0] * feature_stride'
-    must be true.
-)doc";
+// constexpr auto ActivationCommonAttrs = R"doc(
+// v_min: Defines the mean of the first basis function.
+// v_max: Defines the mean of the last basis function.
+// num_weights: Defines the number of used basis functions. All basis functions are
+//     equally distributed between 'v_min' and 'v_max'.
+// feature_stride: Defines the number of successive input features that share the
+//     same activation function. Thus, 'x.shape[-1] == w.shape[0] * feature_stride'
+//     must be true.
+// )doc";
 
 
 // Operator registration
@@ -55,11 +55,11 @@ REGISTER_OP("ActivationRBF")
     .Attr("num_weights: int >= 1")
     .Attr("feature_stride: int >= 1")
     .SetShapeFn(shape_inference::UnchangedShape)
-    .Doc(strings::StrCat(R"doc(
+/*    .Doc(strings::StrCat(R"doc(
 Computes an activation function parameterized by weighted Gaussian radial basis
 functions.)doc",
 ActivationCommonIOs,
-ActivationCommonAttrs));
+ActivationCommonAttrs))*/;
 
 REGISTER_OP("ActivationRBFGradW")
     .Attr("T: realnumbertype")

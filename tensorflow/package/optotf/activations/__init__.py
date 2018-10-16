@@ -90,7 +90,7 @@ def _activation_int_interpolate_linear_grad(op, grad):
     return [grad_x, grad_w]
 
 @_ops.RegisterGradient("ActivationBSpline")
-def _activation_quad_b_spline_grad(op, grad):
+def _activation_b_spline_grad(op, grad):
     rbf_prime = _activation_lib.activation_prime_b_spline(op.inputs[0], op.inputs[1], op.get_attr(
         "v_min"), op.get_attr("v_max"), op.get_attr("num_weights"), op.get_attr("feature_stride"))
     grad_x = rbf_prime * grad
