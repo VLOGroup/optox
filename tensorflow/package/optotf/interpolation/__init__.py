@@ -22,8 +22,14 @@ _meta_lib = _tf.load_op_library(
     _tf.resource_loader.get_path_to_datafile("TfMetamorphosisOperator.so"))
 
 metamorphosis_warp = _meta_lib.metamorphosis_warp
+warp = _meta_lib.warp
 
 @_ops.RegisterGradient("MetamorphosisWarp")
 def _RotateFilterGrad(op, grad):
     in_grad, phi_grad = _meta_lib.metamorphosis_warp_grad(op.inputs[0], op.inputs[1], grad, op.get_attr("interpolation"))
+    return [in_grad, phi_grad]
+
+@_ops.RegisterGradient("Warp")
+def _WarpGrad(op, grad):
+    in_grad, phi_grad = _meta_lib.warp_grad(op.inputs[0], op.inputs[1], grad, op.get_attr("interpolation"))
     return [in_grad, phi_grad]

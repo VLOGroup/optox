@@ -228,6 +228,134 @@ struct MetamorphosisInterpolationFunctor<GPUDevice, T, I> {
 TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU_FUNCTOR);
 #undef REGISTER_GPU_FUNCTOR
 
+
+template <typename T>
+__device__ T interpolate_bilinear(const typename Tensor4<T>::ConstTensor& x,
+                                  int ids, int idc, T idy, T idx) {
+  const int idx_f = floorf(idx);
+  const int idy_f = floorf(idy);
+
+  const int idx_c = idx_f + 1;
+  const int idy_c = idy_f + 1;
+
+  const T w = idx - idx_f;
+  const T h = idy - idy_f;
+
+  T i_ff = 0, i_fc = 0;
+  if (idx_f >= 0 && idx_f < x.dimensions()[3]) {
+    if (idy_f >= 0 && idy_f < x.dimensions()[2])
+      i_ff = x(ids, idc, idy_f, idx_f);
+
+    if (idy_c >= 0 && idy_c < x.dimensions()[2])
+      i_fc = x(ids, idc, idy_c, idx_f);
+  }
+
+  T i_cf = 0, i_cc = 0;
+  if (idx_c >= 0 && idx_c < x.dimensions()[3]) {
+    if (idy_f >= 0 && idy_f < x.dimensions()[2])
+      i_cf = x(ids, idc, idy_f, idx_c);
+
+    if (idy_c >= 0 && idy_c < x.dimensions()[2])
+      i_cc = x(ids, idc, idy_c, idx_c);
+  }
+
+  T out = (1 - h) * (1 - w) * i_ff;
+  out += (1 - h) * w * i_cf;
+  out += h * (1 - w) * i_fc;
+  out += h * w * i_cc;
+
+  return out;
+}
+
+template <typename T>
+__device__ T interpolate_bicubic(const typename Tensor4<T>::ConstTensor& x,
+                                 int ids, int idc, T idy, T idx) {
+  const int idy_f = floorf(idy);
+  const int idx_f = floorf(idx);
+
+  T buff_y[4];
+  T buff_x[4];
+
+  for (int dy = -1; dy < 3; ++dy)
+  {
+    const int c_idx_y = idy_f + dy;
+
+    if (c_idx_y >= 0 && c_idx_y < x.dimensions()[2])
+    {
+      // get the input values
+      for (int dx = -1; dx < 3; ++dx)
+      {
+        const int c_idx_x = idx_f + dx;
+        if (c_idx_x >= 0 && c_idx_x < x.dimensions()[3])
+          buff_x[dx + 1] = x(ids, idc, c_idx_y, c_idx_x);
+        else
+          buff_x[dx + 1] = 0;
+      }
+      buff_y[dy + 1] = interpolate_cubic<T>(buff_x, idx - idx_f + 1, 4);
+    }
+    else
+      buff_y[dy + 1] = 0;
+  }
+
+  T out = interpolate_cubic<T>(buff_y, idy - idy_f + 1, 4);
+
+  return out;
+}
+
+template <typename T, tficg::interpolation_t I>
+__global__ void warpKernel(
+    const typename Tensor4<T>::ConstTensor x,
+    const typename Tensor4<T>::ConstTensor phi,
+    const int ids,
+    typename Tensor4<T>::Tensor out) {
+  const int idx = threadIdx.x + blockIdx.x * blockDim.x;
+  const int idy = threadIdx.y + blockIdx.y * blockDim.y;
+  const int idc = threadIdx.z + blockIdx.z * blockDim.z;
+
+  if (idx < x.dimensions()[3] && idy < x.dimensions()[2]) {
+    // first load the displacement
+    const T dx = phi(ids, idy, idx, 0);
+    const T dy = phi(ids, idy, idx, 1);
+
+    switch (I) {
+      case tficg::INTERPOLATE_BILINEAR:
+      {
+        out(ids, idc, idy, idx) = interpolate_bilinear(x, ids, idc, idy + dy, idx + dx);
+        break;
+      }
+
+      case tficg::INTERPOLATE_BICUBIC:
+      {
+        out(ids, idc, idy, idx) = interpolate_bicubic(x, ids, idc, idy + dy, idx + dx);
+        break;
+      }
+    }
+  }
+}
+
+template <typename T, tficg::interpolation_t I>
+struct InterpolationFunctor<GPUDevice, T, I> {
+  void operator()(tensorflow::OpKernelContext* context,
+                  const typename Tensor4<T>::ConstTensor& x,
+                  const typename Tensor4<T>::ConstTensor& phi,
+                  typename Tensor4<T>::Tensor& out) {
+    const GPUDevice d = context->eigen_device<GPUDevice>();
+
+    dim3 block_size(8, 8, 1);
+    dim3 grid_size(iu::divUp(x.dimensions()[3], block_size.x),
+                   iu::divUp(x.dimensions()[2], block_size.y), x.dimensions()[1]);
+
+    for (int ids = 0; ids < x.dimensions()[0]; ++ids)
+        warpKernel<T, I><<<grid_size, block_size, 0, d.stream()>>>(x, phi, ids, out);
+  }
+};
+
+#define REGISTER_GPU_FUNCTOR(T)                      \
+  template struct InterpolationFunctor<GPUDevice, T, tficg::INTERPOLATE_BILINEAR>;    \
+  template struct InterpolationFunctor<GPUDevice, T, tficg::INTERPOLATE_BICUBIC>;
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU_FUNCTOR);
+#undef REGISTER_GPU_FUNCTOR
+
 // gradient operator -----------------------------------------------------------
 
 /**
@@ -569,6 +697,209 @@ struct MetamorphosisInterpolationGradFunctor<GPUDevice, T, I> {
 TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU_FUNCTOR);
 #undef REGISTER_GPU_FUNCTOR
 
-// -----------------------------------------------------------------------------
+
+template <typename T>
+__device__ T backpolate_bilinear(typename Tensor4<T>::Tensor& grad_x,
+                                 T& grad_idx, T& grad_idy,
+                                 const typename Tensor4<T>::ConstTensor& x,
+                                 T val, int ids, int idc, T idy, T idx) {
+  const int idx_f = floorf(idx);
+  const int idy_f = floorf(idy);
+
+  const int idx_c = idx_f + 1;
+  const int idy_c = idy_f + 1;
+
+  const T w = idx - idx_f;
+  const T h = idy - idy_f;
+
+  T i_ff = 0, i_fc = 0;
+  if (idx_f >= 0 && idx_f < grad_x.dimensions()[3]) {
+    if (idy_f >= 0 && idy_f < grad_x.dimensions()[2]) {
+      tficg::CudaAtomicAdd(&grad_x(ids, idc, idy_f, idx_f),
+                                (1 - h) * (1 - w) * val);
+      i_ff = x(ids, idc, idy_f, idx_f);
+    }
+
+    if (idy_c >= 0 && idy_c < grad_x.dimensions()[2]) {
+      tficg::CudaAtomicAdd(&grad_x(ids, idc, idy_c, idx_f),
+                                h * (1 - w) * val);
+      i_fc = x(ids, idc, idy_c, idx_f);
+    }
+  }
+
+  T i_cf = 0, i_cc = 0;
+  if (idx_c >= 0 && idx_c < grad_x.dimensions()[3]) {
+    if (idy_f >= 0 && idy_f < grad_x.dimensions()[2]) {
+      tficg::CudaAtomicAdd(&grad_x(ids, idc, idy_f, idx_c),
+                                (1 - h) * w * val);
+      i_cf = x(ids, idc, idy_f, idx_c);
+    }
+
+    if (idy_c >= 0 && idy_c < grad_x.dimensions()[2]) {
+      tficg::CudaAtomicAdd(&grad_x(ids, idc, idy_c, idx_c),
+                                h * w * val);
+      i_cc = x(ids, idc, idy_c, idx_c);
+    }
+  }
+
+  grad_idx += ((1 - h) * (i_cf - i_ff) + h * (i_cc - i_fc)) * val;
+  grad_idy += ((1 - w) * (i_fc - i_ff) + w * (i_cc - i_cf)) * val;
+
+  T out = (1 - h) * (1 - w) * i_ff;
+  out += (1 - h) * w * i_cf;
+  out += h * (1 - w) * i_fc;
+  out += h * w * i_cc;
+
+  return out;
+}
+
+
+template<typename T>
+__device__ T backpolate_bicubic(typename Tensor4<T>::Tensor& grad_x,
+  T& grad_idx, T& grad_idy,
+  const typename Tensor4<T>::ConstTensor& x,
+  T val, int ids, int idc, T idy, T idx)
+{
+  const int idy_f = floorf(idy);
+  const int idx_f = floorf(idx);
+
+  T buff_y[4];
+  T buff_x[4];
+
+  // first perform interpolation
+  for (int dy = -1; dy < 3; ++dy)
+  {
+    const int c_idx_y = idy_f + dy;
+
+    if (c_idx_y >= 0 && c_idx_y < x.dimensions()[2])
+    {
+      // get the input values
+      for (int dx = -1; dx < 3; ++dx)
+      {
+        const int c_idx_x = idx_f + dx;
+        if (c_idx_x >= 0 && c_idx_x < x.dimensions()[3])
+          buff_x[dx + 1] = x(ids, idc, c_idx_y, c_idx_x);
+        else
+          buff_x[dx + 1] = 0;
+      }
+      buff_y[dy + 1] = interpolate_cubic<T>(buff_x, idx - idx_f + 1, 4);
+    }
+    else
+      buff_y[dy + 1] = 0;
+  }
+
+  T out = interpolate_cubic<T>(buff_y, idy - idy_f + 1, 4);
+
+  // backpolate the error
+  T buff_grad_y[4];
+  backpolate_cubic<T>(buff_grad_y, grad_idy, buff_y, val, idy - idy_f + 1, 4);
+
+  T buff_grad_x[4];
+  for (int dy = -1; dy < 3; ++dy)
+  {
+    const int c_idx_y = idy_f + dy;
+
+    if (c_idx_y >= 0 && c_idx_y < x.dimensions()[2])
+    {
+      // get the input values
+      for (int dx = -1; dx < 3; ++dx)
+      {
+        const int c_idx_x = idx_f + dx;
+        if (c_idx_x >= 0 && c_idx_x < x.dimensions()[3])
+          buff_x[dx + 1] = x(ids, idc, c_idx_y, c_idx_x);
+        else
+          buff_x[dx + 1] = 0;
+      }
+      backpolate_cubic<T>(buff_grad_x, grad_idx, buff_x, buff_grad_y[dy+1], idx - idx_f + 1, 4);
+      for (int dx = -1; dx < 3; ++dx)
+      {
+        const int c_idx_x = idx_f + dx;
+        if (c_idx_x >= 0 && c_idx_x < x.dimensions()[3])
+          tficg::CudaAtomicAdd(&grad_x(ids, idc, c_idx_y, c_idx_x),
+                                    buff_grad_x[dx + 1]);
+      }
+    }
+  }
+  return out;
+}
+
+
+template <typename T, tficg::interpolation_t I>
+__global__ void warpGradKernel(
+    const typename Tensor4<T>::ConstTensor x,
+    const typename Tensor4<T>::ConstTensor phi,
+    const typename Tensor4<T>::ConstTensor grad_out,
+    const int ids, 
+    typename Tensor4<T>::Tensor grad_x, typename Tensor4<T>::Tensor grad_phi) {
+  const int idx = threadIdx.x + blockIdx.x * blockDim.x;
+  const int idy = threadIdx.y + blockIdx.y * blockDim.y;
+  const int idc = threadIdx.z + blockIdx.z * blockDim.z;
+
+  if (idx < x.dimensions()[3] && idy < x.dimensions()[2]) {
+    // first load the displacement
+    const T dx = phi(ids, idy, idx, 0);
+    const T dy = phi(ids, idy, idx, 1);
+
+    // for each rototranslation space interpolate
+    T grad_dx = 0;
+    T grad_dy = 0;
+
+    // backpolate the gradient to the input and the deformation
+    T grad_val = grad_out(ids, idc, idy, idx);
+
+    switch (I) {
+      case tficg::INTERPOLATE_BILINEAR:
+      {
+        const T val_f = backpolate_bilinear(grad_x, grad_dx, grad_dy, x, grad_val,
+                                            ids, idc, idy + dy, idx + dx);
+        break;
+      }
+
+      case tficg::INTERPOLATE_BICUBIC:
+      {
+        backpolate_bicubic(grad_x, grad_dx, grad_dy, x, grad_val,
+                            ids, idc, idy + dy, idx + dx);
+        break;
+      }
+    }
+
+    if (grad_dx != 0)
+      tficg::CudaAtomicAdd(&grad_phi(ids, idy, idx, 0), grad_dx);
+    if (grad_dy != 0)
+      tficg::CudaAtomicAdd(&grad_phi(ids, idy, idx, 1), grad_dy);
+  }
+}
+
+
+template <typename T, tficg::interpolation_t I>
+struct InterpolationGradFunctor<GPUDevice, T, I> {
+  void operator()(tensorflow::OpKernelContext* context,
+                  const typename Tensor4<T>::ConstTensor& x,
+                  const typename Tensor4<T>::ConstTensor& phi,
+                  const typename Tensor4<T>::ConstTensor& grad_out,
+                  typename Tensor4<T>::Tensor& grad_x,
+                  typename Tensor4<T>::Tensor& grad_phi) {
+    const GPUDevice d = context->eigen_device<GPUDevice>();
+
+    // first clear the weight gradient
+    tficg::fill<T, 4>(d, grad_phi, 0);
+    tficg::fill<T, 4>(d, grad_x, 0);
+
+    dim3 block_size(8, 8, 1);
+    dim3 grid_size(iu::divUp(x.dimensions()[3], block_size.x),
+                   iu::divUp(x.dimensions()[2], block_size.y), x.dimensions()[1]);
+
+    for (int ids = 0; ids < x.dimensions()[0]; ++ids)
+        warpGradKernel<T, I><<<grid_size, block_size, 0, d.stream()>>>(
+            x, phi, grad_out, ids, grad_x, grad_phi);
+  }
+};
+
+#define REGISTER_GPU_FUNCTOR(T)                          \
+  template struct InterpolationGradFunctor< \
+      GPUDevice, T, tficg::INTERPOLATE_BILINEAR>;        \
+  template struct InterpolationGradFunctor<GPUDevice, T, tficg::INTERPOLATE_BICUBIC>;
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU_FUNCTOR);
+#undef REGISTER_GPU_FUNCTOR
 
 #endif
