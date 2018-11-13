@@ -51,6 +51,18 @@ def _activation_rbf_grad(op, grad):
     return [grad_x, grad_w]
 
 
+@_ops.RegisterGradient("ActivationIntRBF")
+def _activation_int_rbf_grad(op, grad):
+    # gradient w.r.t. the input
+    rbf_prime = rbf(op.inputs[0], op.inputs[1], op.get_attr("v_min"), op.get_attr(
+        "v_max"), op.get_attr("num_weights"), op.get_attr("feature_stride"))
+    grad_x = rbf_prime * grad
+    # gradient w.r.t. the weights
+    grad_w = _activation_lib.activation_int_rbf_grad_w(op.inputs[0], grad, op.get_attr("v_min"), op.get_attr(
+        "v_max"), op.inputs[1].shape[0], op.get_attr("num_weights"), op.get_attr("feature_stride"))
+    return [grad_x, grad_w]
+
+
 @_ops.RegisterGradient("ActivationInterpolateLinear")
 def _activation_interpolate_linear_grad(op, grad):
     act_prime = _activation_lib.activation_prime_interpolate_linear(op.inputs[0], op.inputs[1], op.get_attr(

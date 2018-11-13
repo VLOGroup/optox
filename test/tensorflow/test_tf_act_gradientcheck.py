@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 import optotf.activations as act
 
-Nw = 3
+Nw = 31
 vmin = -1
 vmax = 1
 
@@ -13,14 +13,14 @@ tftype = tf.float64
 
 np_x_0 = np.linspace(-3, 3, 1001, dtype=nptype)[:, np.newaxis]
 np_x = np.linspace(vmin, vmax, Nw, dtype=nptype)[np.newaxis, :]
-np_w = np.abs(np_x)
+np_w = np_x
 
 tf_w = tf.placeholder(dtype=tftype, shape=np_w.shape)
 tf_x = tf.placeholder(dtype=tftype)
 
 tf_s = tf.placeholder(dtype=tftype, name="s")
 
-phi = act.int_interpolate_linear_extrapolate
+phi = act.int_rbf
 
 tf_phi = phi(tf_x * tf_s, tf_w, v_min=vmin, v_max=vmax, num_weights=Nw, feature_stride=1)
 

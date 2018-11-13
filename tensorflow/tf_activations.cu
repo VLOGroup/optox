@@ -100,8 +100,8 @@ __global__ void activationRBFKernel(
               out_tmp += w_shared[j] * (-sigma_2 + inner_deriv*inner_deriv) * p;
             break;
             case tficg::DO_INT:
-              T sigma = sqrt(sigma_2/2);
-              out_tmp += w_shared[j] * erff(dist*sigma);
+              T sigma = sqrt(sigma_2);
+              out_tmp += w_shared[j] * erff(dist*sigma/sqrtf(2.f)) * scaling * sqrtf(CUDART_PI_F/2) / sigma; 
             break;
           }
         }
@@ -200,6 +200,10 @@ __global__ void activationRBFGradWKernel(
             case tficg::DO_SECOND:
               grad_w_shared[tid + j*BS] += p * (-sigma_2 + inner_deriv*inner_deriv) * grad_out_pos;
             break;
+            case tficg::DO_INT:
+              T sigma = sqrt(sigma_2);
+              grad_w_shared[tid + j*BS] +=  erff(dist*sigma/sqrtf(2.f)) * scaling * sqrtf(CUDART_PI_F/2) / sigma * grad_out_pos;
+            break;
           }
         }
       }
@@ -254,7 +258,8 @@ struct ActivationRBFGradWFunctor<GPUDevice, T, N> {
 #define REGISTER_GPU_FUNCTOR(T) \
     template struct ActivationRBFGradWFunctor<GPUDevice, T, tficg::DO_ZERO>; \
     template struct ActivationRBFGradWFunctor<GPUDevice, T, tficg::DO_FIRST>; \
-    template struct ActivationRBFGradWFunctor<GPUDevice, T, tficg::DO_SECOND>;
+    template struct ActivationRBFGradWFunctor<GPUDevice, T, tficg::DO_SECOND>; \
+    template struct ActivationRBFGradWFunctor<GPUDevice, T, tficg::DO_INT>;
 TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU_FUNCTOR);
 #undef REGISTER_GPU_FUNCTOR
 

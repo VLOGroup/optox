@@ -160,6 +160,30 @@ functions.)doc",
 ActivationCommonIOs,
 ActivationCommonAttrs))*/;
 
+REGISTER_OP("ActivationIntRBFGradW")
+    .Attr("T: realnumbertype")
+    .Input("x: T")
+    .Input("grad_out: T")
+    .Output("output: T")
+    .Attr("v_min: float")
+    .Attr("v_max: float")
+    .Attr("num_channels: int >= 1")
+    .Attr("num_weights: int >= 1")
+    .Attr("feature_stride: int >= 1")
+    .SetShapeFn([](shape_inference::InferenceContext *c) {
+      int num_weights, num_channels;
+      TF_RETURN_IF_ERROR(c->GetAttr("num_weights", &num_weights));
+      TF_RETURN_IF_ERROR(c->GetAttr("num_channels", &num_channels));
+      c->set_output(0, c->Matrix(num_channels, num_weights));
+      return Status::OK();
+    })
+/*    .Doc(strings::StrCat(R"doc(
+Backpropagates the gradient from the Gaussian radial basis activation function
+derivative output to the corresponding weights.
+)doc",
+ActivationGradWCommonIOs,
+ActivationCommonAttrs))*/;
+
 // linear b-spline activation
 
 REGISTER_OP("ActivationBSpline")
@@ -997,6 +1021,16 @@ REGISTER_KERNEL_BUILDER(  \
     .Device(DEVICE_GPU) \
     .TypeConstraint<T>("T"), \
     ActivationRBFGradWOp<GPUDevice, T, tficg::DO_FIRST>) \
+
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
+#undef REGISTER_GPU
+
+#define REGISTER_GPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationIntRBFGradW") \
+    .Device(DEVICE_GPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationRBFGradWOp<GPUDevice, T, tficg::DO_INT>) \
 
 TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
 #undef REGISTER_GPU
