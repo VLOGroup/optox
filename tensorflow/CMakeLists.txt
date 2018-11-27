@@ -135,3 +135,95 @@ if(WITH_GPUNUFFT)
         SET_TARGET_PROPERTIES(TfGpuNufftOperator PROPERTIES SUFFIX ".pyd")
     endif(WIN32)
 endif(WITH_GPUNUFFT)
+
+
+#########################################################
+# Add python  tests
+# add enable_testing() needs to be in toplevel module
+enable_testing() 
+find_package(PythonInterp)
+message ("python path: ${PYTHON_EXECUTABLE}")
+##----------------------------------------------------------------------------
+## warping operator
+##----------------------------------------------------------------------------
+include_directories(warpimage)
+cuda_add_library(TFWarpimageOperator SHARED warpimage/warpimage.cc warpimage/warpimage.cu)
+
+target_link_libraries(TFWarpimageOperator optox ${IMAGEUTILITIES_LIBRARIES} "tensorflow_framework")
+# remove lib prefix
+set_target_properties(TFWarpimageOperator PROPERTIES PREFIX "" LINKER_LANGUAGE CXX)
+if(WIN32)
+    SET_TARGET_PROPERTIES(TFWarpimageOperator PROPERTIES SUFFIX ".pyd")
+endif(WIN32)
+
+## Add tests:
+add_test(NAME TFWarpimageOperator_grad_test
+ COMMAND  ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/warpimage/warpimage__GradientCheck.py
+ WORKING_DIRECTORY ${EXECUTABLE_OUTPUT_PATH} )
+add_test(NAME TFWarpimageOperator_example_test
+ COMMAND  ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/warpimage/warpimage_Mini_Example.py
+ WORKING_DIRECTORY ${EXECUTABLE_OUTPUT_PATH} )
+##----------------------------------------------------------------------------
+
+
+##----------------------------------------------------------------------------
+## mapcoordinates operators
+##----------------------------------------------------------------------------
+include_directories(mapcoordinates)
+cuda_add_library(TFMapcoordinatesOperator SHARED mapcoordinates/mapcoordinates.cc mapcoordinates/mapcoordinates.cu)
+
+target_link_libraries(TFMapcoordinatesOperator optox ${IMAGEUTILITIES_LIBRARIES} "tensorflow_framework")
+# remove lib prefix
+set_target_properties(TFMapcoordinatesOperator PROPERTIES PREFIX "" LINKER_LANGUAGE CXX)
+if(WIN32)
+    SET_TARGET_PROPERTIES(TFMapcoordinatesOperator PROPERTIES SUFFIX ".pyd")
+endif(WIN32)
+
+## Add tests
+add_test(NAME TFMapcoordinatesOperator_grad_test
+ COMMAND  ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/mapcoordinates/Mapcoordinates__GradientCheck.py
+ WORKING_DIRECTORY ${EXECUTABLE_OUTPUT_PATH} )
+add_test(NAME TFMapcoordinatesOperator_example_test
+ COMMAND  ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/mapcoordinates/Mapcoordinates_Mini_Example.py
+ WORKING_DIRECTORY ${EXECUTABLE_OUTPUT_PATH} )
+##----------------------------------------------------------------------------
+
+
+##----------------------------------------------------------------------------
+## median Filter operators
+##----------------------------------------------------------------------------
+include_directories(medianfilter)
+cuda_add_library(TFMedianfilterOperator SHARED medianfilter/median_filter_4D.cc medianfilter/median_filter_4D.cu)
+
+target_link_libraries(TFMedianfilterOperator optox ${IMAGEUTILITIES_LIBRARIES} "tensorflow_framework")
+# remove lib prefix
+set_target_properties(TFMedianfilterOperator PROPERTIES PREFIX "" LINKER_LANGUAGE CXX)
+if(WIN32)
+    SET_TARGET_PROPERTIES(TFMedianfilterOperator PROPERTIES SUFFIX ".pyd")
+endif(WIN32)
+
+## Add tests
+add_test(NAME TFMedianfilterOperator_test
+ COMMAND  ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/medianfilter/median_filter_4D_test_local.py 
+ WORKING_DIRECTORY ${EXECUTABLE_OUTPUT_PATH} )
+##----------------------------------------------------------------------------
+
+
+##----------------------------------------------------------------------------
+## pad2d  operators
+##----------------------------------------------------------------------------
+include_directories(pad2d)
+cuda_add_library(TFpad2dOperator SHARED pad2d/pad2d.cc pad2d/pad2d.cu)
+
+target_link_libraries(TFpad2dOperator optox ${IMAGEUTILITIES_LIBRARIES} "tensorflow_framework")
+# remove lib prefix
+set_target_properties(TFpad2dOperator PROPERTIES PREFIX "" LINKER_LANGUAGE CXX)
+if(WIN32)
+    SET_TARGET_PROPERTIES(TFpad2dOperator PROPERTIES SUFFIX ".pyd")
+endif(WIN32)
+
+## Add tests:
+add_test(NAME TFpad2dOperator_test
+COMMAND  ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/pad2d/pad2d_test_local.py
+WORKING_DIRECTORY ${EXECUTABLE_OUTPUT_PATH} )
+##-------------------------------------------------------------------------------

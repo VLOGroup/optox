@@ -32,6 +32,11 @@ check_command cp ../../lib/tf/TfFftOperators.so ./optotf/fft/TfFftOperators.so
 check_command cp ../../lib/tf/TfNablaOperator.so ./optotf/TfNablaOperator.so
 check_command cp ../../lib/tf/TFDemosaicingOperator.so ./optotf/demosaicing/TFDemosaicingOperator.so
 
+check_command cp ../../lib/tf/TFMapcoordinatesOperator.so ./optotf/mapcoordinates/TFMapcoordinatesOperator.so
+check_command cp ../../lib/tf/TFWarpimageOperator.so      ./optotf/warpimage/TFWarpimageOperator.so
+check_command cp ../../lib/tf/TFpad2dOperator.so          ./optotf/pad2d/TFpad2dOperator.so
+check_command cp ../../lib/tf/TFMedianfilterOperator.so   ./optotf/medianfilter/TFMedianfilterOperator.so
+
 # build the package
 printf "\n${GREEN}Building the Wheel Package...${NC}\n"
 check_command  python setup.py sdist bdist_wheel

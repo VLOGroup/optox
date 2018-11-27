@@ -1,13 +1,24 @@
 ## Repository for operators and their interfaces to X.
-The aim:
+##### The aim:
  Write an operator once and use it in Python, Matlab, Tensorflow, Pytorch, C++,...
 
-The conceopt:
- Use the imageutilities as data holding layer for an relative generic operator.
- Test it with your environment of choice.
+##### The concept:
+ Use the imageutilities as memory holding layer to build a more or less generic operator.
  To use it in your environment X (e.g. Tensorflow) you just need to write an interface wrapper.
- So you can re-use tested operators in many environments
+ So you can test it thoroughly wiht your environment of choice and use the tested operator in all the other environments.
+ Result Increansed reuseability :)
+ 
+ E.g. for Python the current recommended way for using the operator is to build a pip package and install it in your desired anaconda environment.
+ 
 
+
+### most important directories and files:
+	- src        : the more generic base operator
+	- matlab     : matlab wrappers, (or not yet ported matlab only operators)
+	- tensorflow : tensorflow wrappers, (or not yet ported tensorflow only operators)
+		- package: this subdirectory contains the files necessary for building the pip packages
+			- 	build_pkg.sh  : this script builds the pip package 
+			- 	setup.sh      : requirenments for the pip package
 
 ##Install instructions
 
@@ -19,7 +30,25 @@ build and install imageutilities (setup the install path to e.g. the IMAGEUTILIT
 OpenCV is only required if the GUI or the IO functionality of the imageutilities is used.
 Otherwise deactivate the IU_USE_IO and IO_USE_GUI switches with ccmake or cmake-gui while building the imageutilities.
 Example Configuration of imageutilities:
-![Example Configuration](./docs/Setup_CCMAKE_ImageUtilities.png)
+![Example Configuration](./docs/Setup_CCMAKE_ImageUtilities_MATLAB.png)
+```bash
+#Setup where to install image utilities after compilation:
+IMAGEUTILITIES_ROOT=~/sources/imageutilities 
+MATLAB_ROOT=/usr/local/MATLAB/R2018b/
+git clone git@gitlab.icg.tugraz.at:imageutilities/imageutilities.git
+cd imageutilities
+git checkout dev_register_types
+#build imageutilities
+mkdir build
+cd build
+# start ccmake and configure it as in the screenshot
+ccmake .. 
+# press 'c' to configure, check for erros, continure with 'e', then generate the make files by pressing 'g'
+# build it with make:
+make -j
+# install it into the path specified in IMAGEUTILITIES_ROOT
+make install 	
+```
 
 
 

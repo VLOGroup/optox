@@ -31,9 +31,9 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
     setuptools.setup(
         name="optotf",
-        version="0.1dev",
-        author="Erich Kobler",
-        author_email="erich.kobler@icg.tugraz.at",
+        version="0.2dev",
+        author="Erich Kobler, Markus Hofinger, Kerstin Hamernik",
+        author_email="erich.kobler@icg.tugraz.at, markus.hofinger@icg.tugraz.at, kerstin.hamernik@icg.tugraz.at",
         description="TensorFlow wrappers for optoX library",
         long_description=long_description,
         long_description_content_type="text/markdown",
@@ -46,7 +46,11 @@ with open("README.md", "r") as fh:
                                  "interpolation/TfMetamorphosisOperator.so",
                                  "TfNablaOperator.so",
                                  "fft/TfFftOperators.so",
-                                 "demosaicing/TFDemosaicingOperator.so"]},
+                                 "demosaicing/TFDemosaicingOperator.so",
+                                 "mapcoordinates/TFMapcoordinatesOperator.so",
+                                 "medianfilter/TFMedianfilterOperator.so",
+                                 "pad2d/TFpad2dOperator.so",
+                                 "warpimage/TFWarpimageOperator.so",]},
         install_requires=REQUIRED_PACKAGES,
         distclass=BinaryDistribution,
         classifiers=[

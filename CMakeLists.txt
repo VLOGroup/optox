@@ -69,3 +69,5 @@ if(WITH_TENSORFLOW)
 else(WITH_TENSORFLOW)
     message(STATUS "[-] optox exclude tensorflow interfaces")
 endif(WITH_TENSORFLOW)
+
+enable_testing()
