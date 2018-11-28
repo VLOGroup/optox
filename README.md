@@ -76,30 +76,58 @@ now you can build optoX (-j use maximum number of threads)
 make -j
 ```
 
-##### Now build the pip packages:
-**Attention** currently symbolic links are not automatically created, requires manuall step for each operator! 
-For example for the nabla operator.
+## Now build the pip packages:
+### Example for Tensorflow
+-------------------------------
+
+###### Build Wheel Package for Tensorflow:
+Call the  `build_pkg.sh` script inside the `tensorflow/package` folder.
+It copies the built libraries to a temp folder and tirggers the building of the pip-package.
+Finally install the package
+
+
 ```bash
-#ln -s ../../../../lib/python/PyNablaOperator.so .
-ln -s lib/python/PyNablaOperator.so python/package/optopy/nabla/.
+# copy the files (not needed any more)
+# ln -s lib/tf/TfMetamorphosisOperator.so    tensorflow/package/optotf/interpolation/.
+cd tensorflow/package
+./build_pkg.sh
+pip install -- upgrade dist/optotf-0.2.dev0-cp36-cp36m-linux_x86_64.whl
 ```
+
+Test it in ipython/python with tensorflow
+```python
+from optotf.pad2d import pad2d
+import numpy as np
+import tensorflow as tf
+sess = tf.InteractiveSession
+inp = np.array([[[[1],[2],[3],[4.]]]])
+padded = pad2d(inp,"SYMMETRIC",1)
+padded.eval() #pad2d is NCHW format
+>>>array([[[[1., 1., 1.],
+            [1., 1., 1.],
+            [2., 2., 2.],
+            [3., 3., 3.],
+            [4., 4., 4.],
+            [4., 4., 4.]]]])
+```
+
+### Example for direct python operator
+-------------------------------
+Call the  `build_pkg.sh` script inside the `python/package` folder.
+It copies the built libraries to a temp folder and tirggers the building of the pip-package.
+Finally install the package
+
 ###### python - build wheel package:
 This code depends on the 
 ```bash
 cd python/package
 ./build_pkg.sh
 pip install --upgrade dist/YOUR_BUILT_WHEEL_PACKAGE.whl
-#pip install --upgrade dist/optotf-0.1.dev0-cp36-cp36m-linux_x86_64.whl 
+#pip install --upgrade dist/optotf-0.2.dev0-cp36-cp36m-linux_x86_64.whl 
 cd ../..
 ```
 
-###### tensorflow - build wheel package:
-```bash
-ln -s lib/tf/TfMetamorphosisOperator.so    tensorflow/package/optotf/interpolation/.
-cd tensorflow/package
-./build_pkg.sh
-pip install -- upgrade dist/optotf-0.1.dev0-cp36-cp36m-linux_x86_64.whl
-```
+
 
 Test it in ipython/python
 ```python
@@ -108,4 +136,10 @@ import optopy.nabla   # only directly called submodules are imported
 op = optopy.nabla.nabla_op()
 op.forward( np.array([[0,1,1,2,0]],dtype=np.float32))
 op.forward( np.array([[0,1,1,1,0],[0,0,1,0,0]],dtype=np.float32))
+>>> array([[[ 1.,  0.,  0., -1.,  0.],
+            [ 0.,  1., -1.,  0.,  0.]],
+
+           [[ 0., -1.,  0., -1.,  0.],
+            [ 0.,  0.,  0.,  0.,  0.]]], dtype=float32)
+
 ```
