@@ -20,6 +20,7 @@ interpolate_linear = _activation_lib.activation_interpolate_linear
 int_interpolate_linear = _activation_lib.activation_integral_interpolate_linear
 interpolate_linear_extrapolate = _activation_lib.activation_interpolate_linear_extrapolate
 int_interpolate_linear_extrapolate = _activation_lib.activation_integral_interpolate_linear_extrapolate
+interpolate_linear_symmetric = _activation_lib.activation_interpolate_linear_symmetric
 
 # spline
 b_spline = _activation_lib.activation_b_spline
@@ -100,6 +101,16 @@ def _activation_int_interpolate_linear_grad(op, grad):
     grad_w = _activation_lib.activation_integral_interpolate_linear_extrapolate_grad_w(op.inputs[0], grad, op.get_attr(
         "v_min"), op.get_attr("v_max"), op.inputs[1].shape[0], op.get_attr("num_weights"), op.get_attr("feature_stride"))
     return [grad_x, grad_w]
+
+@_ops.RegisterGradient("ActivationInterpolateLinearSymmetric")
+def _activation_interpolate_linear_symmetric_grad(op, grad):
+    act_prime = _activation_lib.activation_prime_interpolate_linear_symmetric(op.inputs[0], op.inputs[1], op.get_attr(
+        "v_min"), op.get_attr("v_max"), op.get_attr("num_weights"), op.get_attr("feature_stride"))
+    grad_x = act_prime * grad
+    grad_w = _activation_lib.activation_interpolate_linear_symmetric_grad_w(op.inputs[0], grad, op.get_attr(
+        "v_min"), op.get_attr("v_max"), op.inputs[1].shape[0], op.get_attr("num_weights"), op.get_attr("feature_stride"))
+    return [grad_x, grad_w]
+
 
 @_ops.RegisterGradient("ActivationBSpline")
 def _activation_b_spline_grad(op, grad):

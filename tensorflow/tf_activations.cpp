@@ -638,6 +638,64 @@ interpolation activation integration operator.
 ActivationGradWCommonIOs,
 ActivationCommonAttrs))*/;
 
+// Linear interpolation activation
+REGISTER_OP("ActivationInterpolateLinearSymmetric")
+    .Attr("T: realnumbertype")
+    .Input("x: T")
+    .Input("w: T")
+    .Output("output: T")
+    .Attr("v_min: float")
+    .Attr("v_max: float")
+    .Attr("num_weights: int >= 1")
+    .Attr("feature_stride: int >= 1")
+    .SetShapeFn(shape_inference::UnchangedShape)
+/*    .Doc(strings::StrCat(R"doc(
+Computes an activation function parameterized by a linear interpolation between
+weighted dirac delta basis functions.)doc",
+ActivationCommonIOs,
+ActivationCommonAttrs))*/;
+
+REGISTER_OP("ActivationPrimeInterpolateLinearSymmetric")
+    .Attr("T: realnumbertype")
+    .Input("x: T")
+    .Input("w: T")
+    .Output("output: T")
+    .Attr("v_min: float")
+    .Attr("v_max: float")
+    .Attr("num_weights: int >= 1")
+    .Attr("feature_stride: int >= 1")
+    .SetShapeFn(shape_inference::UnchangedShape)
+/*    .Doc(strings::StrCat(R"doc(
+Backpropagates the gradient from the output to the input of the linear
+interpolation activation operator.
+)doc",
+ActivationCommonIOs,
+ActivationCommonAttrs))*/;
+
+REGISTER_OP("ActivationInterpolateLinearSymmetricGradW")
+    .Attr("T: realnumbertype")
+    .Input("x: T")
+    .Input("grad_out: T")
+    .Output("output: T")
+    .Attr("v_min: float")
+    .Attr("v_max: float")
+    .Attr("num_channels: int >= 1")
+    .Attr("num_weights: int >= 1")
+    .Attr("feature_stride: int >= 1")
+    .SetShapeFn([](shape_inference::InferenceContext *c) {
+      int num_weights, num_channels;
+      TF_RETURN_IF_ERROR(c->GetAttr("num_weights", &num_weights));
+      TF_RETURN_IF_ERROR(c->GetAttr("num_channels", &num_channels));
+      c->set_output(0, c->Matrix(num_channels, num_weights));
+      return Status::OK();
+    })
+/*    .Doc(strings::StrCat(R"doc(
+Backpropagates the gradient from the output to the weights of the linear
+interpolation activation operator.
+)doc",
+ActivationGradWCommonIOs,
+ActivationCommonAttrs))*/;
+
 const unsigned int max_num_weights = 128;
 
 /**
@@ -1668,6 +1726,16 @@ REGISTER_KERNEL_BUILDER(  \
 TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
 #undef REGISTER_GPU
 
+#define REGISTER_GPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationInterpolateLinearSymmetric") \
+    .Device(DEVICE_GPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationInterpolateLinearOp<GPUDevice, T, tficg::DO_ZERO, tficg::DO_SYMMETRIC>) \
+
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
+#undef REGISTER_GPU
+
 #define REGISTER_CPU(T) \
 REGISTER_KERNEL_BUILDER(  \
     Name("ActivationPrimeInterpolateLinear") \
@@ -1694,6 +1762,16 @@ REGISTER_KERNEL_BUILDER(  \
     .Device(DEVICE_GPU) \
     .TypeConstraint<T>("T"), \
     ActivationInterpolateLinearOp<GPUDevice, T, tficg::DO_FIRST, tficg::DO_EXTRAPOLATE>) \
+
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
+#undef REGISTER_GPU
+
+#define REGISTER_GPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationPrimeInterpolateLinearSymmetric") \
+    .Device(DEVICE_GPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationInterpolateLinearOp<GPUDevice, T, tficg::DO_FIRST, tficg::DO_SYMMETRIC>) \
 
 TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
 #undef REGISTER_GPU
@@ -1813,6 +1891,16 @@ REGISTER_KERNEL_BUILDER(  \
     .Device(DEVICE_GPU) \
     .TypeConstraint<T>("T"), \
     ActivationInterpolateLinearGradWOp<GPUDevice, T, tficg::DO_ZERO, tficg::DO_EXTRAPOLATE>) \
+
+TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
+#undef REGISTER_GPU
+
+#define REGISTER_GPU(T) \
+REGISTER_KERNEL_BUILDER(  \
+    Name("ActivationInterpolateLinearSymmetricGradW") \
+    .Device(DEVICE_GPU) \
+    .TypeConstraint<T>("T"), \
+    ActivationInterpolateLinearGradWOp<GPUDevice, T, tficg::DO_ZERO, tficg::DO_SYMMETRIC>) \
 
 TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU)
 #undef REGISTER_GPU

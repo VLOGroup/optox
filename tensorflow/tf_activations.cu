@@ -890,6 +890,82 @@ __global__ void activationIntegralInterpolateLinearKernel(
   }
 }
 
+template<typename T, tficg::DerivativeOrder N>
+__global__ void activationSymmetricInterpolateLinearKernel(
+    const typename Tensor2<T>::ConstTensor x,
+    const typename Tensor2<T>::ConstTensor w,
+    typename Tensor2<T>::Tensor out,
+    T v_max, int feature_stride)
+{
+  const unsigned int idx = threadIdx.x + blockIdx.x * blockDim.x;
+
+  const unsigned int tid = threadIdx.x;
+
+  const unsigned int num_weights = w.dimensions()[1];
+
+  const T delta_1 = (num_weights) / v_max;
+
+  extern __shared__ __align__(sizeof(T)) unsigned char s_buffer[];
+  T *w_shared = reinterpret_cast<T*>(s_buffer);
+
+  for (int idw = 0; idw < w.dimensions()[0]; ++idw)
+  {
+    // load the weights into shared memory
+    if (tid < num_weights)
+      w_shared[tid] = w(idw, tid);
+    __syncthreads();
+
+    for (int idc = idw*feature_stride; idc < (idw+1)*feature_stride; ++idc)
+    {
+      // compute the activation
+      if (idx < x.dimensions()[0])
+      {
+        const T x_abs = abs(x(idx, idc));
+        const T x_sign = (x(idx, idc) >= 0) ? 1 : -1;
+        // compute the linear index
+        const T x_idx = (x_abs - 0) * delta_1;
+        // get the correct weight values
+        const int x_idx_f = floor(x_idx);
+        T w_f = 0;
+        T w_c = 0;
+        T alpha = 0;
+        if (x_idx_f > 0 && x_idx_f < num_weights)
+        {
+          w_f = w_shared[x_idx_f-1];
+          w_c = w_shared[x_idx_f];
+          alpha = x_idx - x_idx_f;
+        }
+        else if (x_idx_f == 0)
+        {
+          w_f = 0;
+          w_c = w_shared[0];
+          alpha = x_idx;
+        }
+        else if (x_idx_f >= num_weights)
+        {
+          w_f = w_shared[num_weights-1];
+          w_c = w_f;
+          alpha = x_idx - x_idx_f;
+        }
+
+        // determine the order of the gradient
+        switch(N)
+        {
+          case tficg::DO_ZERO:
+            out(idx, idc) = ((1 - alpha) * w_f + alpha * w_c) * x_sign;
+          break;
+          case tficg::DO_FIRST:
+            // derivative of x sign cancels out
+            out(idx, idc) = (w_c - w_f) * delta_1;
+          break;
+        }
+      }
+    }
+    // sync to avoid filling of w_shared before every thread finished!
+    __syncthreads();
+  }
+}
+
 template <typename T, tficg::DerivativeOrder N, tficg::BorderMode TBorderMode>
 struct ActivationInterpolateLinearFunctor<GPUDevice, T, N, TBorderMode> {
   void operator()(tensorflow::OpKernelContext* context,
@@ -902,20 +978,28 @@ struct ActivationInterpolateLinearFunctor<GPUDevice, T, N, TBorderMode> {
     unsigned int thread_per_block = 1024;
     unsigned int block_count = iu::divUp(out.dimensions()[0], thread_per_block);
     unsigned int smem_size = w.dimensions()[1] * sizeof(T);
-    if (N == tficg::DO_INT)
-      activationIntegralInterpolateLinearKernel<T, TBorderMode><<<block_count, thread_per_block, smem_size, d.stream()>>>(
-          x, w, out, v_min, v_max, feature_stride);
+    if (TBorderMode == tficg::DO_SYMMETRIC)
+      activationSymmetricInterpolateLinearKernel<T, N><<<block_count, thread_per_block, smem_size, d.stream()>>>(
+          x, w, out, v_max, feature_stride);
     else
-      activationInterpolateLinearKernel<T, N, TBorderMode><<<block_count, thread_per_block, smem_size, d.stream()>>>(
-          x, w, out, v_min, v_max, feature_stride);
+    {
+      if (N == tficg::DO_INT)
+        activationIntegralInterpolateLinearKernel<T, TBorderMode><<<block_count, thread_per_block, smem_size, d.stream()>>>(
+            x, w, out, v_min, v_max, feature_stride);
+      else
+        activationInterpolateLinearKernel<T, N, TBorderMode><<<block_count, thread_per_block, smem_size, d.stream()>>>(
+            x, w, out, v_min, v_max, feature_stride);
+    }
   }
 };
 
 #define REGISTER_GPU_FUNCTOR(T) \
     template struct ActivationInterpolateLinearFunctor<GPUDevice, T, tficg::DO_ZERO, tficg::DO_NONE>; \
     template struct ActivationInterpolateLinearFunctor<GPUDevice, T, tficg::DO_ZERO, tficg::DO_EXTRAPOLATE>; \
+    template struct ActivationInterpolateLinearFunctor<GPUDevice, T, tficg::DO_ZERO, tficg::DO_SYMMETRIC>; \
     template struct ActivationInterpolateLinearFunctor<GPUDevice, T, tficg::DO_FIRST, tficg::DO_NONE>; \
     template struct ActivationInterpolateLinearFunctor<GPUDevice, T, tficg::DO_FIRST, tficg::DO_EXTRAPOLATE>; \
+    template struct ActivationInterpolateLinearFunctor<GPUDevice, T, tficg::DO_FIRST, tficg::DO_SYMMETRIC>; \
     template struct ActivationInterpolateLinearFunctor<GPUDevice, T, tficg::DO_INT, tficg::DO_NONE>; \
     template struct ActivationInterpolateLinearFunctor<GPUDevice, T, tficg::DO_INT, tficg::DO_EXTRAPOLATE>; 
 TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU_FUNCTOR);
@@ -1156,6 +1240,78 @@ __global__ void activationIntegralInterpolateLinearGradWKernel(
   }
 }
 
+template<typename T, tficg::DerivativeOrder N>
+__global__ void activationSymmetricInterpolateLinearGradWKernel(
+    const typename Tensor2<T>::ConstTensor x,
+    const typename Tensor2<T>::ConstTensor grad_out,
+    typename Tensor2<T>::Tensor grad_w,
+    T v_max, int feature_stride)
+{
+  const int idx = threadIdx.x + blockIdx.x * blockDim.x;
+
+  const int BS = blockDim.x;
+  const int tid = threadIdx.x;
+
+  const int num_weights = grad_w.dimensions()[1];
+
+  const T delta_1 = num_weights / v_max;
+
+  extern __shared__ __align__(sizeof(T)) unsigned char s_buffer[];
+  T *grad_w_shared = reinterpret_cast<T*>(s_buffer);
+
+  for (int idw = 0; idw < grad_w.dimensions()[0]; ++idw)
+  {
+    // initalize the gradients w.r.t. w
+    for (int j = 0; j < num_weights; ++j)
+      grad_w_shared[tid + j*BS] = 0;
+
+    __syncthreads();
+
+    for (int idc = idw*feature_stride; idc < (idw+1)*feature_stride; ++idc)
+    {
+      if (idx < x.dimensions()[0])
+      {
+        const T x_abs = abs(x(idx, idc));
+        const T x_sign = (x(idx, idc) >= 0) ? 1 : -1;
+        const T g_out = grad_out(idx, idc) * x_sign;
+        // compute the linear index
+        const T x_idx = (x_abs - 0) * delta_1;
+        // get the correct weight values
+        const int x_idx_f = floor(x_idx);
+        T alpha = 0;
+        if (x_idx_f > 0 && x_idx_f < num_weights)
+        {
+          const T alpha = x_idx - x_idx_f;
+          grad_w_shared[tid + (x_idx_f-1)*BS] += g_out * (1 - alpha);
+          grad_w_shared[tid + x_idx_f*BS] += g_out * alpha;
+        }
+        else if (x_idx_f == 0)
+        {
+          alpha = x_idx;
+          grad_w_shared[tid + 0*BS] += g_out * alpha;
+        }
+        else if (x_idx_f >= num_weights)
+        {
+          grad_w_shared[tid + (num_weights-1)*BS] += g_out;
+        }
+      }
+    }
+
+    __syncthreads();
+
+    // reduce the weights gradient
+    reduceSharedGradWeights(grad_w_shared, tid, BS, num_weights);
+
+    // add to global gradient w
+    if (tid < num_weights)
+    {
+      T grad_w_tid = grad_w_shared[tid*BS] + grad_w_shared[tid*BS + 1];
+      if (grad_w_tid != 0)
+        tficg::CudaAtomicAdd(grad_w.data() + idw*num_weights + tid, grad_w_tid);
+    }
+  }
+}
+
 template <typename T, tficg::DerivativeOrder N, tficg::BorderMode TBorderMode>
 struct ActivationInterpolateLinearGradWFunctor<GPUDevice, T, N, TBorderMode> {
   void operator()(tensorflow::OpKernelContext* context,
@@ -1177,18 +1333,25 @@ struct ActivationInterpolateLinearGradWFunctor<GPUDevice, T, N, TBorderMode> {
     unsigned int block_count = iu::divUp(x.dimensions()[0], thread_per_block);
     unsigned int smem_size = thread_per_block* grad_w.dimensions()[1] * sizeof(T);
 
-    if (N == tficg::DO_INT)
-      activationIntegralInterpolateLinearGradWKernel<T, TBorderMode><<<block_count, thread_per_block, smem_size, d.stream()>>>(
-        x, grad_out, grad_w, v_min, v_max, feature_stride);
+    if (TBorderMode == tficg::DO_SYMMETRIC)
+      activationSymmetricInterpolateLinearGradWKernel<T, N><<<block_count, thread_per_block, smem_size, d.stream()>>>(
+        x, grad_out, grad_w, v_max, feature_stride);
     else
-      activationInterpolateLinearGradWKernel<T, N, TBorderMode><<<block_count, thread_per_block, smem_size, d.stream()>>>(
-        x, grad_out, grad_w, v_min, v_max, feature_stride);
+    {
+      if (N == tficg::DO_INT)
+        activationIntegralInterpolateLinearGradWKernel<T, TBorderMode><<<block_count, thread_per_block, smem_size, d.stream()>>>(
+          x, grad_out, grad_w, v_min, v_max, feature_stride);
+      else
+        activationInterpolateLinearGradWKernel<T, N, TBorderMode><<<block_count, thread_per_block, smem_size, d.stream()>>>(
+          x, grad_out, grad_w, v_min, v_max, feature_stride);
+    }
   }
 };
 
 #define REGISTER_GPU_FUNCTOR(T) \
     template struct ActivationInterpolateLinearGradWFunctor<GPUDevice, T, tficg::DO_ZERO, tficg::DO_NONE>; \
     template struct ActivationInterpolateLinearGradWFunctor<GPUDevice, T, tficg::DO_ZERO, tficg::DO_EXTRAPOLATE>; \
+    template struct ActivationInterpolateLinearGradWFunctor<GPUDevice, T, tficg::DO_ZERO, tficg::DO_SYMMETRIC>; \
     template struct ActivationInterpolateLinearGradWFunctor<GPUDevice, T, tficg::DO_INT, tficg::DO_NONE>; \
     template struct ActivationInterpolateLinearGradWFunctor<GPUDevice, T, tficg::DO_INT, tficg::DO_EXTRAPOLATE>;
 TF_CALL_ICG_REAL_NUMBER_TYPES(REGISTER_GPU_FUNCTOR);

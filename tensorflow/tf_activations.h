@@ -28,6 +28,7 @@ namespace tficg {
   {
     DO_NONE,
     DO_EXTRAPOLATE,
+    DO_SYMMETRIC,
   };
 }
 
