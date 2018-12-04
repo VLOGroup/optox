@@ -1,7 +1,7 @@
 ///@file tf_demosiaing.cu
 ///@brief tensorflow wrappers for the demosaicing operator
 ///@author Joana Grah <joana.grah@icg.tugraz.at>
-///@date 09.07.2018
+///@date 04.12.2018
 
 #include <iostream>
 #include <cuda.h>

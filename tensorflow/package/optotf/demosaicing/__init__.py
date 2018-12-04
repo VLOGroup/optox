@@ -19,6 +19,6 @@ def _demosaicing_forward_grad(op, grad):
     return [grad_in, None]
 
 @_ops.RegisterGradient("DemosaicingOperatorAdjoint")
-def _demosaicing_forward_grad(op, grad):
+def _demosaicing_adjoint_grad(op, grad):
     grad_in = forward(grad, op.inputs[1])
     return [grad_in, None]
