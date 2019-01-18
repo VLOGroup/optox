@@ -68,7 +68,7 @@ void optox::NablaOperator<T, N>::computeForward(optox::OperatorOutputVector &&ou
                   iu::divUp(x->size()[1], dim_block.y),
                   iu::divUp(x->size()[2], dim_block.z));
 
-    forward_differences<T> <<<dim_grid, dim_block>>>(*y, *x);
+    forward_differences<T> <<<dim_grid, dim_block, 0, this->stream_>>>(*y, *x);
     IU_CUDA_CHECK;
 }
 
@@ -161,7 +161,7 @@ void optox::NablaOperator<T, N>::computeAdjoint(optox::OperatorOutputVector &&ou
                   iu::divUp(x->size()[1], dim_block.y),
                   iu::divUp(x->size()[2], dim_block.z));
 
-    backward_differences<T> <<<dim_grid, dim_block>>>(*x, *y);
+    backward_differences<T> <<<dim_grid, dim_block, 0, this->stream_>>>(*x, *y);
 }
 
 

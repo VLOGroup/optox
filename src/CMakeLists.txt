@@ -15,12 +15,16 @@ set(COMMON_HEADER
 set(OPERATOR_HEADER
     operators/ioperator.h
     operators/add_operator.h
+    operators/activations/act.h
+    operators/activations/act_rbf.h
+    operators/activations/utils.cuh
     operators/nabla_operator.h
     operators/demosaicing_operator.h
 )
 
 set(OPERATOR_SOURCE
     operators/add_operator.cu
+    operators/activations/act_rbf.cu
     operators/nabla_operator.cu
     operators/demosaicing_operator.cu
 )

@@ -24,6 +24,12 @@ include_directories(${PYTHON_INCLUDE_DIRS})
 find_package(NumPy REQUIRED)
 include_directories(${NUMPY_INCLUDE_DIRS})
 
+# Extract boost root dir. Should be the same as the Python lib dir.
+get_filename_component(PYTHON_LIBRARY_DIR ${PYTHON_LIBRARIES} DIRECTORY)
+get_filename_component(BOOST_ROOT ${PYTHON_LIBRARY_DIR} DIRECTORY)
+
+message(STATUS "Boost root: " ${BOOST_ROOT})
+
 find_package(Boost REQUIRED COMPONENTS python)
 include_directories(${Boost_INCLUDE_DIRS})
 
@@ -32,6 +38,9 @@ include_directories(${Boost_INCLUDE_DIRS})
 ##----------------------------------------------------------------------------
 cuda_add_library(PyAddOperator SHARED  py_add_operator.cpp)
 finish_python_lib(PyAddOperator)
+
+cuda_add_library(PyActOperator SHARED  py_act_operator.cpp)
+finish_python_lib(PyActOperator)
 
 cuda_add_library(PyNablaOperator SHARED  py_nabla_operator.cpp)
 finish_python_lib(PyNablaOperator)

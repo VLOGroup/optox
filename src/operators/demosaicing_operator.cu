@@ -79,16 +79,16 @@ void optox::DemosaicingOperator<T>::computeForward(optox::OperatorOutputVector &
     switch (this->pattern_)
     {
         case optox::BayerPattern::BGGR:
-            demosaicingForwardKernel<T, optox::BayerPattern::BGGR> <<<dim_grid, dim_block>>>(*output, *input);
+            demosaicingForwardKernel<T, optox::BayerPattern::BGGR> <<<dim_grid, dim_block, 0, this->stream_>>>(*output, *input);
             break;
         case optox::BayerPattern::RGGB:
-            demosaicingForwardKernel<T, optox::BayerPattern::RGGB> <<<dim_grid, dim_block>>>(*output, *input);
+            demosaicingForwardKernel<T, optox::BayerPattern::RGGB> <<<dim_grid, dim_block, 0, this->stream_>>>(*output, *input);
             break;
         case optox::BayerPattern::GBRG:
-            demosaicingForwardKernel<T, optox::BayerPattern::GBRG> <<<dim_grid, dim_block>>>(*output, *input);
+            demosaicingForwardKernel<T, optox::BayerPattern::GBRG> <<<dim_grid, dim_block, 0, this->stream_>>>(*output, *input);
             break;
         case optox::BayerPattern::GRBG:
-            demosaicingForwardKernel<T, optox::BayerPattern::GRBG> <<<dim_grid, dim_block>>>(*output, *input);
+            demosaicingForwardKernel<T, optox::BayerPattern::GRBG> <<<dim_grid, dim_block, 0, this->stream_>>>(*output, *input);
             break;
     }
     IU_CUDA_CHECK;
@@ -166,16 +166,16 @@ void optox::DemosaicingOperator<T>::computeAdjoint(optox::OperatorOutputVector &
     switch (this->pattern_)
     {
         case optox::BayerPattern::BGGR:
-            demosaicingAdjointKernel<T, optox::BayerPattern::BGGR> <<<dim_grid, dim_block>>>(*output, *input);
+            demosaicingAdjointKernel<T, optox::BayerPattern::BGGR> <<<dim_grid, dim_block, 0, this->stream_>>>(*output, *input);
             break;
         case optox::BayerPattern::RGGB:
-            demosaicingAdjointKernel<T, optox::BayerPattern::RGGB> <<<dim_grid, dim_block>>>(*output, *input);
+            demosaicingAdjointKernel<T, optox::BayerPattern::RGGB> <<<dim_grid, dim_block, 0, this->stream_>>>(*output, *input);
             break;
         case optox::BayerPattern::GBRG:
-            demosaicingAdjointKernel<T, optox::BayerPattern::GBRG> <<<dim_grid, dim_block>>>(*output, *input);
+            demosaicingAdjointKernel<T, optox::BayerPattern::GBRG> <<<dim_grid, dim_block, 0, this->stream_>>>(*output, *input);
             break;
         case optox::BayerPattern::GRBG:
-            demosaicingAdjointKernel<T, optox::BayerPattern::GRBG> <<<dim_grid, dim_block>>>(*output, *input);
+            demosaicingAdjointKernel<T, optox::BayerPattern::GRBG> <<<dim_grid, dim_block, 0, this->stream_>>>(*output, *input);
             break;
     }
     IU_CUDA_CHECK;
