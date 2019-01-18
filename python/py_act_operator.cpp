@@ -49,7 +49,7 @@ bp::tuple adjoint(bp::object &self,
     op.adjoint({&iu_grad_input, &iu_grad_weights}, {iu_input.get(), iu_weights.get(), iu_grad_output.get()});
 
     return bp::make_tuple(bp::object(bp::handle<>(iu::python::PyArray_from_LinearDeviceMemory(iu_grad_input))),
-                                     bp::object(bp::handle<>(iu::python::PyArray_from_LinearDeviceMemory(iu_grad_input))));
+                          bp::object(bp::handle<>(iu::python::PyArray_from_LinearDeviceMemory(iu_grad_weights))));
 }
 
 BOOST_PYTHON_MODULE(PyActOperator)
