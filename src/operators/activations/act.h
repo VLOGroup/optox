@@ -34,6 +34,12 @@ class OPTOX_DLLAPI IActOperator : public IOperator
     virtual void computeAdjoint(OperatorOutputVector &&outputs,
                                 const OperatorInputVector &inputs) = 0;
 
+    void checkSize(const iu::Size<2> input_size, const iu::Size<2> weights_size)
+    {
+        if (input_size[1] != weights_size[1])
+            throw std::runtime_error("Activation operator: input and weights size do not match!");
+    }
+
     virtual unsigned int getNumOutputsForward()
     {
         return 1;

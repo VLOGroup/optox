@@ -27,14 +27,14 @@ PyObject *forward(bp::object &self,
     // allocate the output
     iu::LinearDeviceMemory<T, 2> iu_output(iu_input->size());
 
-    optox::IActOperator<T> &op = bp::extract<optox::IActOperator<T> &>(self);
+    optox::RBFActOperator<T> &op = bp::extract<optox::RBFActOperator<T> &>(self);
     op.forward({&iu_output}, {iu_input.get(), iu_weights.get()});
 
     return iu::python::PyArray_from_LinearDeviceMemory(iu_output);
 }
 
 template <typename T>
-PyObject *adjoint(bp::object &self,
+bp::tuple adjoint(bp::object &self,
                   bp::object &py_ob_in1, bp::object &py_ob_in2, bp::object &py_ob_in3)
 {
     std::unique_ptr<iu::LinearDeviceMemory<T, 2>> iu_input = getLinearDeviceFromNumpy<T, 2>(py_ob_in1);
@@ -45,11 +45,11 @@ PyObject *adjoint(bp::object &self,
     iu::LinearDeviceMemory<T, 2> iu_grad_input(iu_input->size());
     iu::LinearDeviceMemory<T, 2> iu_grad_weights(iu_weights->size());
 
-    optox::IActOperator<T> &op = bp::extract<optox::IActOperator<T> &>(self);
+    optox::RBFActOperator<T> &op = bp::extract<optox::RBFActOperator<T> &>(self);
     op.adjoint({&iu_grad_input, &iu_grad_weights}, {iu_input.get(), iu_weights.get(), iu_grad_output.get()});
 
-    return  bp::make_tuple(bp::object(bp::handle<>(iu::python::PyArray_from_LinearDeviceMemory(iu_grad_input))),
-                           bp::object(bp::handle<>(iu::python::PyArray_from_LinearDeviceMemory(iu_grad_input)))).ptr(); 
+    return bp::make_tuple(bp::object(bp::handle<>(iu::python::PyArray_from_LinearDeviceMemory(iu_grad_input))),
+                                     bp::object(bp::handle<>(iu::python::PyArray_from_LinearDeviceMemory(iu_grad_input))));
 }
 
 BOOST_PYTHON_MODULE(PyActOperator)

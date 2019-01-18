@@ -28,7 +28,7 @@ __global__ void act_rbf_forward_kernel(
 
     const int Nw = weights.size_[0];
 
-    const T sigma = (vmax - vmin) / (2 * Nw);
+    const T sigma = (vmax - vmin) / (Nw - 1);
     const T sigma2 = sigma * sigma;
     const T k = ((vmax - vmin) / (Nw - 1));
 
@@ -39,22 +39,11 @@ __global__ void act_rbf_forward_kernel(
         // compute the base function
         const T mu = k * i + vmin;
         T base_function = 0;
+        const T diff = inp_pos - mu;
         if (std::is_same<T, float>::value)
-        {
-            if (fabsf(inp_pos - mu) < 4 * sigma)
-            {
-                const T diff = inp_pos - mu;
-                base_function = expf( -(diff*diff) / (sigma2 * 2));
-            }
-        }
+            base_function = expf( -(diff*diff) / (sigma2 * 2)) * 0.4;
         else
-        {
-            if (abs(inp_pos - mu) < 4 * sigma)
-            {
-                const double diff = inp_pos - mu;
-                base_function = exp( -(diff*diff) / (sigma2 * 2));
-            }
-        }
+            base_function = exp( -(diff*diff) / (sigma2 * 2)) * 0.4;
         val += weights(i, y) * base_function;
     }
 
@@ -87,7 +76,7 @@ __global__ void act_rbf_backward_kernel(
 
     const int Nw = weights.size_[0];
 
-    const T sigma = (vmax - vmin) / (2 * Nw);
+    const T sigma = (vmax - vmin) / (Nw - 1);
     const T sigma2 = sigma * sigma;
     const T k = ((vmax - vmin) / (Nw - 1));
 
@@ -100,25 +89,12 @@ __global__ void act_rbf_backward_kernel(
         const T mu = k * i + vmin;
         T base_function = 0;
         T base_function_prime = 0;
+        const T diff = inp_pos - mu;
         if (std::is_same<T, float>::value)
-        {
-            if (fabsf(inp_pos - mu) < 4 * sigma)
-            {
-                const T diff = inp_pos - mu;
-                base_function = expf( -(diff*diff) / (sigma2 * 2));
-                base_function_prime = base_function * (-diff)/sigma2;
-            }
-        }
+            base_function = expf( -(diff*diff) / (sigma2 * 2)) * 0.4;
         else
-        {
-            if (abs(inp_pos - mu) < 4 * sigma)
-            {
-                const T diff = inp_pos - mu;
-                base_function = exp( -(diff*diff) / (sigma2 * 2));
-                base_function_prime = base_function * (-diff)/sigma2;
-            }
-        }
-        
+            base_function = exp( -(diff*diff) / (sigma2 * 2)) * 0.4;
+        base_function_prime = base_function * (-diff)/sigma2;
         // backpropagate the gradient to the input
         grad_inp += weights(i, y) * base_function_prime;
 
@@ -144,11 +120,15 @@ void optox::RBFActOperator<T>::computeForward(optox::OperatorOutputVector &&outp
 
     auto output = this->template getOutput<T, 2>(0, outputs);
 
+    this->checkSize(input->size(), weights->size());
+
     int thread_per_block = 256;
     dim3 dim_block = dim3(thread_per_block, 1);
     dim3 block_count = dim3(iu::divUp(input->size()[0], dim_block.x),
                             input->size()[1]);
 
+    std::cout << "input " << *input << std::endl;
+    std::cout << "weights " << *weights << std::endl;
     act_rbf_forward_kernel<T><<<dim_block, block_count, 0, this->stream_>>>(
         *output,
         *input, *weights,
@@ -165,6 +145,8 @@ void optox::RBFActOperator<T>::computeAdjoint(optox::OperatorOutputVector &&outp
 
     auto grad_input = this->template getOutput<T, 2>(0, outputs);
     auto grad_weights = this->template getOutput<T, 2>(1, outputs);
+
+    this->checkSize(input->size(), weights->size());
 
     int thread_per_block = 256;
     dim3 dim_block = dim3(thread_per_block, 1);
