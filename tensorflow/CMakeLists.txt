@@ -20,8 +20,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib/tf)
 ##----------------------------------------------------------------------------
 ## Tensorflow (for wrappers)
 ##----------------------------------------------------------------------------
-execute_process(COMMAND python3 -c "import tensorflow as tf; print(tf.sysconfig.get_include(), end='')" OUTPUT_VARIABLE Tensorflow_INCLUDE_DIRS)
-execute_process(COMMAND python3 -c "import tensorflow as tf; print(tf.sysconfig.get_lib(), end='')" OUTPUT_VARIABLE Tensorflow_LIB_DIRS)
+execute_process(COMMAND python -c "import tensorflow as tf; print(tf.sysconfig.get_include(), end='')" OUTPUT_VARIABLE Tensorflow_INCLUDE_DIRS)
+execute_process(COMMAND python -c "import tensorflow as tf; print(tf.sysconfig.get_lib(), end='')" OUTPUT_VARIABLE Tensorflow_LIB_DIRS)
 
 message("tensorflow include dir: ${Tensorflow_INCLUDE_DIRS}")
 message("tensorflow link dir: ${Tensorflow_LIB_DIRS}")

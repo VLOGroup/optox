@@ -91,7 +91,7 @@ class OPTOX_DLLAPI OperatorConfig
 
     friend std::ostream &operator<<(std::ostream &out, OperatorConfig const &conf)
     {
-        int i = 0;
+        unsigned int i = 0;
         for (auto iter = conf.dict_.begin(); iter != conf.dict_.end(); ++iter)
             out << iter->first << ":" << iter->second
                 << ((++i < conf.dict_.size()) ? "," : "");
