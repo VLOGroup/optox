@@ -74,6 +74,7 @@ class TrainableActivation(nn.Module):
         return s.format(**self.__dict__)
 
 
+# to run execute: python -m unittest [-v] optoth.activations.act
 class TestActivationFunction(unittest.TestCase):
     
     def _run_gradient_test(self, base_type):
