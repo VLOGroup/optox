@@ -26,9 +26,16 @@ class ActivationFunction(torch.autograd.Function):
         grad_x, grad_weights = _ext.th_act_operators.act_bwd(x, weights, grad_in, ctx.base_type, ctx.vmin, ctx.vmax)
         return grad_x, grad_weights, None, None, None
 
+    @staticmethod
+    def draw(weights, base_type, vmin, vmax):
+        x = torch.linspace(2*vmin, 2*vmax, 1001).unsqueeze_(0)
+        x = x.repeat(weights.shape[0], 1)
+        f_x = _ext.th_act_operators.act_fwd(x.to(weights.device), weights, base_type, vmin, vmax)
+        return x, f_x
+
 
 class TrainableActivation(nn.Module):
-    def __init__(self, num_channels, vmin, vmax, num_weights, base_type="rbf", initialization="linear"):
+    def __init__(self, num_channels, vmin, vmax, num_weights, base_type="rbf", init="linear", init_scale=1.0):
         super(TrainableActivation, self).__init__()
 
         self.num_channels = num_channels
@@ -36,11 +43,17 @@ class TrainableActivation(nn.Module):
         self.vmax = vmax
         self.num_weights = num_weights
         self.base_type = base_type
-        self.initialization = initialization
+        self.init = init
+        self.init_scale = init_scale
 
         # setup the parameters of the layer
         self.weight = nn.Parameter(torch.Tensor(self.num_channels, self.num_weights))
         self.reset_parameters()
+
+        # define the reduction index
+        self.weight.reduction_dim = (1, )
+        # possibly add a projection function
+        # self.weight.proj = lambda _: pass
 
         # determine the operator
         if self.base_type in ["rbf", "linear"]:
@@ -50,12 +63,12 @@ class TrainableActivation(nn.Module):
 
     def reset_parameters(self):
         # define the bins
-        np_x = np.linspace(self.vmin, self.vmax, self.num_weights)[np.newaxis, :]
+        np_x = np.linspace(self.vmin, self.vmax, self.num_weights, dtype=np.float32)[np.newaxis, :]
         # initialize the weights
-        if self.initialization == "linear":
-            np_w = np_x
+        if self.init == "linear":
+            np_w = np_x * self.init_scale
         else:
-            raise RuntimeError("Unsupported initialization type '{}'!".format(self.initialization))
+            raise RuntimeError("Unsupported init type '{}'!".format(self.init))
         # tile to proper size
         np_w = np.tile(np_w, (self.num_channels, 1))
 
@@ -63,14 +76,17 @@ class TrainableActivation(nn.Module):
 
     def forward(self, x):
         # first reshape the input
-        x = x.transpose(0, 1)
+        x = x.transpose(0, 1).contiguous()
         x_r = x.view(x.shape[0], -1)
         # compute the output
         x_r = self.op.apply(x_r, self.weight, self.base_type, self.vmin, self.vmax)
         return x_r.view(x.shape).transpose_(0, 1)
 
+    def draw(self):
+        return self.op.draw(self.weight, self.base_type, self.vmin, self.vmax)
+
     def extra_repr(self):
-        s = "num_channels={num_channels}, num_weights={num_weights}, type={base_type}, vmin={vmin}, vmax={vmax}, init={initialization}"
+        s = "num_channels={num_channels}, num_weights={num_weights}, type={base_type}, vmin={vmin}, vmax={vmax}, init={init}"
         return s.format(**self.__dict__)
 
 
