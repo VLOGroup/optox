@@ -67,6 +67,9 @@ class TrainableActivation(nn.Module):
         # initialize the weights
         if self.init == "linear":
             np_w = np_x * self.init_scale
+        elif self.init == "student-t":
+            alpha = 100
+            np_w = self.init_scale * np.sqrt(alpha) * np_x / (1 + 0.5 * alpha * np_x ** 2)
         else:
             raise RuntimeError("Unsupported init type '{}'!".format(self.init))
         # tile to proper size
