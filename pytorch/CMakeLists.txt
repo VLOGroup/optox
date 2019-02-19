@@ -31,8 +31,10 @@ if (PYTHON)
         optoth/__init__.py
         optoth/activations/__init__.py
         optoth/activations/act.py
-        th_utils.h
         th_act_operator.cpp
+        th_utils.h
+        optoth/nabla.py
+        th_nabla_operator.cpp
     )
     set(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/build/timestamp")
 

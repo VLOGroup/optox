@@ -6,6 +6,8 @@
 #include <vector>
 
 #include "th_utils.h"
+
+#include "operators/activations/act.h"
 #include "operators/activations/act_rbf.h"
 #include "operators/activations/act_linear.h"
 
@@ -14,26 +16,7 @@
 
 
 template<typename T>
-std::unique_ptr<optox::IActOperator<T>> getOperatorByType(const std::string &type, T v_min, T v_max)
-{
-    if (type == "rbf")
-    {
-        std::unique_ptr<optox::IActOperator<T>> p(new optox::RBFActOperator<T>(v_min, v_max));
-        return std::move(p);
-    }
-    else if (type == "linear")
-    {
-        std::unique_ptr<optox::IActOperator<T>> p(new optox::LinearActOperator<T>(v_min, v_max));
-        return std::move(p);
-    }
-    else
-        throw std::runtime_error("Unupported base function type '" + type + "'!");
-}
-
-template<typename T>
-at::Tensor act_fwd(at::Tensor th_input, at::Tensor th_weights, 
-    const std::string &type, 
-    T v_min, T v_max)
+at::Tensor forward(optox::IActOperator<T> &op, at::Tensor th_input, at::Tensor th_weights)
 {
     // parse the input tensors
     auto iu_input = getLinearDeviceTorch<T, 2>(th_input);
@@ -43,32 +26,13 @@ at::Tensor act_fwd(at::Tensor th_input, at::Tensor th_weights,
     auto th_output = at::zeros_like(th_input);
     auto iu_output = getLinearDeviceTorch<T, 2>(th_output);
     
-    auto op = getOperatorByType<T>(type, v_min, v_max);
-    op->forward({iu_output.get()}, {iu_input.get(), iu_weights.get()});
+    op.forward({iu_output.get()}, {iu_input.get(), iu_weights.get()});
 
     return th_output;
 }
 
-
-at::Tensor act_fwd_wrapper(at::Tensor input, at::Tensor weights, 
-    const std::string &type,
-    float v_min, float v_max)
-{
-    switch (input.type().scalarType())
-    {
-        case at::ScalarType::Double:
-            return act_fwd<double>(input, weights, type, v_min, v_max);
-        case at::ScalarType::Float:
-            return act_fwd<float>(input, weights, type, v_min, v_max);
-        default:
-            throw std::runtime_error("Invalid tensor dtype!");
-    }
-}
-
 template<typename T>
-std::vector<at::Tensor> act_bwd(at::Tensor th_input, at::Tensor th_weights, at::Tensor th_grad_out, 
-    const std::string & type,
-    T v_min, T v_max)
+std::vector<at::Tensor> adjoint(optox::IActOperator<T> &op, at::Tensor th_input, at::Tensor th_weights, at::Tensor th_grad_out)
 {
     // parse the input tensors
     auto iu_input = getLinearDeviceTorch<T, 2>(th_input);
@@ -81,30 +45,63 @@ std::vector<at::Tensor> act_bwd(at::Tensor th_input, at::Tensor th_weights, at::
     at::Tensor th_grad_weights = at::empty_like(th_weights);
     auto iu_grad_weights = getLinearDeviceTorch<T, 2>(th_grad_weights);
     
-    auto op = getOperatorByType<T>(type, v_min, v_max);
-    op->adjoint({iu_grad_in.get(), iu_grad_weights.get()}, {iu_input.get(), iu_weights.get(), iu_grad_out.get()});
+    op.adjoint({iu_grad_in.get(), iu_grad_weights.get()}, {iu_input.get(), iu_weights.get(), iu_grad_out.get()});
 
     return {th_grad_in, th_grad_weights};
 }
 
+template<typename T>
+class PyIActOperator : public optox::IActOperator<T> {
+public:
+    /* Inherit the constructors */
+    using optox::IActOperator<T>::IActOperator;
 
-std::vector<at::Tensor> act_bwd_wrapper(at::Tensor input, at::Tensor weights, at::Tensor grad_out, 
-    const std::string &type,
-    float v_min, float v_max)
-{
-    switch (input.type().scalarType())
+    /* Trampoline (need one for each virtual function) */
+    void computeForward(optox::OperatorOutputVector &&outputs,
+                        const optox::OperatorInputVector &inputs) override
     {
-        case at::ScalarType::Double:
-            return act_bwd<double>(input, weights, grad_out, type, v_min, v_max);
-        case at::ScalarType::Float:
-            return act_bwd<float>(input, weights, grad_out, type, v_min, v_max);
-        default:
-            throw std::runtime_error("Invalid tensor dtype!");
+        PYBIND11_OVERLOAD_PURE(
+            void,
+            optox::IActOperator<T>,
+            computeForward,
+            outputs,
+            inputs
+        );
     }
+
+    void computeAdjoint(optox::OperatorOutputVector &&outputs,
+                        const optox::OperatorInputVector &inputs) override
+    {
+        PYBIND11_OVERLOAD_PURE(
+            void,
+            optox::IActOperator<T>,
+            computeAdjoint,
+            outputs,
+            inputs
+        );
+    }
+};
+
+template<typename T>
+void declare_op(py::module &m, const std::string &typestr)
+{
+    std::string pyclass_name = std::string("IAct") + "_" + typestr;
+    py::class_<optox::IActOperator<T>, PyIActOperator<T>>i_act(m, pyclass_name.c_str());
+    i_act.def(py::init<T, T>())
+        .def("forward", forward<T>)
+        .def("adjoint", adjoint<T>);
+
+    pyclass_name = std::string("RbfAct") + "_" + typestr;
+    py::class_<optox::RBFActOperator<T>>(m, pyclass_name.c_str(), i_act)
+    .def(py::init<T, T>());
+
+    pyclass_name = std::string("LinearAct") + "_" + typestr;
+    py::class_<optox::LinearActOperator<T>>(m, pyclass_name.c_str(), i_act)
+    .def(py::init<T, T>());
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 {
-    m.def("act_fwd", &act_fwd_wrapper, "trainable activation function forward implementation");
-    m.def("act_bwd", &act_bwd_wrapper, "trainable activation function backward implementation");
+    declare_op<float>(m, "float");
+    declare_op<double>(m, "double");
 }

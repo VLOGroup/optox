@@ -13,24 +13,41 @@ import unittest
 
 class ActivationFunction(torch.autograd.Function):
     @staticmethod
+    def _get_operator(dtype, base_type, vmin, vmax):
+        if base_type == 'rbf':
+            if dtype == torch.float32:
+                return _ext.th_act_operators.RbfAct_float(vmin, vmax)
+            elif dtype == torch.float64:
+                return _ext.th_act_operators.RbfAct_double(vmin, vmax)
+            else:
+                raise RuntimeError('Unsupported dtype!')
+        elif base_type == 'linear':
+            if dtype == torch.float32:
+                return _ext.th_act_operators.LinearAct_float(vmin, vmax)
+            elif dtype == torch.float64:
+                return _ext.th_act_operators.LinearAct_double(vmin, vmax)
+            else:
+                raise RuntimeError('Unsupported dtype!')
+        else:
+            raise RuntimeError('Unsupported operator type!')
+
+    @staticmethod
     def forward(ctx, x, weights, base_type, vmin, vmax):
         ctx.save_for_backward(x, weights)
-        ctx.base_type = base_type
-        ctx.vmin = vmin
-        ctx.vmax = vmax
-        return _ext.th_act_operators.act_fwd(x, weights, base_type, vmin, vmax)
+        ctx.op = ActivationFunction._get_operator(x.dtype, base_type, vmin, vmax)
+        return ctx.op.forward(x, weights)
 
     @staticmethod
     def backward(ctx, grad_in):
         x, weights = ctx.saved_tensors
-        grad_x, grad_weights = _ext.th_act_operators.act_bwd(x, weights, grad_in, ctx.base_type, ctx.vmin, ctx.vmax)
+        grad_x, grad_weights = ctx.op.adjoint(x, weights, grad_in)
         return grad_x, grad_weights, None, None, None
 
     @staticmethod
     def draw(weights, base_type, vmin, vmax):
-        x = torch.linspace(2*vmin, 2*vmax, 1001).unsqueeze_(0)
+        x = torch.linspace(2*vmin, 2*vmax, 1001, dtype=ctx.dtype).unsqueeze_(0)
         x = x.repeat(weights.shape[0], 1)
-        f_x = _ext.th_act_operators.act_fwd(x.to(weights.device), weights, base_type, vmin, vmax)
+        f_x = ctx.op.forward(x.to(weights.device), weights)
         return x, f_x
 
 
