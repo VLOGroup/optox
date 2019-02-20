@@ -176,7 +176,6 @@ class TestActivationFunction(unittest.TestCase):
             grad_b, grad_b_num, np.abs(grad_b - grad_b_num) < 1e-4))
         self.assertTrue(np.abs(grad_b - grad_b_num) < 1e-4)
         
-
     def test_rbf_gradient(self):
         self._run_gradient_test("rbf")
 
@@ -185,6 +184,4 @@ class TestActivationFunction(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    print("running test of gradient!")
-
     unittest.test()
