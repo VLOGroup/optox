@@ -65,4 +65,60 @@ class OPTOX_DLLAPI IActOperator : public IOperator
     T vmax_;
 };
 
+
+template <typename T>
+class OPTOX_DLLAPI IAct2Operator : public IOperator
+{
+  public:
+    /** Constructor */
+    IAct2Operator(T vmin, T vmax) : IOperator(), vmin_(vmin), vmax_(vmax)
+    {
+    }
+
+    /** Destructor */
+    virtual ~IAct2Operator()
+    {
+    }
+
+    IAct2Operator(IAct2Operator const &) = delete;
+    void operator=(IAct2Operator const &) = delete;
+
+  protected:
+    virtual void computeForward(OperatorOutputVector &&outputs,
+                                const OperatorInputVector &inputs) = 0;
+
+    virtual void computeAdjoint(OperatorOutputVector &&outputs,
+                                const OperatorInputVector &inputs) = 0;
+
+    void checkSize(const iu::Size<2> input_size, const iu::Size<2> weights_size)
+    {
+        if (input_size[1] != weights_size[1])
+            throw std::runtime_error("Activation operator: input and weights size do not match!");
+    }
+
+    virtual unsigned int getNumOutputsForward()
+    {
+        return 2;
+    }
+
+    virtual unsigned int getNumInputsForward()
+    {
+        return 2;
+    }
+
+    virtual unsigned int getNumOutputsAdjoint()
+    {
+        return 2;
+    }
+
+    virtual unsigned int getNumInputsAdjoint()
+    {
+        return 4;
+    }
+
+  protected:
+    T vmin_;
+    T vmax_;
+};
+
 } // namespace optox

@@ -8,7 +8,7 @@
 #include "th_utils.h"
 #include "operators/nabla_operator.h"
 
-#include <torch/torch.h>
+#include <torch/extension.h>
 #include <pybind11/pybind11.h>
 
 

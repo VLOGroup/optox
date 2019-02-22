@@ -11,27 +11,6 @@
 #include "act_linear.h"
 #include "utils.cuh"
 
-template<typename T>
-__device__ __forceinline__ T baseFunction(T x)
-{
-    if (x >= -1 && x < 0)
-        return x + 1;
-    else if (x >= 0 && x < 1)
-        return -x + 1;
-    else
-        return 0;
-}
-
-template<typename T>
-__device__ __forceinline__ T baseFunctionPrime(T x)
-{
-    if (x >= -1 && x < 0)
-        return 1;
-    else if (x >= 0 && x < 1)
-        return -1;
-    else
-        return 0;
-}
 
 template<typename T>
 __global__ void act_linear_forward_kernel(
@@ -48,19 +27,36 @@ __global__ void act_linear_forward_kernel(
 
     const int Nw = weights.size_[0];
 
-    const T sigma = (vmax - vmin) / (Nw - 1);
     const T k = ((vmax - vmin) / (Nw - 1));
 
     const T inp_pos = input(x, y);
+    const T idx = (inp_pos - vmin) / k;
     T val = 0;
+    bool boundary = false;
     for (int i = 0; i < Nw; ++i)
     {
-        // compute the base function
-        const T mu = k * i + vmin;
-        const T base_function = baseFunction<T>((inp_pos - mu)/sigma);
-        val += weights(i, y) * base_function;
+        // perform extrapolation
+        if (i == 0 && idx <= i)
+        {
+            val = weights(i, y);
+            boundary = true;
+        }
+        else if (i == Nw -1 && idx >= i)
+        {
+            val = weights(i, y);
+            boundary = true;
+        }
+        else if (!boundary && idx >= i && idx < i + 1)
+        {
+            const T alpha = idx - i;
+            val += weights(i, y) * (1 - alpha);
+        }
+        else if (!boundary && idx >= i - 1 && idx < i)
+        {
+            const T alpha = idx - i + 1;
+            val += weights(i, y) * alpha;
+        }
     }
-
     output(x, y) = val;
 }
 
@@ -89,23 +85,40 @@ __global__ void act_linear_backward_kernel(
 
     const int Nw = weights.size_[0];
 
-    const T sigma = (vmax - vmin) / (Nw - 1);
     const T k = ((vmax - vmin) / (Nw - 1));
 
-    const T inp_pos = input(x, y);
     const T grad_out_pos = grad_output(x, y);
+    const T inp_pos = input(x, y);
+    const T idx = (inp_pos - vmin) / k;
     T grad_inp = 0;
+    bool boundary = false;
     for (int i = 0; i < Nw; ++i)
     {
-        // compute the base function and its derivative
-        const T mu = k * i + vmin;
-        const T base_function = baseFunction<T>((inp_pos - mu)/sigma);
-        const T base_function_prime = baseFunctionPrime<T>((inp_pos - mu)/sigma)/sigma;
-        // backpropagate the gradient to the input
-        grad_inp += weights(i, y) * base_function_prime * grad_out_pos;
-
-        // backpropagate the gradient to a single weight
-        sdata[tid] = base_function * grad_out_pos;
+        // perform extrapolation
+        if (i == 0 && idx <= i)
+        {
+            sdata[tid] = grad_out_pos;
+            boundary = true;
+        }
+        else if (i == Nw -1 && idx >= i)
+        {
+            sdata[tid] = grad_out_pos;
+            boundary = true;
+        }
+        else if (!boundary && idx >= i && idx < i + 1)
+        {
+            const T alpha = idx - i;
+            sdata[tid] = (1 - alpha) * grad_out_pos;
+            grad_inp += weights(i, y) * (-grad_out_pos/k);
+        }
+        else if (!boundary && idx >= i - 1 && idx < i)
+        {
+            const T alpha = idx - i + 1;
+            sdata[tid] = alpha * grad_out_pos;
+            grad_inp += weights(i, y) * (grad_out_pos/k);
+        }
+        else
+            sdata[tid] = 0;
 
         // parallel reduction along outer dimensions
         __syncthreads();

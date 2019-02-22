@@ -1,2 +1,2 @@
 
-from .act import TrainableActivation
+from .act import TrainableActivation, TrainableActivation2
