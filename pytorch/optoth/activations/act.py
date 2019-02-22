@@ -45,9 +45,10 @@ class ActivationFunction(torch.autograd.Function):
 
     @staticmethod
     def draw(weights, base_type, vmin, vmax):
-        x = torch.linspace(2*vmin, 2*vmax, 1001, dtype=ctx.dtype).unsqueeze_(0)
+        x = torch.linspace(2*vmin, 2*vmax, 1001, dtype=weights.dtype).unsqueeze_(0)
         x = x.repeat(weights.shape[0], 1)
-        f_x = ctx.op.forward(x.to(weights.device), weights)
+        op = ActivationFunction._get_operator(x.dtype, base_type, vmin, vmax)
+        f_x = op.forward(x.to(weights.device), weights)
         return x, f_x
 
 
@@ -80,9 +81,10 @@ class Activation2Function(torch.autograd.Function):
 
     @staticmethod
     def draw(weights, base_type, vmin, vmax):
-        x = torch.linspace(2*vmin, 2*vmax, 1001, dtype=ctx.dtype).unsqueeze_(0)
+        x = torch.linspace(2*vmin, 2*vmax, 1001, dtype=weights.dtype).unsqueeze_(0)
         x = x.repeat(weights.shape[0], 1)
-        f_x, f_prime_x = ctx.op.forward(x.to(weights.device), weights)
+        op = Activation2Function._get_operator(x.dtype, base_type, vmin, vmax)
+        f_x, f_prime_x = op.forward(x.to(weights.device), weights)
         return x, f_x, f_prime_x
 
 
@@ -143,7 +145,7 @@ class TrainableActivation(nn.Module):
         return self.op.draw(self.weight, self.base_type, self.vmin, self.vmax)
 
     def extra_repr(self):
-        s = "num_channels={num_channels}, num_weights={num_weights}, type={base_type}, vmin={vmin}, vmax={vmax}, init={init}"
+        s = "num_channels={num_channels}, num_weights={num_weights}, type={base_type}, vmin={vmin}, vmax={vmax}, init={init}, init_scale={init_scale}"
         return s.format(**self.__dict__)
 
 
