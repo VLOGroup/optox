@@ -34,6 +34,7 @@ if (PYTHON)
         th_act_operator.cpp
         th_utils.h
         optoth/nabla.py
+	optoth/nabla2.py
         th_nabla_operator.cpp
     )
     set(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/build/timestamp")
