@@ -7,6 +7,7 @@
 
 #include "th_utils.h"
 #include "operators/nabla_operator.h"
+#include "operators/nabla2_operator.h"
 
 #include <torch/extension.h>
 #include <pybind11/pybind11.h>
@@ -50,14 +51,57 @@ at::Tensor adjoint(optox::NablaOperator<T, N> &op, at::Tensor th_input)
 }
 
 template<typename T, int N>
+at::Tensor forward2(optox::Nabla2Operator<T, N> &op, at::Tensor th_input)
+{
+    // parse the input tensors
+    auto iu_input = getLinearDeviceTorch<T, N+1>(th_input);
+
+    // allocate the output tensor
+    std::vector<int64_t> shape;
+    shape.push_back(N*N);
+    auto in_shape = th_input.sizes().vec();
+    shape.insert(shape.end(), in_shape.begin()+1, in_shape.end());
+    auto th_output = at::empty(shape, th_input.type());
+    auto iu_output = getLinearDeviceTorch<T, N+1>(th_output);
+
+    op.forward({iu_output.get()}, {iu_input.get()});
+
+    return th_output;
+}
+
+template<typename T, int N>
+at::Tensor adjoint2(optox::Nabla2Operator<T, N> &op, at::Tensor th_input)
+{
+    // parse the input tensors
+    auto iu_input = getLinearDeviceTorch<T, N+1>(th_input);
+
+    // allocate the output tensor
+    std::vector<int64_t> shape;
+    shape.push_back(N);
+    auto in_shape = th_input.sizes().vec();
+    shape.insert(shape.end(), in_shape.begin()+1, in_shape.end());
+    auto th_output = at::empty(shape, th_input.type());
+    auto iu_output = getLinearDeviceTorch<T, N+1>(th_output);
+    
+    op.adjoint({iu_output.get()}, {iu_input.get()});
+
+    return th_output;
+}
+
+template<typename T, int N>
 void declare_op(py::module &m, const std::string &typestr)
 {
-    using Class = optox::NablaOperator<T, N>;
-    std::string pyclass_name = std::string("Nabla") + std::to_string(N) + "_" + typestr;
-    py::class_<Class>(m, pyclass_name.c_str(), py::buffer_protocol(), py::dynamic_attr())
+    std::string pyclass_name = std::string("Nabla_") + std::to_string(N) + "d_" + typestr;
+    py::class_<optox::NablaOperator<T, N>>(m, pyclass_name.c_str(), py::buffer_protocol(), py::dynamic_attr())
     .def(py::init<>())
     .def("forward", forward<T, N>)
     .def("adjoint", adjoint<T, N>);
+
+    pyclass_name = std::string("Nabla2_") + std::to_string(N) + "d_" + typestr;
+    py::class_<optox::Nabla2Operator<T, N>>(m, pyclass_name.c_str(), py::buffer_protocol(), py::dynamic_attr())
+    .def(py::init<>())
+    .def("forward", forward2<T, N>)
+    .def("adjoint", adjoint2<T, N>);
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)

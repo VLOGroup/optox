@@ -4,15 +4,15 @@ import unittest
 
 import _ext.th_nabla_operator
 
-float_2d = _ext.th_nabla_operator.Nabla_2d_float
-double_2d = _ext.th_nabla_operator.Nabla_2d_double
+float_2d = _ext.th_nabla_operator.Nabla2_2d_float
+double_2d = _ext.th_nabla_operator.Nabla2_2d_double
 
-float_3d = _ext.th_nabla_operator.Nabla_3d_float
-double_3d = _ext.th_nabla_operator.Nabla_3d_double
+float_3d = _ext.th_nabla_operator.Nabla2_3d_float
+double_3d = _ext.th_nabla_operator.Nabla2_3d_double
 
 
-# to run execute: python -m unittest [-v] optoth.nabla
-class TestNablaFunction(unittest.TestCase):
+# to run execute: python -m unittest [-v] optoth.nabla2
+class TestNabla2Function(unittest.TestCase):
     
     def _get_nabla_op(self, dtype, dim):
         if dtype == torch.float32:
@@ -37,9 +37,9 @@ class TestNablaFunction(unittest.TestCase):
         op = self._get_nabla_op(dtype, dim)
         # setup the vaiables
         cuda = torch.device('cuda')
-        shape = [30 for i in range(dim)]
+        shape = [dim,] + [30 for i in range(dim)]
         th_x = torch.randn(*shape, dtype=dtype, device=cuda)
-        shape.insert(0, dim)
+        shape[0] = dim**2
         th_p = torch.randn(*shape, dtype=dtype, device=cuda)
 
         th_nabla_x = op.forward(th_x)
