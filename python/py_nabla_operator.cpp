@@ -3,74 +3,105 @@
 ///@author Erich Kobler <erich.kobler@icg.tugraz.at>
 ///@date 01.07.2018
 
-#include <iostream>
-#define BOOST_PYTHON_STATIC_LIB
-
-#define NPY_NO_DEPRECATED_API NPY_1_9_API_VERSION
-#include <iu/iupython.h>
-#include <boost/python/overloads.hpp>
-#include <boost/python/tuple.hpp>
+#include <vector>
 
 #include "py_utils.h"
-
 #include "operators/nabla_operator.h"
+#include "operators/nabla2_operator.h"
 
-namespace bp = boost::python;
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
 
-template <typename T, unsigned int N>
-PyObject *forward(bp::object &self, bp::object &py_ob_in)
+namespace py = pybind11;
+
+template<typename T, int N>
+py::array forward(optox::NablaOperator<T, N> &op, py::array np_input)
 {
-    std::unique_ptr<iu::LinearDeviceMemory<T, N>> iu_in = getLinearDeviceFromNumpy<T, N>(py_ob_in);
+    // parse the input tensors
+    auto input = getDTensorNp<T, N>(np_input);
 
-    // allocate the output
-    iu::Size<N+1> out_size;
-    for (int i = 0; i < N; ++i)
-        out_size[i] = iu_in->size()[i];
+    optox::Shape<N+1> out_size;
+    for (unsigned int i = 0; i < N; ++i)
+        out_size[i] = input->size()[i];
     out_size[N] = N;
-    iu::LinearDeviceMemory<T, N+1> iu_out(out_size);
+    optox::DTensor<T, N+1> output(out_size);
 
-    optox::NablaOperator<T, N> &op = bp::extract<optox::NablaOperator<T, N> &>(self);
-    op.forward({&iu_out}, {iu_in.get()});
+    op.forward({&output}, {input.get()});
 
-    return iu::python::PyArray_from_LinearDeviceMemory(iu_out);
+    return dTensorToNp<T, N+1>(output);
 }
 
-template <typename T, unsigned int N>
-PyObject *adjoint(bp::object &self, bp::object &py_ob_in)
+template<typename T, int N>
+py::array adjoint(optox::NablaOperator<T, N> &op, py::array np_input)
 {
-    std::unique_ptr<iu::LinearDeviceMemory<T, N+1>> iu_in = getLinearDeviceFromNumpy<T, N+1>(py_ob_in);
+    // parse the input tensors
+    auto input = getDTensorNp<T, N+1>(np_input);
 
-    // allocate the output
-    iu::Size<N> out_size;
-    for (int i = 0; i < N; ++i)
-        out_size[i] = iu_in->size()[i];
-    iu::LinearDeviceMemory<T, N> iu_out(out_size);
+    optox::Shape<N> out_size;
+    for (unsigned int i = 0; i < N; ++i)
+        out_size[i] = input->size()[i];
+    optox::DTensor<T, N> output(out_size);
+    
+    op.adjoint({&output}, {input.get()});
 
-    optox::NablaOperator<T, N> &op = bp::extract<optox::NablaOperator<T, N> &>(self);
-    op.adjoint({&iu_out}, {iu_in.get()});
-
-    return iu::python::PyArray_from_LinearDeviceMemory(iu_out);
+    return dTensorToNp<T, N>(output);
 }
 
-BOOST_PYTHON_MODULE(PyNablaOperator)
+template<typename T, int N>
+py::array forward2(optox::Nabla2Operator<T, N> &op, py::array np_input)
 {
-    // setup numpy c-api
-    import_array();
+    // parse the input tensors
+    auto input = getDTensorNp<T, N+1>(np_input);
 
-    // register exceptions
-    bp::register_exception_translator<iu::python::Exc>(
-        &iu::python::ExcTranslator);
+    optox::Shape<N+1> out_size;
+    for (unsigned int i = 0; i < N; ++i)
+        out_size[i] = input->size()[i];
+    out_size[N] = N*N;
+    optox::DTensor<T, N+1> output(out_size);
 
-    // basic operator functions
-    bp::class_<optox::NablaOperator<float, 2>,
-               std::shared_ptr<optox::NablaOperator<float, 2>>,
-               boost::noncopyable>("NablaOperator", bp::init<>())
-        .def("forward", forward<float, 2>)
-        .def("adjoint", adjoint<float, 2>);
+    op.forward({&output}, {input.get()});
 
-    bp::class_<optox::NablaOperator<float, 3>,
-               std::shared_ptr<optox::NablaOperator<float, 3>>,
-               boost::noncopyable>("Nabla3Operator", bp::init<>())
-        .def("forward", forward<float, 3>)
-        .def("adjoint", adjoint<float, 3>);
+    return dTensorToNp<T, N+1>(output);
+}
+
+template<typename T, int N>
+py::array adjoint2(optox::Nabla2Operator<T, N> &op, py::array np_input)
+{
+    // parse the input tensors
+    auto input = getDTensorNp<T, N+1>(np_input);
+
+    optox::Shape<N+1> out_size;
+    for (unsigned int i = 0; i < N; ++i)
+        out_size[i] = input->size()[i];
+    out_size[N] = N;
+    optox::DTensor<T, N+1> output(out_size);
+
+    op.adjoint({&output}, {input.get()});
+
+    return dTensorToNp<T, N+1>(output);
+}
+
+template<typename T, int N>
+void declare_op(py::module &m, const std::string &typestr)
+{
+    std::string pyclass_name = std::string("Nabla_") + std::to_string(N) + "d_" + typestr;
+    py::class_<optox::NablaOperator<T, N>>(m, pyclass_name.c_str(), py::buffer_protocol(), py::dynamic_attr())
+    .def(py::init<>())
+    .def("forward", forward<T, N>)
+    .def("adjoint", adjoint<T, N>);
+
+    pyclass_name = std::string("Nabla2_") + std::to_string(N) + "d_" + typestr;
+    py::class_<optox::Nabla2Operator<T, N>>(m, pyclass_name.c_str(), py::buffer_protocol(), py::dynamic_attr())
+    .def(py::init<>())
+    .def("forward", forward2<T, N>)
+    .def("adjoint", adjoint2<T, N>);
+}
+
+PYBIND11_MODULE(py_nabla_operator, m)
+{
+    declare_op<float, 2>(m, "float");
+    declare_op<double, 2>(m, "double");
+
+    declare_op<float, 3>(m, "float");
+    declare_op<double, 3>(m, "double");
 }

@@ -5,49 +5,60 @@
 
 #pragma once
 
-#define BOOST_PYTHON_STATIC_LIB
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
 
-#define NPY_NO_DEPRECATED_API NPY_1_9_API_VERSION
-#include <iu/iupython.h>
-#include <boost/python/overloads.hpp>
-#include <boost/python/dict.hpp>
+#include <tensor/h_tensor.h>
+#include <tensor/d_tensor.h>
 
-#include <memory>
-
-#include "operators/ioperator.h"
-
-namespace bp = boost::python;
-
-void mapFromPyObject(const bp::object &py_ob, optox::OperatorConfigDict &out_map)
-{
-    bp::dict py_dict = bp::extract<bp::dict>(py_ob);
-    boost::python::list keys = py_dict.keys();
-    for (int i = 0; i < bp::len(keys); ++i)
-    {
-        std::string key = std::string(bp::extract<const char *>(keys[i]));
-        bp::object py_val_fun = py_dict[key].attr("__str__");
-        bp::object py_val = py_val_fun();
-        std::string value = std::string(bp::extract<const char *>(py_val));
-        out_map[key] = value;
-    }
-}
+namespace py = pybind11;
 
 template <typename T, unsigned int N>
-std::unique_ptr<iu::LinearDeviceMemory<T, N>> getLinearDeviceFromNumpy(bp::object &py_arr)
+std::unique_ptr<optox::DTensor<T, N>> getDTensorNp(py::array &array)
 {
-    iu::LinearHostMemory<T, N> host_mem(py_arr);
-    std::unique_ptr<iu::LinearDeviceMemory<T, N>> p(new iu::LinearDeviceMemory<T, N>(host_mem.size()));
-    iu::copy(&host_mem, p.get());
+    if (array.ndim() != N)
+        throw std::runtime_error("invalid tensor dimensions. expected " + std::to_string(N) +
+                                 " but got " + std::to_string(array.ndim()) + "!");
+
+    py::buffer_info info = array.request();
+    if (info.format != py::format_descriptor<T>::format())
+        throw std::runtime_error("invalid tensor dtype. expected " +
+                                 py::format_descriptor<T>::format() + " but got " +
+                                 info.format + "!");
+
+    // wrap the Tensor into a device tensor
+    optox::Shape<N> size;
+    for (unsigned int i = 0; i < N; ++i)
+        size[i] = array.shape()[N - 1 - i];
+    std::unique_ptr<optox::DTensor<T, N>> p(new optox::DTensor<T, N>(size));
+    p->copyFromHostPtr(reinterpret_cast<const T *>(array.data()));
 
     // do not return a copy but rather move its value
     return move(p);
 }
 
-template <template <typename, unsigned int> class TOperator, typename T, unsigned int N>
-void setConfig(bp::object &self, bp::object &py_ob)
+template <typename T, unsigned int N>
+py::array dTensorToNp(const optox::DTensor<T, N> &d_tensor)
 {
-    TOperator<T, N> &op = bp::extract<TOperator<T, N> &>(self);
-    optox::OperatorConfigDict config;
-    mapFromPyObject(py_ob, config);
-    op.setConfig(config);
+    // transfer to host
+    optox::HTensor<T, N> h_tensor(d_tensor.size());
+    h_tensor.copyFrom(d_tensor);
+
+    ssize_t ndim = N;
+    std::vector<ssize_t> shape;
+    std::vector<ssize_t> strides;
+    for (unsigned int i = 0; i < N; ++i)
+    {
+        shape.push_back(h_tensor.size()[N - 1 - i]);
+        // stride needs to be in bytes
+        strides.push_back(h_tensor.stride()[N - 1 - i] * sizeof(T));
+    }
+
+    return py::array(py::buffer_info(
+        h_tensor.ptr(),
+        sizeof(T),
+        py::format_descriptor<T>::format(),
+        ndim,
+        shape,
+        strides));
 }

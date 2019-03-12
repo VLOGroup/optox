@@ -5,7 +5,7 @@
 project(optoX)
 
 ##-----------------------------------------------------------------------------
-## Files
+## Operator Files
 ##-----------------------------------------------------------------------------
 
 set(COMMON_HEADER
@@ -14,7 +14,6 @@ set(COMMON_HEADER
 
 set(OPERATOR_HEADER
     operators/ioperator.h
-    operators/add_operator.h
     operators/activations/act.h
     operators/activations/act_rbf.h
     operators/activations/act_linear.h
@@ -25,7 +24,6 @@ set(OPERATOR_HEADER
 )
 
 set(OPERATOR_SOURCE
-    operators/add_operator.cu
     operators/activations/act_rbf.cu
     operators/activations/act_linear.cu
     operators/nabla_operator.cu
@@ -49,4 +47,3 @@ set(SOURCES
 ##-----------------------------------------------------------------------------
 cuda_add_library(optox SHARED ${HEADERS} ${SOURCES} OPTIONS "-DOPTOX_EXPORTS")
 set_target_properties(optox PROPERTIES DEFINE_SYMBOL OPTOX_EXPORTS)
-target_link_libraries(optox ${IMAGEUTILITIES_LIBRARIES})

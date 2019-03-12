@@ -5,7 +5,8 @@
 
 #pragma once
 
-#include "../ioperator.h"
+#include "tensor/shape.h"
+#include "operators/ioperator.h"
 
 namespace optox
 {
@@ -34,7 +35,7 @@ class OPTOX_DLLAPI IActOperator : public IOperator
     virtual void computeAdjoint(OperatorOutputVector &&outputs,
                                 const OperatorInputVector &inputs) = 0;
 
-    void checkSize(const iu::Size<2> input_size, const iu::Size<2> weights_size)
+    void checkSize(const Shape<2> input_size, const Shape<2> weights_size)
     {
         if (input_size[1] != weights_size[1])
             throw std::runtime_error("Activation operator: input and weights size do not match!");
@@ -90,7 +91,7 @@ class OPTOX_DLLAPI IAct2Operator : public IOperator
     virtual void computeAdjoint(OperatorOutputVector &&outputs,
                                 const OperatorInputVector &inputs) = 0;
 
-    void checkSize(const iu::Size<2> input_size, const iu::Size<2> weights_size)
+    void checkSize(const Shape<2> input_size, const Shape<2> weights_size)
     {
         if (input_size[1] != weights_size[1])
             throw std::runtime_error("Activation operator: input and weights size do not match!");

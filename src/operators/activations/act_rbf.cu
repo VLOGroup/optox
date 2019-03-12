@@ -4,10 +4,8 @@
 ///@date 01.2019
 
 
-#include <iu/iucore.h>
-#include <iu/iumath.h>
-#include <type_traits>
-
+#include "utils.h"
+#include "tensor/d_tensor.h"
 #include "act_rbf.h"
 #include "utils.cuh"
 
@@ -15,9 +13,9 @@
 // forward Gaussian rbf
 template<typename T>
 __global__ void act_rbf_forward_kernel(
-    typename iu::LinearDeviceMemory<T, 2>::KernelData output,
-    const typename iu::LinearDeviceMemory<T, 2>::KernelData input,
-    const typename iu::LinearDeviceMemory<T, 2>::KernelData weights,
+    typename optox::DTensor<T, 2>::Ref output,
+    const typename optox::DTensor<T, 2>::ConstRef input,
+    const typename optox::DTensor<T, 2>::ConstRef weights,
     T vmin, T vmax)
 {
     const int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -54,11 +52,11 @@ __global__ void act_rbf_forward_kernel(
 // backward Gaussian rbf
 template<typename T>
 __global__ void act_rbf_backward_kernel(
-    typename iu::LinearDeviceMemory<T, 2>::KernelData grad_input,
-    typename iu::LinearDeviceMemory<T, 2>::KernelData grad_weights,
-    const typename iu::LinearDeviceMemory<T, 2>::KernelData input,
-    const typename iu::LinearDeviceMemory<T, 2>::KernelData weights,
-    const typename iu::LinearDeviceMemory<T, 2>::KernelData grad_output,
+    typename optox::DTensor<T, 2>::Ref grad_input,
+    typename optox::DTensor<T, 2>::Ref grad_weights,
+    const typename optox::DTensor<T, 2>::ConstRef input,
+    const typename optox::DTensor<T, 2>::ConstRef weights,
+    const typename optox::DTensor<T, 2>::ConstRef grad_output,
     T vmin, T vmax)
 {
     const int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -125,13 +123,14 @@ void optox::RBFActOperator<T>::computeForward(optox::OperatorOutputVector &&outp
 
     int thread_per_block = 256;
     dim3 dim_block = dim3(thread_per_block, 1);
-    dim3 block_count = dim3(iu::divUp(input->size()[0], dim_block.x),
+    dim3 block_count = dim3(divUp(input->size()[0], dim_block.x),
                             input->size()[1]);
 
     act_rbf_forward_kernel<T><<<block_count, dim_block, 0, this->stream_>>>(
         *output,
         *input, *weights,
         this->vmin_, this->vmax_);
+    OPTOX_CUDA_CHECK;
 }
 
 template<typename T>
@@ -148,17 +147,18 @@ void optox::RBFActOperator<T>::computeAdjoint(optox::OperatorOutputVector &&outp
     this->checkSize(input->size(), weights->size());
 
     // clear the weights gradient
-    iu::math::fill(*grad_weights, static_cast<T>(0));
+    grad_weights->fill(0);
 
     int thread_per_block = 256;
     dim3 dim_block = dim3(thread_per_block, 1);
-    dim3 block_count = dim3(iu::divUp(input->size()[0], dim_block.x),
+    dim3 block_count = dim3(divUp(input->size()[0], dim_block.x),
                             input->size()[1]);
 
     act_rbf_backward_kernel<T><<<block_count, dim_block, thread_per_block * sizeof(T), this->stream_>>>(
         *grad_input, *grad_weights,
         *input, *weights, *grad_output,
         this->vmin_, this->vmax_);
+    OPTOX_CUDA_CHECK;
 }
 
 
@@ -172,10 +172,10 @@ OPTOX_CALL_REAL_NUMBER_TYPES(REGISTER_OP);
 // forward Gaussian rbf
 template<typename T>
 __global__ void act2_rbf_forward_kernel(
-    typename iu::LinearDeviceMemory<T, 2>::KernelData output,
-    typename iu::LinearDeviceMemory<T, 2>::KernelData output_prime,
-    const typename iu::LinearDeviceMemory<T, 2>::KernelData input,
-    const typename iu::LinearDeviceMemory<T, 2>::KernelData weights,
+    typename optox::DTensor<T, 2>::Ref output,
+    typename optox::DTensor<T, 2>::Ref output_prime,
+    const typename optox::DTensor<T, 2>::ConstRef input,
+    const typename optox::DTensor<T, 2>::ConstRef weights,
     T vmin, T vmax)
 {
     const int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -217,12 +217,12 @@ __global__ void act2_rbf_forward_kernel(
 // backward Gaussian rbf
 template<typename T>
 __global__ void act2_rbf_backward_kernel(
-    typename iu::LinearDeviceMemory<T, 2>::KernelData grad_input,
-    typename iu::LinearDeviceMemory<T, 2>::KernelData grad_weights,
-    const typename iu::LinearDeviceMemory<T, 2>::KernelData input,
-    const typename iu::LinearDeviceMemory<T, 2>::KernelData weights,
-    const typename iu::LinearDeviceMemory<T, 2>::KernelData grad_output,
-    const typename iu::LinearDeviceMemory<T, 2>::KernelData grad_output_prime,
+    typename optox::DTensor<T, 2>::Ref grad_input,
+    typename optox::DTensor<T, 2>::Ref grad_weights,
+    const typename optox::DTensor<T, 2>::ConstRef input,
+    const typename optox::DTensor<T, 2>::ConstRef weights,
+    const typename optox::DTensor<T, 2>::ConstRef grad_output,
+    const typename optox::DTensor<T, 2>::ConstRef grad_output_prime,
     T vmin, T vmax)
 {
     const int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -294,7 +294,7 @@ void optox::RBFAct2Operator<T>::computeForward(optox::OperatorOutputVector &&out
 
     int thread_per_block = 256;
     dim3 dim_block = dim3(thread_per_block, 1);
-    dim3 block_count = dim3(iu::divUp(input->size()[0], dim_block.x),
+    dim3 block_count = dim3(divUp(input->size()[0], dim_block.x),
                             input->size()[1]);
 
     act2_rbf_forward_kernel<T><<<block_count, dim_block, 0, this->stream_>>>(
@@ -302,6 +302,7 @@ void optox::RBFAct2Operator<T>::computeForward(optox::OperatorOutputVector &&out
         *output_prime,
         *input, *weights,
         this->vmin_, this->vmax_);
+    OPTOX_CUDA_CHECK;
 }
 
 template<typename T>
@@ -319,17 +320,18 @@ void optox::RBFAct2Operator<T>::computeAdjoint(optox::OperatorOutputVector &&out
     this->checkSize(input->size(), weights->size());
 
     // clear the weights gradient
-    iu::math::fill(*grad_weights, static_cast<T>(0));
+    grad_weights->fill(0);
 
     int thread_per_block = 256;
     dim3 dim_block = dim3(thread_per_block, 1);
-    dim3 block_count = dim3(iu::divUp(input->size()[0], dim_block.x),
+    dim3 block_count = dim3(divUp(input->size()[0], dim_block.x),
                             input->size()[1]);
 
     act2_rbf_backward_kernel<T><<<block_count, dim_block, thread_per_block * sizeof(T), this->stream_>>>(
         *grad_input, *grad_weights,
         *input, *weights, *grad_output, *grad_output_prime,
         this->vmin_, this->vmax_);
+    OPTOX_CUDA_CHECK;
 }
 
 

@@ -4,23 +4,22 @@
 ///@date 02.2019
 
 
-#include <iu/iucore.h>
-#include <iu/iumath.h>
-
+#include "utils.h"
+#include "tensor/d_tensor.h"
 #include "nabla2_operator.h"
 
 template<typename T>
 __global__ void forward_differences(
-    typename iu::LinearDeviceMemory<T, 3>::KernelData y,
-    const typename iu::LinearDeviceMemory<T, 3>::KernelData x)
+    typename optox::DTensor<T, 3>::Ref y,
+    const typename optox::DTensor<T, 3>::ConstRef x)
 {
-    unsigned int ix = blockDim.x * blockIdx.x + threadIdx.x;
-    unsigned int iy = blockDim.y * blockIdx.y + threadIdx.y;
+    int ix = blockDim.x * blockIdx.x + threadIdx.x;
+    int iy = blockDim.y * blockIdx.y + threadIdx.y;
 
     if (ix < x.size_[0] && iy < x.size_[1])
     {
-        const unsigned int xp = ix + (ix < x.size_[0] - 1);
-        const unsigned int yp = iy + (iy < x.size_[1] - 1);
+        const int xp = ix + (ix < x.size_[0] - 1);
+        const int yp = iy + (iy < x.size_[1] - 1);
 
         y(ix, iy, 0) = x(xp, iy, 0) - x(ix, iy, 0);
         y(ix, iy, 1) = x(xp, iy, 1) - x(ix, iy, 1);
@@ -31,18 +30,18 @@ __global__ void forward_differences(
 
 template<typename T>
 __global__ void forward_differences(
-    typename iu::LinearDeviceMemory<T, 4>::KernelData y,
-    const typename iu::LinearDeviceMemory<T, 4>::KernelData x)
+    typename optox::DTensor<T, 4>::Ref y,
+    const typename optox::DTensor<T, 4>::ConstRef x)
 {
-    unsigned int ix = blockDim.x * blockIdx.x + threadIdx.x;
-    unsigned int iy = blockDim.y * blockIdx.y + threadIdx.y;
-    unsigned int iz = blockDim.z * blockIdx.z + threadIdx.z;
+    int ix = blockDim.x * blockIdx.x + threadIdx.x;
+    int iy = blockDim.y * blockIdx.y + threadIdx.y;
+    int iz = blockDim.z * blockIdx.z + threadIdx.z;
 
     if (ix < x.size_[0] && iy < x.size_[1] && iz < x.size_[2])
     {
-        const unsigned int xp = ix + (ix < x.size_[0] - 1);
-        const unsigned int yp = iy + (iy < x.size_[1] - 1);
-        const unsigned int zp = iz + (iz < x.size_[2] - 1);
+        const int xp = ix + (ix < x.size_[0] - 1);
+        const int yp = iy + (iy < x.size_[1] - 1);
+        const int zp = iz + (iz < x.size_[2] - 1);
 
         y(ix, iy, iz, 0) = x(xp, iy, iz, 0) - x(ix, iy, iz, 0);
         y(ix, iy, iz, 1) = x(xp, iy, iz, 1) - x(ix, iy, iz, 1);
@@ -63,30 +62,33 @@ void optox::Nabla2Operator<T, N>::computeForward(optox::OperatorOutputVector &&o
     auto x = this->template getInput<T, N+1>(0, inputs);
     auto y = this->template getOutput<T, N+1>(0, outputs);
 
+    if (x->size()[N] != N || y->size()[N] != N*N)
+        THROW_OPTOXEXCEPTION("Nabla2Operator: unsupported size");
+
     dim3 dim_block;
     if (N == 2)
         dim_block = dim3(32, 32);
     else if (N == 3)
         dim_block = dim3(16, 16, 3);
     else
-        THROW_IUEXCEPTION("Nabla2Operator: unsupported dimension");
+        THROW_OPTOXEXCEPTION("Nabla2Operator: unsupported dimension");
 
-    dim3 dim_grid(iu::divUp(x->size()[0], dim_block.x),
-                  iu::divUp(x->size()[1], dim_block.y),
-                  iu::divUp(x->size()[2], dim_block.z));
+    dim3 dim_grid(divUp(x->size()[0], dim_block.x),
+                  divUp(x->size()[1], dim_block.y),
+                  divUp(x->size()[2], dim_block.z));
 
     forward_differences<T> <<<dim_grid, dim_block, 0, this->stream_>>>(*y, *x);
-    IU_CUDA_CHECK;
+    OPTOX_CUDA_CHECK;
 }
 
 
 template<typename T>
 __global__ void backward_differences(
-    typename iu::LinearDeviceMemory<T, 3>::KernelData x,
-    const typename iu::LinearDeviceMemory<T, 3>::KernelData y)
+    typename optox::DTensor<T, 3>::Ref x,
+    const typename optox::DTensor<T, 3>::ConstRef y)
 {
-    unsigned int ix = blockDim.x * blockIdx.x + threadIdx.x;
-    unsigned int iy = blockDim.y * blockIdx.y + threadIdx.y;
+    int ix = blockDim.x * blockIdx.x + threadIdx.x;
+    int iy = blockDim.y * blockIdx.y + threadIdx.y;
 
     if (ix < x.size_[0] && iy < x.size_[1])
     {
@@ -129,12 +131,12 @@ __global__ void backward_differences(
 
 template<typename T>
 __global__ void backward_differences(
-    typename iu::LinearDeviceMemory<T, 4>::KernelData x,
-    const typename iu::LinearDeviceMemory<T, 4>::KernelData y)
+    typename optox::DTensor<T, 4>::Ref x,
+    const typename optox::DTensor<T, 4>::ConstRef y)
 {
-    unsigned int ix = blockDim.x * blockIdx.x + threadIdx.x;
-    unsigned int iy = blockDim.y * blockIdx.y + threadIdx.y;
-    unsigned int iz = blockDim.z * blockIdx.z + threadIdx.z;
+    int ix = blockDim.x * blockIdx.x + threadIdx.x;
+    int iy = blockDim.y * blockIdx.y + threadIdx.y;
+    int iz = blockDim.z * blockIdx.z + threadIdx.z;
   
     if (ix < x.size_[0] && iy < x.size_[1] && iz < x.size_[2])
     {
@@ -217,19 +219,23 @@ void optox::Nabla2Operator<T, N>::computeAdjoint(optox::OperatorOutputVector &&o
     auto y = this->template getInput<T, N+1>(0, inputs);
     auto x = this->template getOutput<T, N+1>(0, outputs);
 
+    if (x->size()[N] != N || y->size()[N] != N*N)
+        THROW_OPTOXEXCEPTION("Nabla2Operator: unsupported size");
+
     dim3 dim_block;
     if (N == 2)
         dim_block = dim3(32, 32);
     else if (N == 3)
         dim_block = dim3(16, 16, 3);
     else
-        THROW_IUEXCEPTION("Nabla2Operator: unsupported dimension");
+        THROW_OPTOXEXCEPTION("Nabla2Operator: unsupported dimension");
 
-    dim3 dim_grid(iu::divUp(x->size()[0], dim_block.x),
-                  iu::divUp(x->size()[1], dim_block.y),
-                  iu::divUp(x->size()[2], dim_block.z));
+    dim3 dim_grid(divUp(x->size()[0], dim_block.x),
+                  divUp(x->size()[1], dim_block.y),
+                  divUp(x->size()[2], dim_block.z));
 
     backward_differences<T> <<<dim_grid, dim_block, 0, this->stream_>>>(*x, *y);
+    OPTOX_CUDA_CHECK;
 }
 
 

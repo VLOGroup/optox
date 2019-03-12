@@ -6,7 +6,8 @@
 #pragma once
 
 #include <torch/extension.h>
-#include <iu/iucore.h>
+#include "tensor/h_tensor.h"
+#include "tensor/d_tensor.h"
 
 #define CHECK_CUDA(x) AT_ASSERTM(x.type().is_cuda(), #x " must be a CUDA tensor")
 #define CHECK_NOT_CUDA(x) AT_ASSERTM(!x.type().is_cuda(), #x " must be a CPU tensor")
@@ -14,42 +15,39 @@
 
 // wrappers for iu
 template <typename T, unsigned int N>
-std::unique_ptr<iu::LinearDeviceMemory<T, N>> getLinearDeviceTorch(at::Tensor tensor)
+std::unique_ptr<optox::DTensor<T, N>> getDTensorTorch(at::Tensor tensor)
 {
     // check the tensor
     CHECK_CUDA(tensor);
     CHECK_CONTIGUOUS(tensor);
-    AT_ASSERTM(tensor.ndimension() == N, "invalid tensor dimensions. expected "+ std::to_string(N) + 
-        " but got " + std::to_string(tensor.ndimension()) + "!");
+    AT_ASSERTM(tensor.ndimension() == N, "invalid tensor dimensions. expected " + std::to_string(N) +
+                                             " but got " + std::to_string(tensor.ndimension()) + "!");
 
-    // wrap the Tensor into a LinearDeviceMemory
-    iu::Size<N> size;
+    // wrap the Tensor into a device tensor
+    optox::Shape<N> size;
     for (unsigned int i = 0; i < N; ++i)
-        size[i] = tensor.size(N-1-i);
-    std::unique_ptr<iu::LinearDeviceMemory<T, N>> p(new iu::LinearDeviceMemory<T, N>(
-        tensor.data<T>(), size, true));
+        size[i] = tensor.size(N - 1 - i);
+    std::unique_ptr<optox::DTensor<T, N>> p(new optox::DTensor<T, N>(tensor.data<T>(), size, true));
 
     // do not return a copy but rather move its value
     return move(p);
 }
 
 template <typename T, unsigned int N>
-std::unique_ptr<iu::LinearHostMemory<T, N>> getLinearHostTorch(at::Tensor tensor)
+std::unique_ptr<optox::HTensor<T, N>> getHTensorTorch(at::Tensor tensor)
 {
     // check the tensor
     CHECK_NOT_CUDA(tensor);
     CHECK_CONTIGUOUS(tensor);
-    AT_ASSERTM(tensor.ndimension() == N, "invalid tensor dimensions. expected "+ std::to_string(N) + 
-        " but got " + std::to_string(tensor.ndimension()) + "!");
+    AT_ASSERTM(tensor.ndimension() == N, "invalid tensor dimensions. expected " + std::to_string(N) +
+                                             " but got " + std::to_string(tensor.ndimension()) + "!");
 
     // wrap the Tensor into a LinearHostMemory
-    iu::Size<N> size;
+    optox::Shape<N> size;
     for (unsigned int i = 0; i < N; ++i)
-        size[i] = tensor.size(N-1-i);
-    std::unique_ptr<iu::LinearHostMemory<T, N>> p(new iu::LinearHostMemory<T, N>(
-        tensor.data<T>(), size, true));
+        size[i] = tensor.size(N - 1 - i);
+    std::unique_ptr<optox::HTensor<T, N>> p(new optox::HTensor<T, N>(tensor.data<T>(), size, true));
 
     // do not return a copy but rather move its value
     return move(p);
 }
-

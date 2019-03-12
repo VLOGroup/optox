@@ -17,7 +17,7 @@ template<typename T, int N>
 at::Tensor forward(optox::NablaOperator<T, N> &op, at::Tensor th_input)
 {
     // parse the input tensors
-    auto iu_input = getLinearDeviceTorch<T, N>(th_input);
+    auto input = getDTensorTorch<T, N>(th_input);
 
     // allocate the output tensor
     std::vector<int64_t> shape;
@@ -25,9 +25,9 @@ at::Tensor forward(optox::NablaOperator<T, N> &op, at::Tensor th_input)
     auto in_shape = th_input.sizes().vec();
     shape.insert(shape.end(), in_shape.begin(), in_shape.end());
     auto th_output = at::empty(shape, th_input.type());
-    auto iu_output = getLinearDeviceTorch<T, N+1>(th_output);
+    auto output = getDTensorTorch<T, N+1>(th_output);
 
-    op.forward({iu_output.get()}, {iu_input.get()});
+    op.forward({output.get()}, {input.get()});
 
     return th_output;
 }
@@ -36,16 +36,16 @@ template<typename T, int N>
 at::Tensor adjoint(optox::NablaOperator<T, N> &op, at::Tensor th_input)
 {
     // parse the input tensors
-    auto iu_input = getLinearDeviceTorch<T, N+1>(th_input);
+    auto input = getDTensorTorch<T, N+1>(th_input);
 
     // allocate the output tensor
     std::vector<int64_t> shape;
     auto in_shape = th_input.sizes().vec();
     shape.insert(shape.end(), in_shape.begin()+1, in_shape.end());
     auto th_output = at::empty(shape, th_input.type());
-    auto iu_output = getLinearDeviceTorch<T, N>(th_output);
+    auto output = getDTensorTorch<T, N>(th_output);
     
-    op.adjoint({iu_output.get()}, {iu_input.get()});
+    op.adjoint({output.get()}, {input.get()});
 
     return th_output;
 }
@@ -54,7 +54,7 @@ template<typename T, int N>
 at::Tensor forward2(optox::Nabla2Operator<T, N> &op, at::Tensor th_input)
 {
     // parse the input tensors
-    auto iu_input = getLinearDeviceTorch<T, N+1>(th_input);
+    auto input = getDTensorTorch<T, N+1>(th_input);
 
     // allocate the output tensor
     std::vector<int64_t> shape;
@@ -62,9 +62,9 @@ at::Tensor forward2(optox::Nabla2Operator<T, N> &op, at::Tensor th_input)
     auto in_shape = th_input.sizes().vec();
     shape.insert(shape.end(), in_shape.begin()+1, in_shape.end());
     auto th_output = at::empty(shape, th_input.type());
-    auto iu_output = getLinearDeviceTorch<T, N+1>(th_output);
+    auto output = getDTensorTorch<T, N+1>(th_output);
 
-    op.forward({iu_output.get()}, {iu_input.get()});
+    op.forward({output.get()}, {input.get()});
 
     return th_output;
 }
@@ -73,7 +73,7 @@ template<typename T, int N>
 at::Tensor adjoint2(optox::Nabla2Operator<T, N> &op, at::Tensor th_input)
 {
     // parse the input tensors
-    auto iu_input = getLinearDeviceTorch<T, N+1>(th_input);
+    auto input = getDTensorTorch<T, N+1>(th_input);
 
     // allocate the output tensor
     std::vector<int64_t> shape;
@@ -81,9 +81,9 @@ at::Tensor adjoint2(optox::Nabla2Operator<T, N> &op, at::Tensor th_input)
     auto in_shape = th_input.sizes().vec();
     shape.insert(shape.end(), in_shape.begin()+1, in_shape.end());
     auto th_output = at::empty(shape, th_input.type());
-    auto iu_output = getLinearDeviceTorch<T, N+1>(th_output);
+    auto output = getDTensorTorch<T, N+1>(th_output);
     
-    op.adjoint({iu_output.get()}, {iu_input.get()});
+    op.adjoint({output.get()}, {input.get()});
 
     return th_output;
 }

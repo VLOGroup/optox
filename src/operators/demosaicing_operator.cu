@@ -4,15 +4,14 @@
 ///@date 09.07.2018
 
 
-#include <iu/iucore.h>
-#include <iu/iumath.h>
-
+#include "utils.h"
+#include "tensor/d_tensor.h"
 #include "demosaicing_operator.h"
 
 template<typename T, optox::BayerPattern P>
 __global__ void demosaicingForwardKernel(
-    typename iu::LinearDeviceMemory<T, 4>::KernelData output,
-    const typename iu::LinearDeviceMemory<T, 4>::KernelData input)
+    typename optox::DTensor<T, 4>::Ref output,
+    const typename optox::DTensor<T, 4>::ConstRef input)
 {
     const int x = 2 * (threadIdx.x + blockIdx.x * blockDim.x);
     const int y = 2 * (threadIdx.y + blockIdx.y * blockDim.y);
@@ -66,15 +65,15 @@ void optox::DemosaicingOperator<T>::computeForward(optox::OperatorOutputVector &
     auto output = this->template getOutput<T, 4>(0, outputs);
 
     if (input->size()[0] != 3)
-        THROW_IUEXCEPTION("DemosaicingOperator: input to forward must be RGB image!");
+        THROW_OPTOXEXCEPTION("DemosaicingOperator: input to forward must be RGB image!");
 
     if (output->size()[0] != 1)
-        THROW_IUEXCEPTION("DemosaicingOperator: output of forward must have 1 channel!");
+        THROW_OPTOXEXCEPTION("DemosaicingOperator: output of forward must have 1 channel!");
 
     dim3 dim_block = dim3(32, 32, 1);
-    dim3 dim_grid(iu::divUp(input->size()[1] / 2 + 1, dim_block.x),
-                  iu::divUp(input->size()[2] / 2 + 1, dim_block.y),
-                  iu::divUp(input->size()[3], dim_block.z));
+    dim3 dim_grid(divUp(input->size()[1] / 2 + 1, dim_block.x),
+                  divUp(input->size()[2] / 2 + 1, dim_block.y),
+                  divUp(input->size()[3], dim_block.z));
 
     switch (this->pattern_)
     {
@@ -91,13 +90,13 @@ void optox::DemosaicingOperator<T>::computeForward(optox::OperatorOutputVector &
             demosaicingForwardKernel<T, optox::BayerPattern::GRBG> <<<dim_grid, dim_block, 0, this->stream_>>>(*output, *input);
             break;
     }
-    IU_CUDA_CHECK;
+    OPTOX_CUDA_CHECK;
 }
 
 template<typename T, optox::BayerPattern P>
 __global__ void demosaicingAdjointKernel(
-    typename iu::LinearDeviceMemory<T, 4>::KernelData output,
-    const typename iu::LinearDeviceMemory<T, 4>::KernelData input)
+    typename optox::DTensor<T, 4>::Ref output,
+    const typename optox::DTensor<T, 4>::ConstRef input)
 {
     const int x = 2 * (threadIdx.x + blockIdx.x * blockDim.x);
     const int y = 2 * (threadIdx.y + blockIdx.y * blockDim.y);
@@ -151,17 +150,17 @@ void optox::DemosaicingOperator<T>::computeAdjoint(optox::OperatorOutputVector &
     auto output = this->template getOutput<T, 4>(0, outputs);
 
     if (input->size()[0] != 1)
-        THROW_IUEXCEPTION("DemosaicingOperator: input to adjoint must have 1 channel!");
+        THROW_OPTOXEXCEPTION("DemosaicingOperator: input to adjoint must have 1 channel!");
 
     if (output->size()[0] != 3)
-        THROW_IUEXCEPTION("DemosaicingOperator: output of adjoint must be RGB image!");
+        THROW_OPTOXEXCEPTION("DemosaicingOperator: output of adjoint must be RGB image!");
 
-    iu::math::fill(*output, static_cast<T>(0));
+    output->fill(0);
 
     dim3 dim_block = dim3(32, 32, 1);
-    dim3 dim_grid(iu::divUp(input->size()[1] / 2 + 1, dim_block.x),
-                  iu::divUp(input->size()[2] / 2 + 1, dim_block.y),
-                  iu::divUp(input->size()[3], dim_block.z));
+    dim3 dim_grid(divUp(input->size()[1] / 2 + 1, dim_block.x),
+                  divUp(input->size()[2] / 2 + 1, dim_block.y),
+                  divUp(input->size()[3], dim_block.z));
 
     switch (this->pattern_)
     {
@@ -178,7 +177,7 @@ void optox::DemosaicingOperator<T>::computeAdjoint(optox::OperatorOutputVector &
             demosaicingAdjointKernel<T, optox::BayerPattern::GRBG> <<<dim_grid, dim_block, 0, this->stream_>>>(*output, *input);
             break;
     }
-    IU_CUDA_CHECK;
+    OPTOX_CUDA_CHECK;
 }
 
 #define REGISTER_OP(T) \

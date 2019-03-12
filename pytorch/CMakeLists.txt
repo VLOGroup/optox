@@ -25,28 +25,28 @@ find_program(PYTHON "python")
 message(STATUS "python: ${PYTHON}")
 
 if (PYTHON)
-    set(SETUP_PY_IN setup.py.in)
-    set(SETUP_PY "${CMAKE_CURRENT_BINARY_DIR}/setup.py")
-    set(DEPS
+    set(SETUP_TH_IN setup.py.in)
+    set(SETUP_TH "${CMAKE_CURRENT_BINARY_DIR}/setup.py")
+    set(DEPS_TH
         optoth/__init__.py
         optoth/activations/__init__.py
         optoth/activations/act.py
         th_act_operator.cpp
         th_utils.h
         optoth/nabla.py
-	optoth/nabla2.py
+	    optoth/nabla2.py
         th_nabla_operator.cpp
     )
-    set(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/build/timestamp")
+    set(OUTPUT_TH "${CMAKE_CURRENT_BINARY_DIR}/build/timestamp")
 
-    configure_file(${SETUP_PY_IN} ${SETUP_PY})
+    configure_file(${SETUP_TH_IN} ${SETUP_TH})
 
-    add_custom_command(OUTPUT ${OUTPUT}
-                       COMMAND ${PYTHON} ${SETUP_PY} build
-                       COMMAND ${CMAKE_COMMAND} -E touch ${OUTPUT}
-                       DEPENDS ${DEPS})
+    add_custom_command(OUTPUT ${OUTPUT_TH}
+                       COMMAND ${PYTHON} ${SETUP_TH} build
+                       COMMAND ${CMAKE_COMMAND} -E touch ${OUTPUT_TH}
+                       DEPENDS ${DEPS_TH})
 
-    add_custom_target(target ALL DEPENDS ${OUTPUT} ${DEPS})
+    add_custom_target(setup_th ALL DEPENDS ${OUTPUT_TH} ${DEPS_TH})
 
-    install(CODE "execute_process(COMMAND ${PYTHON} ${SETUP_PY} install)")
+    install(CODE "execute_process(COMMAND ${PYTHON} ${SETUP_TH} install)")
 endif()

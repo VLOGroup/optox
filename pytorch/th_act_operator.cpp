@@ -19,14 +19,14 @@ template<typename T>
 at::Tensor forward(optox::IActOperator<T> &op, at::Tensor th_input, at::Tensor th_weights)
 {
     // parse the input tensors
-    auto iu_input = getLinearDeviceTorch<T, 2>(th_input);
-    auto iu_weights = getLinearDeviceTorch<T, 2>(th_weights);
+    auto input = getDTensorTorch<T, 2>(th_input);
+    auto weights = getDTensorTorch<T, 2>(th_weights);
 
     // allocate the output tensor
     auto th_output = at::zeros_like(th_input);
-    auto iu_output = getLinearDeviceTorch<T, 2>(th_output);
+    auto output = getDTensorTorch<T, 2>(th_output);
     
-    op.forward({iu_output.get()}, {iu_input.get(), iu_weights.get()});
+    op.forward({output.get()}, {input.get(), weights.get()});
 
     return th_output;
 }
@@ -35,17 +35,17 @@ template<typename T>
 std::vector<at::Tensor> adjoint(optox::IActOperator<T> &op, at::Tensor th_input, at::Tensor th_weights, at::Tensor th_grad_out)
 {
     // parse the input tensors
-    auto iu_input = getLinearDeviceTorch<T, 2>(th_input);
-    auto iu_weights = getLinearDeviceTorch<T, 2>(th_weights);
-    auto iu_grad_out = getLinearDeviceTorch<T, 2>(th_grad_out);
+    auto input = getDTensorTorch<T, 2>(th_input);
+    auto weights = getDTensorTorch<T, 2>(th_weights);
+    auto grad_out = getDTensorTorch<T, 2>(th_grad_out);
 
     // allocate the output tensor
     at::Tensor th_grad_in = at::empty_like(th_input);
-    auto iu_grad_in = getLinearDeviceTorch<T, 2>(th_grad_in);
+    auto grad_in = getDTensorTorch<T, 2>(th_grad_in);
     at::Tensor th_grad_weights = at::empty_like(th_weights);
-    auto iu_grad_weights = getLinearDeviceTorch<T, 2>(th_grad_weights);
+    auto grad_weights = getDTensorTorch<T, 2>(th_grad_weights);
     
-    op.adjoint({iu_grad_in.get(), iu_grad_weights.get()}, {iu_input.get(), iu_weights.get(), iu_grad_out.get()});
+    op.adjoint({grad_in.get(), grad_weights.get()}, {input.get(), weights.get(), grad_out.get()});
 
     return {th_grad_in, th_grad_weights};
 }
@@ -87,16 +87,16 @@ template<typename T>
 std::vector<at::Tensor> forward2(optox::IAct2Operator<T> &op, at::Tensor th_input, at::Tensor th_weights)
 {
     // parse the input tensors
-    auto iu_input = getLinearDeviceTorch<T, 2>(th_input);
-    auto iu_weights = getLinearDeviceTorch<T, 2>(th_weights);
+    auto input = getDTensorTorch<T, 2>(th_input);
+    auto weights = getDTensorTorch<T, 2>(th_weights);
 
     // allocate the output tensor
-    auto th_output = at::zeros_like(th_input);
-    auto iu_output = getLinearDeviceTorch<T, 2>(th_output);
-    auto th_output_prime = at::zeros_like(th_input);
-    auto iu_output_prime = getLinearDeviceTorch<T, 2>(th_output_prime);
+    auto th_output = at::empty_like(th_input);
+    auto output = getDTensorTorch<T, 2>(th_output);
+    auto th_output_prime = at::empty_like(th_input);
+    auto output_prime = getDTensorTorch<T, 2>(th_output_prime);
     
-    op.forward({iu_output.get(), iu_output_prime.get()}, {iu_input.get(), iu_weights.get()});
+    op.forward({output.get(), output_prime.get()}, {input.get(), weights.get()});
 
     return {th_output, th_output_prime};
 }
@@ -106,18 +106,18 @@ std::vector<at::Tensor> adjoint2(optox::IAct2Operator<T> &op, at::Tensor th_inpu
                                  at::Tensor th_grad_out, at::Tensor th_grad_out_prime)
 {
     // parse the input tensors
-    auto iu_input = getLinearDeviceTorch<T, 2>(th_input);
-    auto iu_weights = getLinearDeviceTorch<T, 2>(th_weights);
-    auto iu_grad_out = getLinearDeviceTorch<T, 2>(th_grad_out);
-    auto iu_grad_out_prime = getLinearDeviceTorch<T, 2>(th_grad_out_prime);
+    auto input = getDTensorTorch<T, 2>(th_input);
+    auto weights = getDTensorTorch<T, 2>(th_weights);
+    auto grad_out = getDTensorTorch<T, 2>(th_grad_out);
+    auto grad_out_prime = getDTensorTorch<T, 2>(th_grad_out_prime);
 
     // allocate the output tensor
     at::Tensor th_grad_in = at::empty_like(th_input);
-    auto iu_grad_in = getLinearDeviceTorch<T, 2>(th_grad_in);
+    auto grad_in = getDTensorTorch<T, 2>(th_grad_in);
     at::Tensor th_grad_weights = at::empty_like(th_weights);
-    auto iu_grad_weights = getLinearDeviceTorch<T, 2>(th_grad_weights);
+    auto grad_weights = getDTensorTorch<T, 2>(th_grad_weights);
     
-    op.adjoint({iu_grad_in.get(), iu_grad_weights.get()}, {iu_input.get(), iu_weights.get(), iu_grad_out.get(), iu_grad_out_prime.get()});
+    op.adjoint({grad_in.get(), grad_weights.get()}, {input.get(), weights.get(), grad_out.get(), grad_out_prime.get()});
 
     return {th_grad_in, th_grad_weights};
 }

@@ -2,11 +2,14 @@
 # @author Erich Kobler <erich.kobler@icg.tugraz.at>
 # @date 01.07.2018
 
+project(optoX)
+
 ##----------------------------------------------------------------------------
 ## CMake definitions
 ##----------------------------------------------------------------------------
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 include("../cmake/macros.cmake")
+
 
 ##-----------------------------------------------------------------------------
 ## Library output directory
@@ -15,32 +18,32 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib/python)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib/python)
 
 ##----------------------------------------------------------------------------
-## Python (for wrappers)
+## compile using python setup
 ##----------------------------------------------------------------------------
-execute_process(COMMAND python -c "import sys; print(sys.executable, end='')" OUTPUT_VARIABLE PYTHON_EXECUTABLE)
-find_package(PythonLibs 3 REQUIRED)
-include_directories(${PYTHON_INCLUDE_DIRS})
+find_program(PYTHON "python")
 
-find_package(NumPy REQUIRED)
-include_directories(${NUMPY_INCLUDE_DIRS})
+message(STATUS "python: ${PYTHON}")
 
-# Extract boost root dir. Should be the same as the Python lib dir.
-get_filename_component(PYTHON_LIBRARY_DIR ${PYTHON_LIBRARIES} DIRECTORY)
-get_filename_component(BOOST_ROOT ${PYTHON_LIBRARY_DIR} DIRECTORY)
+if (PYTHON)
+    set(SETUP_PY_IN setup.py.in)
+    set(SETUP_PY "${CMAKE_CURRENT_BINARY_DIR}/setup.py")
+    set(DEPS_PY
+        optopy/__init__.py
+        py_utils.h
+        optopy/nabla.py
+	    optopy/nabla2.py
+        py_nabla_operator.cpp
+    )
+    set(OUTPUT_PY "${CMAKE_CURRENT_BINARY_DIR}/build/timestamp")
 
-message(STATUS "Boost root: " ${BOOST_ROOT})
+    configure_file(${SETUP_PY_IN} ${SETUP_PY})
 
-find_package(Boost REQUIRED COMPONENTS python)
-include_directories(${Boost_INCLUDE_DIRS})
+    add_custom_command(OUTPUT ${OUTPUT_PY}
+                       COMMAND ${PYTHON} ${SETUP_PY} build
+                       COMMAND ${CMAKE_COMMAND} -E touch ${OUTPUT_PY}
+                       DEPENDS ${DEPS_PY})
 
-##----------------------------------------------------------------------------
-## Generate lib for Add Operator
-##----------------------------------------------------------------------------
-cuda_add_library(PyAddOperator SHARED  py_add_operator.cpp)
-finish_python_lib(PyAddOperator)
+    add_custom_target(setup_py ALL DEPENDS ${OUTPUT_PY} ${DEPS_PY})
 
-cuda_add_library(PyActOperator SHARED  py_act_operator.cpp)
-finish_python_lib(PyActOperator)
-
-cuda_add_library(PyNablaOperator SHARED  py_nabla_operator.cpp)
-finish_python_lib(PyNablaOperator)
+    install(CODE "execute_process(COMMAND ${PYTHON} ${SETUP_PY} install)")
+endif()
