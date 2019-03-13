@@ -65,7 +65,7 @@ Note to multiple combinations are supported.
 ## Testing
 
 ### `Python`
-To perform a gradient test of the `nabla` operator using the `Python` wrappers execute
+To perform an adjointness test of the `nabla` operator using the `Python` wrappers execute
 ```bash
 $ python -m unittest optopy.nabla
 
