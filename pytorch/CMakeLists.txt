@@ -4,13 +4,6 @@
 
 project(optoX)
 
-##----------------------------------------------------------------------------
-## CMake definitions
-##----------------------------------------------------------------------------
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
-include("../cmake/macros.cmake")
-
-
 ##-----------------------------------------------------------------------------
 ## Library output directory
 ##-----------------------------------------------------------------------------
@@ -34,10 +27,10 @@ if (PYTHON)
         th_act_operator.cpp
         th_utils.h
         optoth/nabla.py
-	    optoth/nabla2.py
+        optoth/nabla2.py
         th_nabla_operator.cpp
     )
-    set(OUTPUT_TH "${CMAKE_CURRENT_BINARY_DIR}/build/timestamp")
+    set(OUTPUT_TH "${CMAKE_CURRENT_BINARY_DIR}/timestamp")
 
     configure_file(${SETUP_TH_IN} ${SETUP_TH})
 
@@ -46,7 +39,9 @@ if (PYTHON)
                        COMMAND ${CMAKE_COMMAND} -E touch ${OUTPUT_TH}
                        DEPENDS ${DEPS_TH})
 
-    add_custom_target(setup_th ALL DEPENDS ${OUTPUT_TH} ${DEPS_TH})
+    add_custom_target(setup_th ALL DEPENDS ${OUTPUT_TH} ${DEPS_TH} WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-    install(CODE "execute_process(COMMAND ${PYTHON} ${SETUP_TH} install)")
+    add_dependencies(setup_th optox)
+
+    install(CODE "execute_process(COMMAND ${PYTHON} ${SETUP_TH} install WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})")
 endif()

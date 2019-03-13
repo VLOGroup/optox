@@ -4,13 +4,6 @@
 
 project(optoX)
 
-##----------------------------------------------------------------------------
-## CMake definitions
-##----------------------------------------------------------------------------
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
-include("../cmake/macros.cmake")
-
-
 ##-----------------------------------------------------------------------------
 ## Library output directory
 ##-----------------------------------------------------------------------------
@@ -34,7 +27,7 @@ if (PYTHON)
 	    optopy/nabla2.py
         py_nabla_operator.cpp
     )
-    set(OUTPUT_PY "${CMAKE_CURRENT_BINARY_DIR}/build/timestamp")
+    set(OUTPUT_PY "${CMAKE_CURRENT_BINARY_DIR}/timestamp")
 
     configure_file(${SETUP_PY_IN} ${SETUP_PY})
 
@@ -43,7 +36,9 @@ if (PYTHON)
                        COMMAND ${CMAKE_COMMAND} -E touch ${OUTPUT_PY}
                        DEPENDS ${DEPS_PY})
 
-    add_custom_target(setup_py ALL DEPENDS ${OUTPUT_PY} ${DEPS_PY})
+    add_custom_target(setup_py ALL DEPENDS ${OUTPUT_PY} ${DEPS_PY} WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-    install(CODE "execute_process(COMMAND ${PYTHON} ${SETUP_PY} install)")
+    add_dependencies(setup_py optox)
+
+    install(CODE "execute_process(COMMAND ${PYTHON} ${SETUP_PY} install WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})")
 endif()

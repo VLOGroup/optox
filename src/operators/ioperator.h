@@ -82,9 +82,9 @@ class OPTOX_DLLAPI IOperator
     }
 
     template <typename T, unsigned int N>
-    const DTensor<T, N> *getInput(int index, const OperatorInputVector &inputs)
+    const DTensor<T, N> *getInput(unsigned int index, const OperatorInputVector &inputs)
     {
-        if (index >= 0 && index < inputs.size())
+        if (index < inputs.size())
         {
             const DTensor<T, N> *t = dynamic_cast<const DTensor<T, N> *>(inputs[index]);
             if (t != nullptr)
@@ -97,9 +97,9 @@ class OPTOX_DLLAPI IOperator
     }
 
     template <typename T, unsigned int N>
-    DTensor<T, N> *getOutput(int index, const OperatorOutputVector &outputs)
+    DTensor<T, N> *getOutput(unsigned int index, const OperatorOutputVector &outputs)
     {
-        if (index >= 0 && index < outputs.size())
+        if (index < outputs.size())
         {
             DTensor<T, N> *t = dynamic_cast<DTensor<T, N> *>(outputs[index]);
             if (t != nullptr)
