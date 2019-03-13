@@ -1,145 +1,103 @@
-## Repository for operators and their interfaces to X.
-##### The aim:
- Write an operator once and use it in Python, Matlab, Tensorflow, Pytorch, C++,...
+# Operator to X - `optox`
+## Goal
+Write operators only once and use it **everywhere**. 
 
-##### The concept:
- Use the imageutilities as memory holding layer to build a more or less generic operator.
- To use it in your environment X (e.g. Tensorflow) you just need to write an interface wrapper.
- So you can test it thoroughly wiht your environment of choice and use the tested operator in all the other environments.
- Result Increansed reuseability :)
- 
- E.g. for Python the current recommended way for using the operator is to build a pip package and install it in your desired anaconda environment.
- 
+## Concept
+Write an operator in `C++/CUDA` and generate wrappers to different languages such as `Python` and machine learning libraries such as `Tensorflow` or `Pytorch`.
 
+`optox` provides a tensor interface to ease data transfer between host tensors `optox::HTensor` and device tensors `optox::DTensor` or any floating type and number of dimensions.
+Using this interface, a operator is only written once in `C++/CUDA` and wrappers for `Python`, `Tensorflow` and `Pytorch` expose the functionality to a higher level application (e.g. iterative reconstruction, custom deep learning reconstruction, ...).
 
-### most important directories and files:
-	- src        : the more generic base operator
-	- matlab     : matlab wrappers, (or not yet ported matlab only operators)
-	- tensorflow : tensorflow wrappers, (or not yet ported tensorflow only operators)
-		- package: this subdirectory contains the files necessary for building the pip packages
-			- 	build_pkg.sh  : this script builds the pip package 
-			- 	setup.sh      : requirenments for the pip package
+## Overview 
+The source files are organized as follows:
 
-##Install instructions
+    .
+    +-- src             : `optox` library source files
+    |   +-- tensor      : header only implementation of `HTensor` and `DTensor`
+    |   +-- operators   : actual implementation of operator functionality
+    +-- python          : python wrappers 
+    +-- pytorch         : pytorch wrappers
+    +-- tensorflow      : tensorflow wrappers (TODO: update)
 
-### Prerequesits
+## Install instructions
 
-Op To X requires [imageutilities](https://gitlab.icg.tugraz.at/imageutilities/imageutilities) in the dev_register_types branch.
-setup a environment variable that points to the IMAGEUTILITIES_ROOT directory.
-build and install imageutilities (setup the install path to e.g. the IMAGEUTILITIES_ROOT directory).
-OpenCV is only required if the GUI or the IO functionality of the imageutilities is used.
-Otherwise deactivate the IU_USE_IO and IO_USE_GUI switches with ccmake or cmake-gui while building the imageutilities.
-Example Configuration of imageutilities:
-![Example Configuration](./docs/Setup_CCMAKE_ImageUtilities_MATLAB.png)
+First setup the following environment variables:
+- `COMPUTE_CAPABILITY` with the compute capability of your CUDA-enabled GPU[$^1$](https://en.wikipedia.org/wiki/CUDA)
+- `CUDA_ROOT_DIR` to point to the NVidia CUDA toolkit (typically `/usr/local/cuda`)
+- `CUDA_SDK_ROOT_DIR` to point to the NVidia CUDA examples (typically `/usr/local/cuda/samples`)
+
+To build the basic optox library perform the following steps:
 ```bash
-#Setup where to install image utilities after compilation:
-IMAGEUTILITIES_ROOT=~/sources/imageutilities 
-MATLAB_ROOT=/usr/local/MATLAB/R2018b/
-git clone git@gitlab.icg.tugraz.at:imageutilities/imageutilities.git
-cd imageutilities
-git checkout dev_register_types
-#build imageutilities
-mkdir build
-cd build
-# start ccmake and configure it as in the screenshot
-ccmake .. 
-# press 'c' to configure, check for erros, continure with 'e', then generate the make files by pressing 'g'
-# build it with make:
-make -j
-# install it into the path specified in IMAGEUTILITIES_ROOT
-make install 	
+$ mkdir build
+$ cd build
+$ cmake .. 
+$ make install
 ```
 
-
-
-prepare the anaconda environment you want ot use for tensorflow etc.
-activate it and install boost
+### `Python` wrappers
+To build the `Python` wrappers `optox` requires `pybind11` which can be installed in an anaconda environment by `conda install pybind11`.
+To also build `Python` wrappers substitute the `cmake` command by:
 ```bash
-conda install boost
+$ cmake .. -DWITH_PYTHON=ON
 ```
 
-### Building
-in the OpToX directory:
-configure cmake with ccmake or cmake-gui to use the correct path to the imageutilities libraries
-
+### `Pytorch` wrappers
+To build it, the `pytorch` package must be installed.
 ```bash
-cd build
-rm -rf *
-ccmake ..
+$ cmake .. -DWITH_PYTORCH=ON
 ```
-Example Configuration:
-![Example Configuration](./docs/Setup_CCMAKE_OptoX.png)
-
-now you can build optoX (-j use maximum number of threads)
-
+### `Tensorflow` wrappers
+To build it, the `tensorflow` package must be installed.
 ```bash
-make -j
+$ cmake .. -DWITH_TENSORFLOW=ON
 ```
 
-## Now build the pip packages:
-### Example for Tensorflow
--------------------------------
-
-###### Build Wheel Package for Tensorflow:
-Call the  `build_pkg.sh` script inside the `tensorflow/package` folder.
-It copies the built libraries to a temp folder and tirggers the building of the pip-package.
-Finally install the package
+Note to multiple combinations are supported.
 
 
+## Testing
+
+### `Python`
+To perform a gradient test of the `nabla` operator using the `Python` wrappers execute
 ```bash
-# copy the files (not needed any more)
-# ln -s lib/tf/TfMetamorphosisOperator.so    tensorflow/package/optotf/interpolation/.
-cd tensorflow/package
-./build_pkg.sh
-pip install -- upgrade dist/optotf-0.2.dev0-cp36-cp36m-linux_x86_64.whl
+$ python -m unittest optopy.nabla
+
 ```
-
-Test it in ipython/python with tensorflow
-```python
-from optotf.pad2d import pad2d
-import numpy as np
-import tensorflow as tf
-sess = tf.InteractiveSession
-inp = np.array([[[[1],[2],[3],[4.]]]])
-padded = pad2d(inp,"SYMMETRIC",1)
-padded.eval() #pad2d is NCHW format
->>>array([[[[1., 1., 1.],
-            [1., 1., 1.],
-            [2., 2., 2.],
-            [3., 3., 3.],
-            [4., 4., 4.],
-            [4., 4., 4.]]]])
-```
-
-### Example for direct python operator
--------------------------------
-Call the  `build_pkg.sh` script inside the `python/package` folder.
-It copies the built libraries to a temp folder and tirggers the building of the pip-package.
-Finally install the package
-
-###### python - build wheel package:
-This code depends on the 
+If successful the output should be 
 ```bash
-cd python/package
-./build_pkg.sh
-pip install --upgrade dist/YOUR_BUILT_WHEEL_PACKAGE.whl
-#pip install --upgrade dist/optotf-0.2.dev0-cp36-cp36m-linux_x86_64.whl 
-cd ../..
+(env) ∂ python -m unittest optopy.nabla 
+dtype: <class 'numpy.float64'> dim: 2 diff: 6.661338147750939e-16
+.dtype: <class 'numpy.float64'> dim: 3 diff: 2.842170943040401e-14
+.dtype: <class 'numpy.float32'> dim: 2 diff: 2.86102294921875e-06
+.dtype: <class 'numpy.float32'> dim: 3 diff: 7.62939453125e-06
+.
+----------------------------------------------------------------------
+Ran 4 tests in 1.099s
+
+OK
+
 ```
 
 
+### `Pytorch`
+To perform a gradient test of the `activations` operators using the `Pytorch` wrappers execute
+```bash
+$ python -m unittest optoth.activations.act
 
-Test it in ipython/python
-```python
-import numpy as np
-import optopy.nabla   # only directly called submodules are imported
-op = optopy.nabla.nabla_op()
-op.forward( np.array([[0,1,1,2,0]],dtype=np.float32))
-op.forward( np.array([[0,1,1,1,0],[0,0,1,0,0]],dtype=np.float32))
->>> array([[[ 1.,  0.,  0., -1.,  0.],
-            [ 0.,  1., -1.,  0.,  0.]],
+```
+If successful the output should be 
+```bash
+(env) ∂ python -m unittest optoth.activations.act 
+grad_x: -3616.3090656 num_grad_x -3616.3090955 success: True
+grad_w: 7232.6181312 num_grad_w 7232.6181312 success: True
+.grad_x: 535.2185935 num_grad_x 535.2185935 success: True
+grad_w: 2236.8791233 num_grad_w 2236.8791233 success: True
+.grad_x: -215.0009414 num_grad_x -215.0009432 success: True
+grad_w: 430.0018828 num_grad_w 430.0018828 success: True
+.
+----------------------------------------------------------------------
+Ran 3 tests in 2.263s
 
-           [[ 0., -1.,  0., -1.,  0.],
-            [ 0.,  0.,  0.,  0.,  0.]]], dtype=float32)
+OK
 
 ```
