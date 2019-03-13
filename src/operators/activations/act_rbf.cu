@@ -7,7 +7,7 @@
 #include "utils.h"
 #include "tensor/d_tensor.h"
 #include "act_rbf.h"
-#include "utils.cuh"
+#include "reduce.cuh"
 
 
 // forward Gaussian rbf

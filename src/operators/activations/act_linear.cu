@@ -7,7 +7,7 @@
 #include "utils.h"
 #include "tensor/d_tensor.h"
 #include "act_linear.h"
-#include "utils.cuh"
+#include "reduce.cuh"
 
 
 template<typename T>

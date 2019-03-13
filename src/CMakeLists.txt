@@ -17,7 +17,6 @@ set(OPERATOR_HEADER
     operators/activations/act.h
     operators/activations/act_rbf.h
     operators/activations/act_linear.h
-    operators/activations/utils.cuh
     operators/nabla_operator.h
     operators/nabla2_operator.h
     operators/demosaicing_operator.h
