@@ -94,7 +94,7 @@ setup(
     packages=["optopy",],
     package_dir={"optopy": os.path.join("${CMAKE_CURRENT_SOURCE_DIR}", "optopy"),},
     include_dirs=[],
-    ext_package="_py_ext",
+    ext_package="_ext",
     ext_modules=[
         Extension("py_nabla_operator", [
             os.path.join("${CMAKE_CURRENT_SOURCE_DIR}", "py_nabla_operator.cpp"),

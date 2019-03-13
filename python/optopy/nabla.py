@@ -1,15 +1,15 @@
 import numpy as np
 import unittest
 
-import _py_ext.py_nabla_operator
+import _ext.py_nabla_operator
 
 __all__ = ['float_2d', 'double_2d', 'float_3d', 'double_3d']
 
-float_2d = _py_ext.py_nabla_operator.Nabla_2d_float
-double_2d = _py_ext.py_nabla_operator.Nabla_2d_double
+float_2d = _ext.py_nabla_operator.Nabla_2d_float
+double_2d = _ext.py_nabla_operator.Nabla_2d_double
 
-float_3d = _py_ext.py_nabla_operator.Nabla_3d_float
-double_3d = _py_ext.py_nabla_operator.Nabla_3d_double
+float_3d = _ext.py_nabla_operator.Nabla_3d_float
+double_3d = _ext.py_nabla_operator.Nabla_3d_double
 
 
 # to run execute: python -m unittest [-v] optopy.nabla
