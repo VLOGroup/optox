@@ -22,9 +22,12 @@ The source files are organized as follows:
 ## Install instructions
 
 First setup the following environment variables:
-- `COMPUTE_CAPABILITY` with the compute capability of your CUDA-enabled GPU[$^1$](https://en.wikipedia.org/wiki/CUDA)
+- `COMPUTE_CAPABILITY` with the compute capability of your CUDA-enabled GPU [see here](https://en.wikipedia.org/wiki/CUDA)
 - `CUDA_ROOT_DIR` to point to the NVidia CUDA toolkit (typically `/usr/local/cuda`)
 - `CUDA_SDK_ROOT_DIR` to point to the NVidia CUDA examples (typically `/usr/local/cuda/samples`)
+
+Note that the CUDA version used to build the `optox` library should match the version required by `Tensorflow` and/or `Pytorch`.
+Thus, we recommend building both deep learning frameworks from source.
 
 Install the `Python` dependencies using `anaconda`:
 - `conda install unittest`
