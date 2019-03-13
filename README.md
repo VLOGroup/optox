@@ -67,7 +67,7 @@ Note to multiple combinations are supported.
 ### `Python`
 To perform an adjointness test of the `nabla` operator using the `Python` wrappers execute
 ```bash
-$ python -m unittest optopy.nabla
+python -m unittest optopy.nabla
 
 ```
 If successful the output should be 
@@ -89,7 +89,7 @@ OK
 ### `Pytorch`
 To perform a gradient test of the `activations` operators using the `Pytorch` wrappers execute
 ```bash
-$ python -m unittest optoth.activations.act
+python -m unittest optoth.activations.act
 
 ```
 If successful the output should be 
