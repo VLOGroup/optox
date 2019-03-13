@@ -35,28 +35,28 @@ Install the `Python` dependencies using `anaconda`:
 
 To build the basic optox library perform the following steps:
 ```bash
-$ mkdir build
-$ cd build
-$ cmake .. 
-$ make install
+mkdir build
+cd build
+cmake .. 
+make install
 ```
 
 ### `Python` wrappers
 To build the `Python` wrappers `optox` requires `pybind11` which can be installed in an anaconda environment by `conda install pybind11`.
 To also build `Python` wrappers substitute the `cmake` command by:
 ```bash
-$ cmake .. -DWITH_PYTHON=ON
+cmake .. -DWITH_PYTHON=ON
 ```
 
 ### `Pytorch` wrappers
 To build it, the `pytorch` package must be installed.
 ```bash
-$ cmake .. -DWITH_PYTORCH=ON
+cmake .. -DWITH_PYTORCH=ON
 ```
 ### `Tensorflow` wrappers
 To build it, the `tensorflow` package must be installed.
 ```bash
-$ cmake .. -DWITH_TENSORFLOW=ON
+cmake .. -DWITH_TENSORFLOW=ON
 ```
 
 Note to multiple combinations are supported.
@@ -72,7 +72,7 @@ $ python -m unittest optopy.nabla
 ```
 If successful the output should be 
 ```bash
-(env) ∂ python -m unittest optopy.nabla 
+(optox) ∂ python -m unittest optopy.nabla 
 dtype: <class 'numpy.float64'> dim: 2 diff: 6.661338147750939e-16
 .dtype: <class 'numpy.float64'> dim: 3 diff: 2.842170943040401e-14
 .dtype: <class 'numpy.float32'> dim: 2 diff: 2.86102294921875e-06
@@ -94,7 +94,7 @@ $ python -m unittest optoth.activations.act
 ```
 If successful the output should be 
 ```bash
-(env) ∂ python -m unittest optoth.activations.act 
+(optox) ∂ python -m unittest optoth.activations.act 
 grad_x: -3616.3090656 num_grad_x -3616.3090955 success: True
 grad_w: 7232.6181312 num_grad_w 7232.6181312 success: True
 .grad_x: 535.2185935 num_grad_x 535.2185935 success: True
