@@ -26,6 +26,10 @@ First setup the following environment variables:
 - `CUDA_ROOT_DIR` to point to the NVidia CUDA toolkit (typically `/usr/local/cuda`)
 - `CUDA_SDK_ROOT_DIR` to point to the NVidia CUDA examples (typically `/usr/local/cuda/samples`)
 
+Install the `Python` dependencies using `anaconda`:
+- `conda install unittest`
+- `conda install pybind11`
+
 To build the basic optox library perform the following steps:
 ```bash
 $ mkdir build
