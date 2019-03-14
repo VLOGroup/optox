@@ -29,9 +29,8 @@ First setup the following environment variables:
 Note that the CUDA version used to build the `optox` library should match the version required by `Tensorflow` and/or `Pytorch`.
 Thus, we recommend building both deep learning frameworks from source.
 
-Install the `Python` dependencies using `anaconda`:
-- `conda install unittest`
-- `conda install pybind11`
+Install dependencies using `anaconda`:
+- `conda install pybind11` for `Python` wrappers
 
 To build the basic optox library perform the following steps:
 ```bash
