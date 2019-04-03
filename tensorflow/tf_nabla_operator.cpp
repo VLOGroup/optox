@@ -1,20 +1,20 @@
-///@file tfaddoperator.cpp
-///@brief Operator that adds two inputs and returns the result
+///@file th_nabla_operator.h
+///@brief PyTorch wrappers for nabla operator
 ///@author Erich Kobler <erich.kobler@icg.tugraz.at>
-///@date 09.07.2018
+///@date 02.2019
 
-#include <iostream>
-#include <cuda.h>
+#include <vector>
 
+#include "tf_utils.h"
+#include "operators/nabla_operator.h"
 
-#include "tensorflow/core/framework/op.h"
-#include "tensorflow/core/framework/shape_inference.h"
-#include "tensorflow/core/framework/common_shape_fns.h"
-#include "tensorflow/core/framework/op_kernel.h"
-#include "tensorflow/core/platform/default/integral_types.h"
-#include "tensorflow/core/util/tensor_format.h"
+#include <tensorflow/core/framework/op.h>
+#include <tensorflow/core/framework/shape_inference.h>
+#include <tensorflow/core/framework/common_shape_fns.h>
+#include <tensorflow/core/framework/op_kernel.h>
+#include <tensorflow/core/platform/default/integral_types.h>
+#include <tensorflow/core/util/tensor_format.h>
 
-#include "tf_nabla_operator.h"
 
 using namespace tensorflow;
 using namespace std;
@@ -69,13 +69,18 @@ public:
 		TensorShape out_shape = x_tensor.shape();
       	out_shape.InsertDim(0, 2);
 
-		//allocate the output
+		// allocate the output
 		Tensor* output_tensor = nullptr;
 		OP_REQUIRES_OK(context,
 			context->allocate_output(0, out_shape, &output_tensor));
 
-		auto out_tt = output_tensor->tensor<dtype,3>();
-        NablaOperatorForward<dtype>()(context->eigen_device<GPUDevice>(), out_tt, x_tensor.tensor<dtype,2>());
+		// compute the output
+		auto input = getDTensorTensorflow<dtype, 2>(x_tensor);
+		auto output = getDTensorTensorflow<dtype, 3>(*output_tensor);
+		
+		optox::NablaOperator<dtype, 2> op;
+		op.setStream(context->eigen_device<GPUDevice>().stream());
+		op.forward({output.get()}, {input.get()});
 	}
 };
 
@@ -112,8 +117,13 @@ public:
 		OP_REQUIRES_OK(context,
 			context->allocate_output(0, out_shape, &output_tensor));
 
-		auto out_tt = output_tensor->tensor<dtype,2>();
-        NablaOperatorAdjoint<dtype>()(context->eigen_device<GPUDevice>(), out_tt, x_tensor.tensor<dtype,3>());
+		// compute the output
+		auto input = getDTensorTensorflow<dtype, 3>(x_tensor);
+		auto output = getDTensorTensorflow<dtype, 2>(*output_tensor);
+		
+		optox::NablaOperator<dtype, 2> op;
+		op.setStream(context->eigen_device<GPUDevice>().stream());
+		op.adjoint({output.get()}, {input.get()});
 	}
 };
 
@@ -128,3 +138,4 @@ REGISTER_GPU(float);
 REGISTER_GPU(double);
 
 #undef REGISTER_GPU
+
