@@ -27,6 +27,7 @@ install_manifest.txt
 __pycache__*/
 dist*/
 *.egg-info*/
+*.sh
 
 
 ##################
