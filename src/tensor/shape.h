@@ -10,6 +10,7 @@
 
 #include <cassert>
 #include <type_traits>
+#include <vector>
 #include <initializer_list>
 
 namespace optox
@@ -48,6 +49,13 @@ struct OPTOX_DLLAPI Shape
     __HOSTDEVICE__ Shape(A0 a0, Args... args) : Shape(std::initializer_list<size_t>({size_t(a0), size_t(args)...}))
     {
         static_assert(sizeof...(Args) == N - 1, "size missmatch");
+    }
+
+    // constructor from vector
+    template <typename T, class = typename std::enable_if<std::is_integral<T>::value>::type>
+    __HOSTDEVICE__ Shape(const std::vector<T> &v) : Shape(std::initializer_list<size_t>(v.data(), v.data() + v.size()))
+    {
+        assert (v.size() == N);
     }
 
     // default operator =

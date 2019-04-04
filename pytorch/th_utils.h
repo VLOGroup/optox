@@ -26,7 +26,7 @@ std::unique_ptr<optox::DTensor<T, N>> getDTensorTorch(at::Tensor tensor)
     // wrap the Tensor into a device tensor
     optox::Shape<N> size;
     for (unsigned int i = 0; i < N; ++i)
-        size[i] = tensor.size(N - 1 - i);
+        size[i] = tensor.size(i);
     std::unique_ptr<optox::DTensor<T, N>> p(new optox::DTensor<T, N>(tensor.data<T>(), size, true));
 
     // do not return a copy but rather move its value
@@ -45,7 +45,7 @@ std::unique_ptr<optox::HTensor<T, N>> getHTensorTorch(at::Tensor tensor)
     // wrap the Tensor into a LinearHostMemory
     optox::Shape<N> size;
     for (unsigned int i = 0; i < N; ++i)
-        size[i] = tensor.size(N - 1 - i);
+        size[i] = tensor.size(i);
     std::unique_ptr<optox::HTensor<T, N>> p(new optox::HTensor<T, N>(tensor.data<T>(), size, true));
 
     // do not return a copy but rather move its value

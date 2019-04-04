@@ -21,9 +21,9 @@ py::array forward(optox::NablaOperator<T, N> &op, py::array np_input)
     auto input = getDTensorNp<T, N>(np_input);
 
     optox::Shape<N+1> out_size;
+    out_size[0] = N;
     for (unsigned int i = 0; i < N; ++i)
-        out_size[i] = input->size()[i];
-    out_size[N] = N;
+        out_size[i+1] = input->size()[i];
     optox::DTensor<T, N+1> output(out_size);
 
     op.forward({&output}, {input.get()});
@@ -39,7 +39,7 @@ py::array adjoint(optox::NablaOperator<T, N> &op, py::array np_input)
 
     optox::Shape<N> out_size;
     for (unsigned int i = 0; i < N; ++i)
-        out_size[i] = input->size()[i];
+        out_size[i] = input->size()[i+1];
     optox::DTensor<T, N> output(out_size);
     
     op.adjoint({&output}, {input.get()});
@@ -54,9 +54,9 @@ py::array forward2(optox::Nabla2Operator<T, N> &op, py::array np_input)
     auto input = getDTensorNp<T, N+1>(np_input);
 
     optox::Shape<N+1> out_size;
+    out_size[0] = N*N;
     for (unsigned int i = 0; i < N; ++i)
-        out_size[i] = input->size()[i];
-    out_size[N] = N*N;
+        out_size[i+1] = input->size()[i+1];
     optox::DTensor<T, N+1> output(out_size);
 
     op.forward({&output}, {input.get()});
@@ -71,9 +71,9 @@ py::array adjoint2(optox::Nabla2Operator<T, N> &op, py::array np_input)
     auto input = getDTensorNp<T, N+1>(np_input);
 
     optox::Shape<N+1> out_size;
+    out_size[0] = N;
     for (unsigned int i = 0; i < N; ++i)
-        out_size[i] = input->size()[i];
-    out_size[N] = N;
+        out_size[i+1] = input->size()[i+1];
     optox::DTensor<T, N+1> output(out_size);
 
     op.adjoint({&output}, {input.get()});

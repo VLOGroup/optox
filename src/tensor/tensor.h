@@ -39,9 +39,9 @@ class OPTOX_DLLAPI Tensor : public ITensor
 
     void computeStride()
     {
-        stride_[0] = 1;
-        for (unsigned int i = 1; i < N; i++)
-            stride_[i] = stride_[i - 1] * size_[i - 1];
+        stride_[N-1] = 1;
+        for (int i = N - 2; i >= 0; --i)
+            stride_[i] = stride_[i + 1] * size_[i + 1];
     }
 
   public:

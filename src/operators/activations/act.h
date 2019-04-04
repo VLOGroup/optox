@@ -37,7 +37,7 @@ class OPTOX_DLLAPI IActOperator : public IOperator
 
     void checkSize(const Shape<2> input_size, const Shape<2> weights_size)
     {
-        if (input_size[1] != weights_size[1])
+        if (input_size[0] != weights_size[0])
             throw std::runtime_error("Activation operator: input and weights size do not match!");
     }
 
@@ -93,7 +93,7 @@ class OPTOX_DLLAPI IAct2Operator : public IOperator
 
     void checkSize(const Shape<2> input_size, const Shape<2> weights_size)
     {
-        if (input_size[1] != weights_size[1])
+        if (input_size[0] != weights_size[0])
             throw std::runtime_error("Activation operator: input and weights size do not match!");
     }
 

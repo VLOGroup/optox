@@ -20,14 +20,14 @@ __global__ void act_linear_forward_kernel(
     const int x = blockIdx.x * blockDim.x + threadIdx.x;
     const int y = blockIdx.y * blockDim.y + threadIdx.y;
 
-    if (x >= input.size_[0] || y >= input.size_[1])
+    if (x >= input.size_[1] || y >= input.size_[0])
         return;
 
-    const int Nw = weights.size_[0];
+    const int Nw = weights.size_[1];
 
     const T k = ((vmax - vmin) / (Nw - 1));
 
-    const T inp_pos = input(x, y);
+    const T inp_pos = input(y, x);
     const T idx = (inp_pos - vmin) / k;
     T val = 0;
     bool boundary = false;
@@ -36,26 +36,26 @@ __global__ void act_linear_forward_kernel(
         // perform extrapolation
         if (i == 0 && idx <= i)
         {
-            val = weights(i, y);
+            val = weights(y, i);
             boundary = true;
         }
         else if (i == Nw -1 && idx >= i)
         {
-            val = weights(i, y);
+            val = weights(y, i);
             boundary = true;
         }
         else if (!boundary && idx >= i && idx < i + 1)
         {
             const T alpha = idx - i;
-            val += weights(i, y) * (1 - alpha);
+            val += weights(y, i) * (1 - alpha);
         }
         else if (!boundary && idx >= i - 1 && idx < i)
         {
             const T alpha = idx - i + 1;
-            val += weights(i, y) * alpha;
+            val += weights(y, i) * alpha;
         }
     }
-    output(x, y) = val;
+    output(y, x) = val;
 }
 
 
@@ -75,18 +75,18 @@ __global__ void act_linear_backward_kernel(
     extern __shared__ __align__(sizeof(T)) unsigned char sbuffer[];
     T *sdata = reinterpret_cast<T*>(sbuffer);
 
-    if (x >= input.size_[0] || y >= input.size_[1])
+    if (x >= input.size_[1] || y >= input.size_[0])
     {
         sdata[tid] = 0;
         return;
     }
 
-    const int Nw = weights.size_[0];
+    const int Nw = weights.size_[1];
 
     const T k = ((vmax - vmin) / (Nw - 1));
 
-    const T grad_out_pos = grad_output(x, y);
-    const T inp_pos = input(x, y);
+    const T grad_out_pos = grad_output(y, x);
+    const T inp_pos = input(y, x);
     const T idx = (inp_pos - vmin) / k;
     T grad_inp = 0;
     bool boundary = false;
@@ -107,13 +107,13 @@ __global__ void act_linear_backward_kernel(
         {
             const T alpha = idx - i;
             sdata[tid] = (1 - alpha) * grad_out_pos;
-            grad_inp += weights(i, y) * (-grad_out_pos/k);
+            grad_inp += weights(y, i) * (-grad_out_pos/k);
         }
         else if (!boundary && idx >= i - 1 && idx < i)
         {
             const T alpha = idx - i + 1;
             sdata[tid] = alpha * grad_out_pos;
-            grad_inp += weights(i, y) * (grad_out_pos/k);
+            grad_inp += weights(y, i) * (grad_out_pos/k);
         }
         else
             sdata[tid] = 0;
@@ -124,9 +124,9 @@ __global__ void act_linear_backward_kernel(
         parallelReduce(sdata, tid, blockDim.x);
 
         if(tid == 0)
-            atomicAdd(&(grad_weights(i, y)), sdata[tid]);
+            atomicAdd(&(grad_weights(y, i)), sdata[tid]);
     }
-    grad_input(x, y) = grad_inp;
+    grad_input(y, x) = grad_inp;
 }
 
 
@@ -143,8 +143,8 @@ void optox::LinearActOperator<T>::computeForward(optox::OperatorOutputVector &&o
 
     int thread_per_block = 256;
     dim3 dim_block = dim3(thread_per_block, 1);
-    dim3 block_count = dim3(divUp(input->size()[0], dim_block.x),
-                            input->size()[1]);
+    dim3 block_count = dim3(divUp(input->size()[1], dim_block.x),
+                            input->size()[0]);
 
     act_linear_forward_kernel<T><<<block_count, dim_block, 0, this->stream_>>>(
         *output,
@@ -171,8 +171,8 @@ void optox::LinearActOperator<T>::computeAdjoint(optox::OperatorOutputVector &&o
 
     int thread_per_block = 256;
     dim3 dim_block = dim3(thread_per_block, 1);
-    dim3 block_count = dim3(divUp(input->size()[0], dim_block.x),
-                            input->size()[1]);
+    dim3 block_count = dim3(divUp(input->size()[1], dim_block.x),
+                            input->size()[0]);
 
     act_linear_backward_kernel<T><<<block_count, dim_block, thread_per_block * sizeof(T), this->stream_>>>(
         *grad_input, *grad_weights,

@@ -18,7 +18,7 @@ std::unique_ptr<optox::DTensor<T, N>> getDTensorTensorflow(tensorflow::Tensor &t
     // wrap the Tensor into a device tensor
     optox::Shape<N> size;
     for (unsigned int i = 0; i < N; ++i)
-        size[i] = t_tensor.dimension(N - 1 - i);
+        size[i] = t_tensor.dimension(i);
     std::unique_ptr<optox::DTensor<T, N>> p(new optox::DTensor<T, N>(t_tensor.data(), size, true));
 
     // do not return a copy but rather move its value
@@ -32,7 +32,7 @@ std::unique_ptr<optox::DTensor<T, N>> getDTensorTensorflow(const tensorflow::Ten
     // wrap the Tensor into a device tensor
     optox::Shape<N> size;
     for (unsigned int i = 0; i < N; ++i)
-        size[i] = t_tensor.dimension(N - 1 - i);
+        size[i] = t_tensor.dimension(i);
     std::unique_ptr<optox::DTensor<T, N>> p(new optox::DTensor<T, N>(const_cast<T*>(t_tensor.data()), size, true));
 
     // do not return a copy but rather move its value
@@ -46,7 +46,7 @@ std::unique_ptr<optox::HTensor<T, N>> getHTensorTensorflow(tensorflow::Tensor &t
     // wrap the Tensor into a device tensor
     optox::Shape<N> size;
     for (unsigned int i = 0; i < N; ++i)
-        size[i] = t_tensor.dimension(N - 1 - i);
+        size[i] = t_tensor.dimension(i);
     std::unique_ptr<optox::HTensor<T, N>> p(new optox::HTensor<T, N>(t_tensor.data(), size, true));
 
     // do not return a copy but rather move its value
@@ -60,7 +60,7 @@ std::unique_ptr<optox::HTensor<T, N>> getHTensorTensorflow(const tensorflow::Ten
     // wrap the Tensor into a device tensor
     optox::Shape<N> size;
     for (unsigned int i = 0; i < N; ++i)
-        size[i] = t_tensor.dimension(N - 1 - i);
+        size[i] = t_tensor.dimension(i);
     std::unique_ptr<optox::HTensor<T, N>> p(new optox::HTensor<T, N>(const_cast<T*>(t_tensor.data()), size, true));
 
     // do not return a copy but rather move its value

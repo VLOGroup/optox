@@ -181,37 +181,42 @@ class OPTOX_DLLAPI DTensor : public Tensor<N>
             return data_[computeIndex(list)];
         }
 
-        template <typename T2, class = typename std::enable_if<
-                                   std::integral_constant<bool,
-                                                          std::is_integral<T2>::value &&
-                                                              std::integral_constant<bool, N == 1>::value>::value>::type>
+        template <typename T2, class = typename std::enable_if<std::is_integral<T2>{} && (N == 1)>::type>
         __DEVICE__ T &operator()(T2 i)
         {
             static_assert(N == 1, "wrong access for 1dim Tensor");
             return data_[i * stride_[0]];
         }
 
-        template <typename T2, class = typename std::enable_if<
-                                   std::integral_constant<bool,
-                                                          std::is_integral<T2>::value &&
-                                                              std::integral_constant<bool, N == 2>::value>::value>::type>
+        template <typename T2, class = typename std::enable_if<std::is_integral<T2>{} && (N == 2)>::type>
         __DEVICE__ T &operator()(T2 i, T2 j)
         {
             static_assert(N == 2, "wrong access for 2dim Tensor");
             return data_[i * stride_[0] + j * stride_[1]];
         }
 
-        template <typename T2, class = typename std::enable_if<
-                                   std::integral_constant<bool,
-                                                          std::is_integral<T2>::value &&
-                                                              std::integral_constant<bool, N == 3>::value>::value>::type>
+        template <typename T2, class = typename std::enable_if<std::is_integral<T2>{} && (N == 3)>::type>
         __DEVICE__ T &operator()(T2 i, T2 j, T2 k)
         {
             static_assert(N == 3, "wrong access for 3dim Tensor");
             return data_[i * stride_[0] + j * stride_[1] + k * stride_[2]];
         }
 
-        template <typename A0, typename... Args, class = typename std::enable_if<std::is_integral<A0>::value>::type>
+        template <typename T2, class = typename std::enable_if<std::is_integral<T2>{} && (N == 4)>::type>
+        __DEVICE__ T &operator()(T2 i, T2 j, T2 k, T2 l)
+        {
+            static_assert(N == 4, "wrong access for 4dim Tensor");
+            return data_[i * stride_[0] + j * stride_[1] + k * stride_[2] + l * stride_[3]];
+        }
+
+        template <typename T2, class = typename std::enable_if<std::is_integral<T2>{} && (N == 5)>::type>
+        __DEVICE__ T &operator()(T2 i, T2 j, T2 k, T2 l, T2 m)
+        {
+            static_assert(N == 5, "wrong access for 5dim Tensor");
+            return data_[i * stride_[0] + j * stride_[1] + k * stride_[2] + l * stride_[3] + m * stride_[4]];
+        }
+
+        template <typename A0, typename... Args, class = typename std::enable_if<std::is_integral<A0>{} && (N > 5)>::type>
         __DEVICE__ T &operator()(A0 a0, Args... args)
         {
             static_assert(sizeof...(Args) == N - 1, "wrong access for Ndim Tensor");
@@ -257,22 +262,39 @@ class OPTOX_DLLAPI DTensor : public Tensor<N>
         template <typename T2, class = typename std::enable_if<std::is_integral<T2>{} && (N == 1)>::type>
         __DEVICE__ const T &operator()(T2 i) const
         {
+            static_assert(N == 1, "wrong access for 1dim Tensor");
             return data_[i * stride_[0]];
         }
 
         template <typename T2, class = typename std::enable_if<std::is_integral<T2>{} && (N == 2)>::type>
         __DEVICE__ const T &operator()(T2 i, T2 j) const
         {
+            static_assert(N == 2, "wrong access for 2dim Tensor");
             return data_[i * stride_[0] + j * stride_[1]];
         }
 
         template <typename T2, class = typename std::enable_if<std::is_integral<T2>{} && (N == 3)>::type>
         __DEVICE__ const T &operator()(T2 i, T2 j, T2 k) const
         {
+            static_assert(N == 3, "wrong access for 3dim Tensor");
             return data_[i * stride_[0] + j * stride_[1] + k * stride_[2]];
         }
 
-        template <typename A0, typename... Args, class = typename std::enable_if<std::is_integral<A0>{} && (N > 3)>::type>
+        template <typename T2, class = typename std::enable_if<std::is_integral<T2>{} && (N == 4)>::type>
+        __DEVICE__ const T &operator()(T2 i, T2 j, T2 k, T2 l) const
+        {
+            static_assert(N == 4, "wrong access for 4dim Tensor");
+            return data_[i * stride_[0] + j * stride_[1] + k * stride_[2] + l * stride_[3]];
+        }
+
+        template <typename T2, class = typename std::enable_if<std::is_integral<T2>{} && (N == 5)>::type>
+        __DEVICE__ const T &operator()(T2 i, T2 j, T2 k, T2 l, T2 m) const
+        {
+            static_assert(N == 5, "wrong access for 5dim Tensor");
+            return data_[i * stride_[0] + j * stride_[1] + k * stride_[2] + l * stride_[3] + m * stride_[4]];
+        }
+
+        template <typename A0, typename... Args, class = typename std::enable_if<std::is_integral<A0>{} && (N > 5)>::type>
         __DEVICE__ const T &operator()(A0 a0, Args... args) const
         {
             static_assert(sizeof...(Args) == N - 1, "size missmatch");

@@ -16,15 +16,15 @@ __global__ void forward_differences(
     int ix = blockDim.x * blockIdx.x + threadIdx.x;
     int iy = blockDim.y * blockIdx.y + threadIdx.y;
 
-    if (ix < x.size_[0] && iy < x.size_[1])
+    if (ix < x.size_[2] && iy < x.size_[1])
     {
-        const int xp = ix + (ix < x.size_[0] - 1);
+        const int xp = ix + (ix < x.size_[2] - 1);
         const int yp = iy + (iy < x.size_[1] - 1);
 
-        y(ix, iy, 0) = x(xp, iy, 0) - x(ix, iy, 0);
-        y(ix, iy, 1) = x(xp, iy, 1) - x(ix, iy, 1);
-        y(ix, iy, 2) = x(ix, yp, 0) - x(ix, iy, 0);
-        y(ix, iy, 3) = x(ix, yp, 1) - x(ix, iy, 1);
+        y(0, iy, ix) = x(0, iy, xp) - x(0, iy, ix);
+        y(1, iy, ix) = x(1, iy, xp) - x(1, iy, ix);
+        y(2, iy, ix) = x(0, yp, ix) - x(0, iy, ix);
+        y(3, iy, ix) = x(1, yp, ix) - x(1, iy, ix);
     }
 }
 
@@ -37,21 +37,21 @@ __global__ void forward_differences(
     int iy = blockDim.y * blockIdx.y + threadIdx.y;
     int iz = blockDim.z * blockIdx.z + threadIdx.z;
 
-    if (ix < x.size_[0] && iy < x.size_[1] && iz < x.size_[2])
+    if (ix < x.size_[3] && iy < x.size_[2] && iz < x.size_[1])
     {
-        const int xp = ix + (ix < x.size_[0] - 1);
-        const int yp = iy + (iy < x.size_[1] - 1);
-        const int zp = iz + (iz < x.size_[2] - 1);
+        const int xp = ix + (ix < x.size_[3] - 1);
+        const int yp = iy + (iy < x.size_[2] - 1);
+        const int zp = iz + (iz < x.size_[1] - 1);
 
-        y(ix, iy, iz, 0) = x(xp, iy, iz, 0) - x(ix, iy, iz, 0);
-        y(ix, iy, iz, 1) = x(xp, iy, iz, 1) - x(ix, iy, iz, 1);
-        y(ix, iy, iz, 2) = x(xp, iy, iz, 2) - x(ix, iy, iz, 2);
-        y(ix, iy, iz, 3) = x(ix, yp, iz, 0) - x(ix, iy, iz, 0);
-        y(ix, iy, iz, 4) = x(ix, yp, iz, 1) - x(ix, iy, iz, 1);
-        y(ix, iy, iz, 5) = x(ix, yp, iz, 2) - x(ix, iy, iz, 2);
-        y(ix, iy, iz, 6) = x(ix, iy, zp, 0) - x(ix, iy, iz, 0);
-        y(ix, iy, iz, 7) = x(ix, iy, zp, 1) - x(ix, iy, iz, 1);
-        y(ix, iy, iz, 8) = x(ix, iy, zp, 2) - x(ix, iy, iz, 2);
+        y(0, iz, iy, ix) = x(0, iz, iy, xp) - x(0, iz, iy, ix);
+        y(1, iz, iy, ix) = x(1, iz, iy, xp) - x(1, iz, iy, ix);
+        y(2, iz, iy, ix) = x(2, iz, iy, xp) - x(2, iz, iy, ix);
+        y(3, iz, iy, ix) = x(0, iz, yp, ix) - x(0, iz, iy, ix);
+        y(4, iz, iy, ix) = x(1, iz, yp, ix) - x(1, iz, iy, ix);
+        y(5, iz, iy, ix) = x(2, iz, yp, ix) - x(2, iz, iy, ix);
+        y(6, iz, iy, ix) = x(0, zp, iy, ix) - x(0, iz, iy, ix);
+        y(7, iz, iy, ix) = x(1, zp, iy, ix) - x(1, iz, iy, ix);
+        y(8, iz, iy, ix) = x(2, zp, iy, ix) - x(2, iz, iy, ix);
     }
 }
 
@@ -62,20 +62,26 @@ void optox::Nabla2Operator<T, N>::computeForward(optox::OperatorOutputVector &&o
     auto x = this->template getInput<T, N+1>(0, inputs);
     auto y = this->template getOutput<T, N+1>(0, outputs);
 
-    if (x->size()[N] != N || y->size()[N] != N*N)
+    if (x->size()[0] != N || y->size()[0] != N*N)
         THROW_OPTOXEXCEPTION("Nabla2Operator: unsupported size");
 
     dim3 dim_block;
+    dim3 dim_grid;
     if (N == 2)
+    {
         dim_block = dim3(32, 32);
+        dim_grid = dim3(divUp(x->size()[2], dim_block.x),
+                        divUp(x->size()[1], dim_block.y));
+    }
     else if (N == 3)
+    {
         dim_block = dim3(16, 16, 3);
+        dim_grid = dim3(divUp(x->size()[3], dim_block.x),
+                        divUp(x->size()[2], dim_block.y),
+                        divUp(x->size()[1], dim_block.z));
+    }
     else
         THROW_OPTOXEXCEPTION("Nabla2Operator: unsupported dimension");
-
-    dim3 dim_grid(divUp(x->size()[0], dim_block.x),
-                  divUp(x->size()[1], dim_block.y),
-                  divUp(x->size()[2], dim_block.z));
 
     forward_differences<T> <<<dim_grid, dim_block, 0, this->stream_>>>(*y, *x);
     OPTOX_CUDA_CHECK;
@@ -90,42 +96,42 @@ __global__ void backward_differences(
     int ix = blockDim.x * blockIdx.x + threadIdx.x;
     int iy = blockDim.y * blockIdx.y + threadIdx.y;
 
-    if (ix < x.size_[0] && iy < x.size_[1])
+    if (ix < x.size_[2] && iy < x.size_[1])
     {
         T div_xx_x = (ix > 0) ? 
-                        (ix < x.size_[0] - 1) ?
-                                            -y(ix, iy, 0) + y(ix - 1, iy, 0)
+                        (ix < x.size_[2] - 1) ?
+                                            -y(0, iy, ix) + y(0, iy, ix - 1)
                                             :
-                                            y(ix - 1, iy, 0)
+                                            y(0, iy, ix - 1)
                         :
-                        -y(ix, iy, 0);
+                        -y(0, iy, ix);
 
         T div_xy_x = (ix > 0) ? 
-                        (ix < x.size_[0] - 1) ?
-                                            -y(ix, iy, 1) + y(ix - 1, iy, 1)
+                        (ix < x.size_[2] - 1) ?
+                                            -y(1, iy, ix) + y(1, iy, ix - 1)
                                             :
-                                            y(ix - 1, iy, 1)
+                                            y(1, iy, ix - 1)
                         :
-                        -y(ix, iy, 1);
+                        -y(1, iy, ix);
 
         T div_yx_y = (iy > 0) ? 
                         (iy < x.size_[1] - 1) ?
-                                            -y(ix, iy, 2) + y(ix, iy - 1, 2)
+                                            -y(2, iy, ix) + y(2, iy - 1, ix)
                                             :
-                                            y(ix, iy - 1, 2)
+                                            y(2, iy - 1, ix)
                         :
-                        -y(ix, iy, 2);
+                        -y(2, iy, ix);
 
         T div_yy_y = (iy > 0) ? 
                         (iy < x.size_[1] - 1) ?
-                                            -y(ix, iy, 3) + y(ix, iy - 1, 3)
+                                            -y(3, iy, ix) + y(3, iy - 1, ix)
                                             :
-                                            y(ix, iy - 1, 3)
+                                            y(3, iy - 1, ix)
                         :
-                        -y(ix, iy, 3);
+                        -y(3, iy, ix);
 
-        x(ix, iy, 0) = div_xx_x + div_yx_y;
-        x(ix, iy, 1) = div_yy_y + div_xy_x;
+        x(0, iy, ix) = div_xx_x + div_yx_y;
+        x(1, iy, ix) = div_yy_y + div_xy_x;
     }
 }
 
@@ -138,77 +144,77 @@ __global__ void backward_differences(
     int iy = blockDim.y * blockIdx.y + threadIdx.y;
     int iz = blockDim.z * blockIdx.z + threadIdx.z;
   
-    if (ix < x.size_[0] && iy < x.size_[1] && iz < x.size_[2])
+    if (ix < x.size_[3] && iy < x.size_[2] && iz < x.size_[1])
     {
         T div_xx_x = (ix > 0) ? 
-                        (ix < x.size_[0] - 1) ?
-                                            -y(ix, iy, iz, 0) + y(ix - 1, iy, iz, 0)
+                        (ix < x.size_[3] - 1) ?
+                                            -y(0, iz, iy, ix) + y(0, iz, iy, ix - 1)
                                             :
-                                            y(ix - 1, iy, iz, 0)
+                                            y(0, iz, iy, ix - 1)
                         :
-                        -y(ix, iy, iz, 0);
+                        -y(0, iz, iy, ix);
         T div_xy_x = (ix > 0) ? 
-                        (ix < x.size_[0] - 1) ?
-                                            -y(ix, iy, iz, 1) + y(ix - 1, iy, iz, 1)
+                        (ix < x.size_[3] - 1) ?
+                                            -y(1, iz, iy, ix) + y(1, iz, iy, ix - 1)
                                             :
-                                            y(ix - 1, iy, iz, 1)
+                                            y(1, iz, iy, ix - 1)
                         :
-                        -y(ix, iy, iz, 1);
+                        -y(1, iz, iy, ix);
         T div_xz_x = (ix > 0) ? 
-                        (ix < x.size_[0] - 1) ?
-                                            -y(ix, iy, iz, 2) + y(ix - 1, iy, iz, 2)
+                        (ix < x.size_[3] - 1) ?
+                                            -y(2, iz, iy, ix) + y(2, iz, iy, ix - 1)
                                             :
-                                            y(ix - 1, iy, iz, 2)
+                                            y(2, iz, iy, ix - 1)
                         :
-                        -y(ix, iy, iz, 2);
+                        -y(2, iz, iy, ix);
 
         T div_yx_y = (iy > 0) ? 
-                        (iy < x.size_[1] - 1) ?
-                                            -y(ix, iy, iz, 3) + y(ix, iy - 1, iz, 3)
+                        (iy < x.size_[2] - 1) ?
+                                            -y(3, iz, iy, ix) + y(3, iz, iy - 1, ix)
                                             :
-                                            y(ix, iy - 1, iz, 3)
+                                            y(3, iz, iy - 1, ix)
                         :
-                        -y(ix, iy, iz, 3);
+                        -y(3, iz, iy, ix);
         T div_yy_y = (iy > 0) ? 
-                        (iy < x.size_[1] - 1) ?
-                                            -y(ix, iy, iz, 4) + y(ix, iy - 1, iz, 4)
+                        (iy < x.size_[2] - 1) ?
+                                            -y(4, iz, iy, ix) + y(4, iz, iy - 1, ix)
                                             :
-                                            y(ix, iy - 1, iz, 4)
+                                            y(4, iz, iy - 1, ix)
                         :
-                        -y(ix, iy, iz, 4);
+                        -y(4, iz, iy, ix);
         T div_yz_y = (iy > 0) ? 
-                        (iy < x.size_[1] - 1) ?
-                                            -y(ix, iy, iz, 5) + y(ix, iy - 1, iz, 5)
+                        (iy < x.size_[2] - 1) ?
+                                            -y(5, iz, iy, ix) + y(5, iz, iy - 1, ix)
                                             :
-                                            y(ix, iy - 1, iz, 5)
+                                            y(5, iz, iy - 1, ix)
                         :
-                        -y(ix, iy, iz, 5);
+                        -y(5, iz, iy, ix);
         
         T div_zx_z = (iz > 0) ? 
-                        (iz < x.size_[2] - 1) ?
-                                            -y(ix, iy, iz, 6) + y(ix, iy, iz - 1, 6)
+                        (iz < x.size_[1] - 1) ?
+                                            -y(6, iz, iy, ix) + y(6, iz - 1, iy, ix)
                                             :
-                                            y(ix, iy, iz - 1, 6)
+                                            y(6, iz - 1, iy, ix)
                         :
-                        -y(ix, iy, iz, 6);
+                        -y(6, iz, iy, ix);
         T div_zy_z = (iz > 0) ? 
-                        (iz < x.size_[2] - 1) ?
-                                            -y(ix, iy, iz, 7) + y(ix, iy, iz - 1, 7)
+                        (iz < x.size_[1] - 1) ?
+                                            -y(7, iz, iy, ix) + y(7, iz - 1, iy, ix)
                                             :
-                                            y(ix, iy, iz - 1, 7)
+                                            y(7, iz - 1, iy, ix)
                         :
-                        -y(ix, iy, iz, 7);
+                        -y(7, iz, iy, ix);
         T div_zz_z = (iz > 0) ? 
-                        (iz < x.size_[2] - 1) ?
-                                            -y(ix, iy, iz, 8) + y(ix, iy, iz - 1, 8)
+                        (iz < x.size_[1] - 1) ?
+                                            -y(8, iz, iy, ix) + y(8, iz - 1, iy, ix)
                                             :
-                                            y(ix, iy, iz - 1, 8)
+                                            y(8, iz - 1, iy, ix)
                         :
-                        -y(ix, iy, iz, 8);
+                        -y(8, iz, iy, ix);
 
-        x(ix, iy, iz, 0) = div_xx_x + div_yx_y + div_zx_z;
-        x(ix, iy, iz, 1) = div_xy_x + div_yy_y + div_zy_z;
-        x(ix, iy, iz, 2) = div_xz_x + div_yz_y + div_zz_z;
+        x(0, iz, iy, ix) = div_xx_x + div_yx_y + div_zx_z;
+        x(1, iz, iy, ix) = div_xy_x + div_yy_y + div_zy_z;
+        x(2, iz, iy, ix) = div_xz_x + div_yz_y + div_zz_z;
     }
 }
 
@@ -219,20 +225,26 @@ void optox::Nabla2Operator<T, N>::computeAdjoint(optox::OperatorOutputVector &&o
     auto y = this->template getInput<T, N+1>(0, inputs);
     auto x = this->template getOutput<T, N+1>(0, outputs);
 
-    if (x->size()[N] != N || y->size()[N] != N*N)
+    if (x->size()[0] != N || y->size()[0] != N*N)
         THROW_OPTOXEXCEPTION("Nabla2Operator: unsupported size");
 
     dim3 dim_block;
+    dim3 dim_grid;
     if (N == 2)
+    {
         dim_block = dim3(32, 32);
+        dim_grid = dim3(divUp(x->size()[2], dim_block.x),
+                        divUp(x->size()[1], dim_block.y));
+    }
     else if (N == 3)
+    {
         dim_block = dim3(16, 16, 3);
+        dim_grid = dim3(divUp(x->size()[3], dim_block.x),
+                        divUp(x->size()[2], dim_block.y),
+                        divUp(x->size()[1], dim_block.z));
+    }
     else
         THROW_OPTOXEXCEPTION("Nabla2Operator: unsupported dimension");
-
-    dim3 dim_grid(divUp(x->size()[0], dim_block.x),
-                  divUp(x->size()[1], dim_block.y),
-                  divUp(x->size()[2], dim_block.z));
 
     backward_differences<T> <<<dim_grid, dim_block, 0, this->stream_>>>(*x, *y);
     OPTOX_CUDA_CHECK;

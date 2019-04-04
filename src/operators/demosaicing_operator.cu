@@ -17,40 +17,40 @@ __global__ void demosaicingForwardKernel(
     const int y = 2 * (threadIdx.y + blockIdx.y * blockDim.y);
     const int s = threadIdx.z + blockIdx.z * blockDim.z;
     
-    if (x < input.size_[1] && y < input.size_[2] && s < input.size_[3])
+    if (x < input.size_[2] && y < input.size_[1] && s < input.size_[0])
     {
         switch (P)
         {
             case optox::BayerPattern::BGGR:
             {
-                output(0, x, y, s) = input(2, x, y, s);
-                output(0, x+1, y, s) = input(1, x+1, y, s);
-                output(0, x, y+1, s) = input(1, x, y+1, s);
-                output(0, x+1, y+1, s) = input(0, x+1, y+1, s);
+                output(s, y, x, 0) = input(s, y, y, 2);
+                output(s, y, x+1, 0) = input(s, y, x+1, 1);
+                output(s, y+1, x, 0) = input(s, y+1, x, 1);
+                output(s, y+1, x+1, 0) = input(s, y+1, y+1, 0);
                 break;
             }
             case optox::BayerPattern::RGGB:
             {
-                output(0, x, y, s) = input(0, x, y, s);
-                output(0, x+1, y, s) = input(1, x+1, y, s);
-                output(0, x, y+1, s) = input(1, x, y+1, s);
-                output(0, x+1, y+1, s) = input(2, x+1, y+1, s);
+                output(s, x, y, 0) = input(s, y, x, 0);
+                output(s, y, x+1, 0) = input(s, y, x+1, 1);
+                output(s, y+1, x, 0) = input(s, y+1, x, 1);
+                output(s, y+1, x+1, 0) = input(s, y+1, x+1, 2);
                 break;
             }
             case optox::BayerPattern::GBRG:
             {
-                output(0, x, y, s) = input(1, x, y, s);
-                output(0, x+1, y, s) = input(2, x+1, y, s);
-                output(0, x, y+1, s) = input(0, x, y+1, s);
-                output(0, x+1, y+1, s) = input(1, x+1, y+1, s);
+                output(s, x, y, 0) = input(s, y, x, 1);
+                output(s, y, x+1, 0) = input(s, y, x+1, 2);
+                output(s, y+1, x, 0) = input(s, y+1, x, 0);
+                output(s, y+1, x+1, 0) = input(s, y+1, x+1, 1);
                 break;
             }
             case optox::BayerPattern::GRBG:
             {
-                output(0, x, y, s) = input(1, x, y, s);
-                output(0, x+1, y, s) = input(0, x+1, y, s);
-                output(0, x, y+1, s) = input(2, x, y+1, s);
-                output(0, x+1, y+1, s) = input(1, x+1, y+1, s);
+                output(s, x, y, 0) = input(s, y, x, 1);
+                output(s, y, x+1, 0) = input(s, y, x+1, 0);
+                output(s, y+1, x, 0) = input(s, y+1, x, 2);
+                output(s, y+1, x+1, 0) = input(s, y+1, x+1, 1);
                 break;
             }
         }
@@ -64,16 +64,16 @@ void optox::DemosaicingOperator<T>::computeForward(optox::OperatorOutputVector &
     auto input = this->template getInput<T, 4>(0, inputs);
     auto output = this->template getOutput<T, 4>(0, outputs);
 
-    if (input->size()[0] != 3)
+    if (input->size()[3] != 3)
         THROW_OPTOXEXCEPTION("DemosaicingOperator: input to forward must be RGB image!");
 
-    if (output->size()[0] != 1)
+    if (output->size()[3] != 1)
         THROW_OPTOXEXCEPTION("DemosaicingOperator: output of forward must have 1 channel!");
 
     dim3 dim_block = dim3(32, 32, 1);
-    dim3 dim_grid(divUp(input->size()[1] / 2 + 1, dim_block.x),
-                  divUp(input->size()[2] / 2 + 1, dim_block.y),
-                  divUp(input->size()[3], dim_block.z));
+    dim3 dim_grid(divUp(input->size()[2] / 2 + 1, dim_block.x),
+                  divUp(input->size()[1] / 2 + 1, dim_block.y),
+                  divUp(input->size()[0], dim_block.z));
 
     switch (this->pattern_)
     {
@@ -102,40 +102,40 @@ __global__ void demosaicingAdjointKernel(
     const int y = 2 * (threadIdx.y + blockIdx.y * blockDim.y);
     const int s = threadIdx.z + blockIdx.z * blockDim.z;
     
-    if (x < input.size_[1] && y < input.size_[2] && s < input.size_[3])
+    if (x < input.size_[2] && y < input.size_[1] && s < input.size_[0])
     {
         switch (P)
         {
             case optox::BayerPattern::BGGR:
             {
-		output(2, x, y, s) = input(0, x, y, s);
-                output(1, x+1, y, s) = input(0, x+1, y, s);
-                output(1, x, y+1, s) = input(0, x, y+1, s);
-                output(0, x+1, y+1, s) = input(0, x+1, y+1, s);
+		        output(s, y, x, 2) = input(s, y, x, 0);
+                output(s, y, x+1, 1) = input(s, y, x+1, 0);
+                output(s, y+1, x, 1) = input(s, y+1, x, 0);
+                output(s, y+1, x+1, 0) = input(s, y+1, x+1, 0);
                 break;
             }
             case optox::BayerPattern::RGGB:
             {
-		output(0, x, y, s) = input(0, x, y, s);
-                output(1, x+1, y, s) = input(0, x+1, y, s);
-                output(1, x, y+1, s) = input(0, x, y+1, s);
-                output(2, x+1, y+1, s) = input(0, x+1, y+1, s);
+                output(s, y, x, 0) = input(s, y, x, 0);
+                output(s, y, x+1, 1) = input(s, y, x+1, 0);
+                output(s, y+1, x, 1) = input(s, y+1, x, 0);
+                output(s, y+1, x+1, 2) = input(s, y+1, x+1, 0);
                 break;
             }
             case optox::BayerPattern::GBRG:
             {	
-		output(1, x, y, s) = input(0, x, y, s);
-                output(2, x+1, y, s) = input(0, x+1, y, s);
-                output(0, x, y+1, s) = input(0, x, y+1, s);
-                output(1, x+1, y+1, s) = input(0, x+1, y+1, s);
+                output(s, y, x, 1) = input(s, y, x, 0);
+                output(s, y, x+1, 2) = input(s, y, x+1, 0);
+                output(s, y+1, x, 0) = input(s, y+1, x, 0);
+                output(s, y+1, x+1, 1) = input(s, y+1, x+1, 0);
                 break;
             }
             case optox::BayerPattern::GRBG:
             {
-		output(1, x, y, s) = input(0, x, y, s);
-                output(0, x+1, y, s) = input(0, x+1, y, s);
-                output(2, x, y+1, s) = input(0, x, y+1, s);
-                output(1, x+1, y+1, s) = input(0, x+1, y+1, s);
+                output(s, y, x, 1) = input(s, y, x, 0);
+                output(s, y, x+1, 0) = input(s, y, x+1, 0);
+                output(s, y+1, x, 2) = input(s, y+1, x, 0);
+                output(s, y+1, x+1, 1) = input(s, y+1, x+1, 0);
                 break;
             }
         }
@@ -149,18 +149,18 @@ void optox::DemosaicingOperator<T>::computeAdjoint(optox::OperatorOutputVector &
     auto input = this->template getInput<T, 4>(0, inputs);
     auto output = this->template getOutput<T, 4>(0, outputs);
 
-    if (input->size()[0] != 1)
+    if (input->size()[3] != 1)
         THROW_OPTOXEXCEPTION("DemosaicingOperator: input to adjoint must have 1 channel!");
 
-    if (output->size()[0] != 3)
+    if (output->size()[3] != 3)
         THROW_OPTOXEXCEPTION("DemosaicingOperator: output of adjoint must be RGB image!");
 
     output->fill(0);
 
     dim3 dim_block = dim3(32, 32, 1);
-    dim3 dim_grid(divUp(input->size()[1] / 2 + 1, dim_block.x),
-                  divUp(input->size()[2] / 2 + 1, dim_block.y),
-                  divUp(input->size()[3], dim_block.z));
+    dim3 dim_grid(divUp(input->size()[2] / 2 + 1, dim_block.x),
+                  divUp(input->size()[1] / 2 + 1, dim_block.y),
+                  divUp(input->size()[0], dim_block.z));
 
     switch (this->pattern_)
     {

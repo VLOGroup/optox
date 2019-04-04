@@ -29,7 +29,7 @@ std::unique_ptr<optox::DTensor<T, N>> getDTensorNp(py::array &array)
     // wrap the Tensor into a device tensor
     optox::Shape<N> size;
     for (unsigned int i = 0; i < N; ++i)
-        size[i] = array.shape()[N - 1 - i];
+        size[i] = array.shape()[i];
     std::unique_ptr<optox::DTensor<T, N>> p(new optox::DTensor<T, N>(size));
     p->copyFromHostPtr(reinterpret_cast<const T *>(array.data()));
 
@@ -49,9 +49,9 @@ py::array dTensorToNp(const optox::DTensor<T, N> &d_tensor)
     std::vector<ssize_t> strides;
     for (unsigned int i = 0; i < N; ++i)
     {
-        shape.push_back(h_tensor.size()[N - 1 - i]);
+        shape.push_back(h_tensor.size()[i]);
         // stride needs to be in bytes
-        strides.push_back(h_tensor.stride()[N - 1 - i] * sizeof(T));
+        strides.push_back(h_tensor.stride()[i] * sizeof(T));
     }
 
     return py::array(py::buffer_info(
