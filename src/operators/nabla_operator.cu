@@ -36,11 +36,11 @@ __global__ void forward_differences(
     int iy = blockDim.y * blockIdx.y + threadIdx.y;
     int iz = blockDim.z * blockIdx.z + threadIdx.z;
   
-    if (ix < x.size_[0] && iy < x.size_[1] && iz < x.size_[2])
+    if (ix < x.size_[2] && iy < x.size_[1] && iz < x.size_[1])
     {
-        const int xp = ix + (ix < x.size_[0] - 1);
+        const int xp = ix + (ix < x.size_[2] - 1);
         const int yp = iy + (iy < x.size_[1] - 1);
-        const int zp = iz + (iz < x.size_[2] - 1);
+        const int zp = iz + (iz < x.size_[0] - 1);
         
         y(0, iz, iy , ix) = x(iz, iy, xp) - x(iz, iy, ix);
         y(1, iz, iy , ix) = x(iz, yp, ix) - x(iz, iy, ix);
