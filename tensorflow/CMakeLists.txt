@@ -44,6 +44,15 @@ target_link_libraries(tf_nabla_operator optox "tensorflow_framework")
 set_target_properties(tf_nabla_operator PROPERTIES PREFIX "" LINKER_LANGUAGE CXX)
 
 ##----------------------------------------------------------------------------
+## demosaicing operator
+##----------------------------------------------------------------------------
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/optotf/demosaicing)
+cuda_add_library(tf_demosaicing_operator SHARED tf_demosaicing.cpp)
+
+target_link_libraries(tf_demosaicing_operator optox "tensorflow_framework")
+set_target_properties(tf_demosaicing_operator PROPERTIES PREFIX "" LINKER_LANGUAGE CXX)
+
+##----------------------------------------------------------------------------
 ## packageing using python setup
 ##----------------------------------------------------------------------------
 if (PYTHON)
@@ -54,6 +63,8 @@ if (PYTHON)
         tf_utils.h
         optotf/nabla/__init__.py
         tf_nabla_operator.cpp
+        optotf/demosaicing/__init__.py
+        tf_demosaicing.cpp
     )
     set(OUTPUT_TF "${CMAKE_CURRENT_BINARY_DIR}/timestamp")
 

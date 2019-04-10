@@ -3,18 +3,15 @@
 ///@author Joana Grah <joana.grah@icg.tugraz.at>
 ///@date 09.07.2018
 
-#include <iostream>
-#include <cuda.h>
+#include "tf_utils.h"
+#include "operators/demosaicing_operator.h"
 
-
-#include "tensorflow/core/framework/op.h"
-#include "tensorflow/core/framework/shape_inference.h"
-#include "tensorflow/core/framework/common_shape_fns.h"
-#include "tensorflow/core/framework/op_kernel.h"
-#include "tensorflow/core/platform/default/integral_types.h"
-#include "tensorflow/core/util/tensor_format.h"
-
-#include "tf_demosaicing.h"
+#include <tensorflow/core/framework/op.h>
+#include <tensorflow/core/framework/shape_inference.h>
+#include <tensorflow/core/framework/common_shape_fns.h>
+#include <tensorflow/core/framework/op_kernel.h>
+#include <tensorflow/core/platform/default/integral_types.h>
+#include <tensorflow/core/util/tensor_format.h>
 
 using namespace tensorflow;
 using namespace std;
@@ -27,8 +24,8 @@ using GPUDevice = Eigen::GpuDevice;
  */
 REGISTER_OP("DemosaicingOperatorForward")
     .Input("input: T")
-    .Input("pattern: int32")
     .Output("output: T")
+    .Attr("bayerpattern: {'RGGB', 'BGGR', 'GBRG', 'GRBG'} = 'RGGB'")
     .Attr("T: realnumbertype")
     .SetShapeFn([](shape_inference::InferenceContext *c) {
         shape_inference::ShapeHandle input;
@@ -43,8 +40,8 @@ REGISTER_OP("DemosaicingOperatorForward")
 
 REGISTER_OP("DemosaicingOperatorAdjoint")
     .Input("input: T")
-    .Input("pattern: int32")
     .Output("output: T")
+    .Attr("bayerpattern: {'RGGB', 'BGGR', 'GBRG', 'GRBG'} = 'RGGB'")
     .Attr("T: realnumbertype")
     .SetShapeFn([](shape_inference::InferenceContext *c) {
         shape_inference::ShapeHandle input;
@@ -58,66 +55,67 @@ REGISTER_OP("DemosaicingOperatorAdjoint")
     });
 
 template <typename T>
-class TFDemosaicingForward : public OpKernel {
-public:
-	
-	explicit TFDemosaicingForward(OpKernelConstruction* context) 
-		: OpKernel(context)
-	{
-		//Check any attributes
-	}
+class TFDemosaicingForward : public OpKernel
+{
+  public:
+    explicit TFDemosaicingForward(OpKernelConstruction *context)
+        : OpKernel(context)
+    {
+        //Check any attributes
+        std::string pattern_str;
+        OP_REQUIRES_OK(context, context->GetAttr("bayerpattern", &pattern_str));
 
-    void Compute(OpKernelContext* context) override
+        op_ = new optox::DemosaicingOperator<T>(pattern_str);
+    }
+
+    virtual ~TFDemosaicingForward()
+    {
+        if (op_)
+            delete op_;
+    }
+
+    void Compute(OpKernelContext *context) override
     {
         // Grab the input tensor
-        const Tensor& input_tensor = context->input(0);
+        const Tensor &input_tensor = context->input(0);
 
         // Check dimensionality
         OP_REQUIRES(context, input_tensor.dims() == 4,
                     errors::Unimplemented("Expected a 4d Tensor, got ",
-                                            input_tensor.dims(), "d."));
-        int N = input_tensor.dims();
+                                          input_tensor.dims(), "d."));
 
         OP_REQUIRES(context, input_tensor.dim_size(3) == 3,
                     errors::Unimplemented("Expected the channel dimension to be 3, got ",
-                                            input_tensor.dim_size(3), "."));
-
-        // extract the bayer pattern
-        const Tensor &pattern_tensor = context->input(1);
-        OP_REQUIRES(context, TensorShapeUtils::IsScalar(pattern_tensor.shape()),
-                    errors::Unimplemented("Expected pattern to be a scalar!"));
-
-        int p = pattern_tensor.scalar<int>()();
-        OP_REQUIRES(context, p >= 0 && p < 4,
-                    errors::Unimplemented("Invalid pattern!"));
-        optox::BayerPattern pattern = static_cast<optox::BayerPattern>(p);
+                                          input_tensor.dim_size(3), "."));
 
         // Prepare output shape
         auto output_shape = input_tensor.shape();
-
         output_shape.set_dim(3, 1);
 
         // Create an output tensor
-        Tensor* output_tensor = NULL;
+        Tensor *output_tensor = nullptr;
         OP_REQUIRES_OK(context, context->allocate_output(0, output_shape,
-                                                        &output_tensor));
+                                                         &output_tensor));
 
-        // Flat inner dimensions
-        auto in = input_tensor.tensor<T,4>();
-        auto out = output_tensor->tensor<T,4>();
+        // compute the output
+        auto input = getDTensorTensorflow<T, 4>(input_tensor);
+        auto output = getDTensorTensorflow<T, 4>(*output_tensor);
 
-        // Call the kernel
-        DemosaicingOperatorWrapper<T>(pattern).forward(context->eigen_device<GPUDevice>(), out, in);
+        op_->setStream(context->eigen_device<GPUDevice>().stream());
+        op_->forward({output.get()}, {input.get()});
     }
+
+  private:
+    optox::DemosaicingOperator<T> *op_ = nullptr;
 };
 
-#define REGISTER_GPU(T) \
-	REGISTER_KERNEL_BUILDER( \
-		Name("DemosaicingOperatorForward") \
-		.Device(DEVICE_GPU) \
-        .HostMemory("pattern") \
-		.TypeConstraint<T>("T"), \
-		TFDemosaicingForward<T>)
+#define REGISTER_GPU(T)                    \
+    REGISTER_KERNEL_BUILDER(               \
+        Name("DemosaicingOperatorForward") \
+            .Device(DEVICE_GPU)            \
+            .HostMemory("pattern")         \
+            .TypeConstraint<T>("T"),       \
+        TFDemosaicingForward<T>)
 
 REGISTER_GPU(float);
 REGISTER_GPU(double);
@@ -125,38 +123,38 @@ REGISTER_GPU(double);
 #undef REGISTER_GPU
 
 template <typename T>
-class TFDemosaicingAdjoint : public OpKernel {
-public:
-	
-	explicit TFDemosaicingAdjoint(OpKernelConstruction* context) 
-		: OpKernel(context)
-	{
-	}
-
-	void Compute(OpKernelContext* context) override
+class TFDemosaicingAdjoint : public OpKernel
+{
+  public:
+    explicit TFDemosaicingAdjoint(OpKernelConstruction *context)
+        : OpKernel(context)
     {
-	    // Grab the input tensor
-        const Tensor& input_tensor = context->input(0);
+        //Check any attributes
+        std::string pattern_str;
+        OP_REQUIRES_OK(context, context->GetAttr("bayerpattern", &pattern_str));
+
+        op_ = new optox::DemosaicingOperator<T>(pattern_str);
+    }
+
+    virtual ~TFDemosaicingAdjoint()
+    {
+        if (op_)
+            delete op_;
+    }
+
+    void Compute(OpKernelContext *context) override
+    {
+        // Grab the input tensor
+        const Tensor &input_tensor = context->input(0);
 
         // Check dimensionality
         OP_REQUIRES(context, input_tensor.dims() == 4,
                     errors::Unimplemented("Expected a 4d Tensor, got ",
-                                            input_tensor.dims(), "d."));
-        int N = input_tensor.dims();
+                                          input_tensor.dims(), "d."));
 
         OP_REQUIRES(context, input_tensor.dim_size(3) == 1,
                     errors::Unimplemented("Expected the channel dimension to be 1, got ",
-                                            input_tensor.dim_size(3), "."));
-
-        // extract the bayer pattern
-        const Tensor &pattern_tensor = context->input(1);
-        OP_REQUIRES(context, TensorShapeUtils::IsScalar(pattern_tensor.shape()),
-                    errors::Unimplemented("Expected pattern to be a scalar!"));
-
-        int p = pattern_tensor.scalar<int>()();
-        OP_REQUIRES(context, p >= 0 && p < 4,
-                    errors::Unimplemented("Invalid pattern!"));
-        optox::BayerPattern pattern = static_cast<optox::BayerPattern>(p);
+                                          input_tensor.dim_size(3), "."));
 
         // Prepare output shape
         auto output_shape = input_tensor.shape();
@@ -164,26 +162,29 @@ public:
         output_shape.set_dim(3, 3);
 
         // Create an output tensor
-        Tensor* output_tensor = NULL;
+        Tensor *output_tensor = NULL;
         OP_REQUIRES_OK(context, context->allocate_output(0, output_shape,
-                                                        &output_tensor));
+                                                         &output_tensor));
 
-        // Flat inner dimensions
-        auto in = input_tensor.tensor<T,4>();
-        auto out = output_tensor->tensor<T,4>();
+        // compute the output
+        auto input = getDTensorTensorflow<T, 4>(input_tensor);
+        auto output = getDTensorTensorflow<T, 4>(*output_tensor);
 
-        // Call the kernel
-        DemosaicingOperatorWrapper<T>(pattern).adjoint(context->eigen_device<GPUDevice>(), out, in);
-	}
+        op_->setStream(context->eigen_device<GPUDevice>().stream());
+        op_->adjoint({output.get()}, {input.get()});
+    }
+
+  private:
+    optox::DemosaicingOperator<T> *op_ = nullptr;
 };
 
-#define REGISTER_GPU(T) \
-	REGISTER_KERNEL_BUILDER( \
-		Name("DemosaicingOperatorAdjoint") \
-		.Device(DEVICE_GPU) \
-        .HostMemory("pattern") \
-		.TypeConstraint<T>("T"), \
-		TFDemosaicingAdjoint<T>)
+#define REGISTER_GPU(T)                    \
+    REGISTER_KERNEL_BUILDER(               \
+        Name("DemosaicingOperatorAdjoint") \
+            .Device(DEVICE_GPU)            \
+            .HostMemory("pattern")         \
+            .TypeConstraint<T>("T"),       \
+        TFDemosaicingAdjoint<T>)
 
 REGISTER_GPU(float);
 REGISTER_GPU(double);

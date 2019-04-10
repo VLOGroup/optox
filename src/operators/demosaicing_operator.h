@@ -18,13 +18,28 @@ enum BayerPattern
     GRBG,
 };
 
+BayerPattern fromString(const std::string & str)
+{
+    if (str == "RGGB")
+        return BayerPattern::RGGB;
+    else if (str == "BGGR")
+        return BayerPattern::BGGR;
+    else if (str == "GBRG")
+        return BayerPattern::GBRG;
+    else if (str == "GRBG")
+        return BayerPattern::GRBG;
+    else 
+        throw std::runtime_error("Invalid bayer pattern!");
+}
+
 template <typename T>
 class OPTOX_DLLAPI DemosaicingOperator : public IOperator
 {
   public:
     /** Constructor.
    */
-    DemosaicingOperator(optox::BayerPattern p) : IOperator(), pattern_(p)
+    DemosaicingOperator(const std::string &pattern) : IOperator(), 
+        pattern_(fromString(pattern))
     {
     }
 

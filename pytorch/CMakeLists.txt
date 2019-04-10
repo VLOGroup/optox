@@ -29,6 +29,8 @@ if (PYTHON)
         optoth/nabla.py
         optoth/nabla2.py
         th_nabla_operator.cpp
+        optoth/demosaicing.py
+        th_demosaicing_operator.cpp
     )
     set(OUTPUT_TH "${CMAKE_CURRENT_BINARY_DIR}/timestamp")
 
