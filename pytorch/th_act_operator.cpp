@@ -23,7 +23,7 @@ at::Tensor forward(optox::IActOperator<T> &op, at::Tensor th_input, at::Tensor t
     auto weights = getDTensorTorch<T, 2>(th_weights);
 
     // allocate the output tensor
-    auto th_output = at::zeros_like(th_input);
+    auto th_output = at::empty_like(th_input);
     auto output = getDTensorTorch<T, 2>(th_output);
     
     op.forward({output.get()}, {input.get(), weights.get()});

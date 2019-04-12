@@ -21,7 +21,7 @@ at::Tensor forward(optox::DemosaicingOperator<T> &op, at::Tensor th_input)
     // allocate the output tensor
     auto in_shape = th_input.sizes().vec();
     in_shape[3] = 1;
-    auto th_output = at::empty(in_shape, th_input.type());
+    auto th_output = at::empty(in_shape, th_input.options());
     auto output = getDTensorTorch<T, 4>(th_output);
 
     op.forward({output.get()}, {input.get()});
@@ -38,7 +38,7 @@ at::Tensor adjoint(optox::DemosaicingOperator<T> &op, at::Tensor th_input)
     // allocate the output tensor
     auto in_shape = th_input.sizes().vec();
     in_shape[3] = 3;
-    auto th_output = at::empty(in_shape, th_input.type());
+    auto th_output = at::empty(in_shape, th_input.options());
     auto output = getDTensorTorch<T, 4>(th_output);
     
     op.adjoint({output.get()}, {input.get()});
