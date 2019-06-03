@@ -43,8 +43,8 @@ class ActivationFunction(torch.autograd.Function):
         return grad_x, grad_weights, None, None, None
 
     @staticmethod
-    def draw(weights, base_type, vmin, vmax):
-        x = torch.linspace(2*vmin, 2*vmax, 1001, dtype=weights.dtype).unsqueeze_(0)
+    def draw(weights, base_type, vmin, vmax, scale=2):
+        x = torch.linspace(scale*vmin, scale*vmax, 1001, dtype=weights.dtype).unsqueeze_(0)
         x = x.repeat(weights.shape[0], 1)
         op = ActivationFunction._get_operator(x.dtype, base_type, vmin, vmax)
         f_x = op.forward(x.to(weights.device), weights)
@@ -100,7 +100,7 @@ def projection_onto_grad_bound(x, A, gmin, gmax, num_max_iter=3000, stopping_val
     np_l_old = np_l.copy()
 
     for k in range(1,num_max_iter+1):
-        beta = 0#(k - 1) / (k + 2)
+        beta = 0.#(k - 1) / (k + 2)
         np_l_hat = np_l + beta * (np_l - np_l_old)
         np_l_old = np_l.copy()
 
@@ -112,19 +112,17 @@ def projection_onto_grad_bound(x, A, gmin, gmax, num_max_iter=3000, stopping_val
 
         np_diff = np.sqrt(np.mean((np_x_old - np_x) ** 2))
 
-        if np_diff > 1.:
-            exit()
-
         if k > 1 and np_diff < stopping_value:
             break
 
-    # print('   Projection onto linear constraints: %d/%d iterations' % (k, num_max_iter))
+    if np_diff > stopping_value:
+        print('   Projection onto linear constraints: %d/%d iterations' % (k, num_max_iter))
 
     x.data = torch.as_tensor(np_x.T, dtype=x.dtype, device=x.device)
 
 class TrainableActivation(nn.Module):
     def __init__(self, num_channels, vmin, vmax, num_weights, base_type="rbf", init="linear", init_scale=1.0,
-                    gmin=None, gmax=None):
+                    bmin=None, bmax=None, gmin=None, gmax=None):
         super(TrainableActivation, self).__init__()
 
         self.num_channels = num_channels
@@ -134,6 +132,8 @@ class TrainableActivation(nn.Module):
         self.base_type = base_type
         self.init = init
         self.init_scale = init_scale
+        self.bmin = bmin
+        self.bmax = bmax
         self.gmin = gmin
         self.gmax = gmax
 
@@ -146,7 +146,11 @@ class TrainableActivation(nn.Module):
         # possibly add a projection function
         # self.weight.proj = lambda _: pass
 
-        if gmin is not None or gmax is not None:
+        if bmin is not None or bmax is not None or gmin is not None or gmax is not None:
+            if bmin is None:
+                bmin = -np.Inf
+            if bmax is None:
+                bmax = np.Inf
             if gmin is None:
                 gmin = -np.Inf
             if gmax is None:
@@ -155,11 +159,20 @@ class TrainableActivation(nn.Module):
             if self.base_type == 'linear':
                 # define the constraint
                 delta_x = (self.vmax - self.vmin) / (self.num_weights - 1)
+                eye = np.eye(self.num_weights)
                 forward_differences = (np.diag(-np.ones((self.num_weights,)), k=0)[:-1, :] +
                                        np.diag(np.ones(self.num_weights - 1, ), k=1)[:-1, :]) / delta_x
-
-                self.weight.proj = lambda: projection_onto_grad_bound(self.weight, forward_differences, 
-                                self.gmin, self.gmax)
+                A = np.vstack((eye, forward_differences))
+                lower_bound = np.vstack((
+                    bmin * np.ones((self.num_weights, self.num_channels), dtype=np.float32),
+                    gmin * np.ones((self.num_weights-1, self.num_channels), dtype=np.float32)
+                ))
+                upper_bound = np.vstack((
+                    bmax * np.ones((self.num_weights, self.num_channels), dtype=np.float32),
+                    gmax * np.ones((self.num_weights-1, self.num_channels), dtype=np.float32)
+                ))
+                self.weight.proj = lambda: projection_onto_grad_bound(self.weight, A, 
+                                lower_bound, upper_bound)
             else:
                 raise RuntimeError("Gradient bound not supported for base type: '{}'".format(self.base_type))
 
@@ -173,13 +186,19 @@ class TrainableActivation(nn.Module):
         # define the bins
         np_x = np.linspace(self.vmin, self.vmax, self.num_weights, dtype=np.float32)[np.newaxis, :]
         # initialize the weights
-        if self.init == "linear":
+        if self.init == "constant":
+            np_w = np.ones_like(np_x) * self.init_scale
+        elif self.init == "linear":
             np_w = np_x * self.init_scale
         elif self.init == "quadratic":
             np_w = np_x**2 * self.init_scale
         elif self.init == "student-t":
             alpha = 100
             np_w = self.init_scale * np.sqrt(alpha) * np_x / (1 + 0.5 * alpha * np_x ** 2)
+        elif self.init == "invert":
+            np_w = self.init_scale / np_x
+            if not np.all(np.isfinite(np_w)):
+                raise RuntimeError("Invalid value encountered in weight init!")
         else:
             raise RuntimeError("Unsupported init type '{}'!".format(self.init))
         # tile to proper size
@@ -195,12 +214,12 @@ class TrainableActivation(nn.Module):
         x_r = self.op.apply(x_r, self.weight, self.base_type, self.vmin, self.vmax)
         return x_r.view(x.shape).transpose_(0, 1)
 
-    def draw(self):
-        return self.op.draw(self.weight, self.base_type, self.vmin, self.vmax)
+    def draw(self, scale=2):
+        return self.op.draw(self.weight, self.base_type, self.vmin, self.vmax, scale=scale)
 
     def extra_repr(self):
         s = "num_channels={num_channels}, num_weights={num_weights}, type={base_type}, vmin={vmin}, vmax={vmax}, init={init}, init_scale={init_scale}"
-        s += " gmin={gmin}, gmax={gmax}"
+        s += " bmin={bmin}, bmax={bmax}, gmin={gmin}, gmax={gmax}"
         return s.format(**self.__dict__)
 
 
