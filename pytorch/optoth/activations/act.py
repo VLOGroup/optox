@@ -122,7 +122,7 @@ def projection_onto_grad_bound(x, A, gmin, gmax, num_max_iter=3000, stopping_val
 
 class TrainableActivation(nn.Module):
     def __init__(self, num_channels, vmin, vmax, num_weights, base_type="rbf", init="linear", init_scale=1.0,
-                    bmin=None, bmax=None, gmin=None, gmax=None):
+                 group=1, bmin=None, bmax=None, gmin=None, gmax=None, symmetric=False):
         super(TrainableActivation, self).__init__()
 
         self.num_channels = num_channels
@@ -132,10 +132,12 @@ class TrainableActivation(nn.Module):
         self.base_type = base_type
         self.init = init
         self.init_scale = init_scale
+        self.group = group
         self.bmin = bmin
         self.bmax = bmax
         self.gmin = gmin
         self.gmax = gmax
+        self.symmetric = symmetric
 
         # setup the parameters of the layer
         self.weight = nn.Parameter(torch.Tensor(self.num_channels, self.num_weights))
@@ -146,7 +148,20 @@ class TrainableActivation(nn.Module):
         # possibly add a projection function
         # self.weight.proj = lambda _: pass
 
-        if bmin is not None or bmax is not None or gmin is not None or gmax is not None:
+        if self.symmetric:
+            # first construct the symmetry matrix
+            I = np.eye(self.num_weights // 2, dtype=np.float32)
+            I_a = I[:, ::-1]
+            M_t = np.concatenate([I, np.zeros((self.num_weights // 2, 1), dtype=np.float32), I_a], axis=1)
+            M_b = np.concatenate([I_a, np.zeros((self.num_weights // 2, 1), dtype=np.float32), I], axis=1)
+            M = np.concatenate([M_t, np.zeros((1, self.num_weights), dtype=np.float32), M_b])
+            M[self.num_weights // 2, self.num_weights // 2] = 2
+            self.register_buffer('M', torch.tensor(M))
+
+            # apply the symmetry constraint
+            self.weight.proj = lambda: self.weight.data - self.weight.data @ self.M / 2
+
+        elif bmin is not None or bmax is not None or gmin is not None or gmax is not None:
             if bmin is None:
                 bmin = -np.Inf
             if bmax is None:
@@ -209,7 +224,9 @@ class TrainableActivation(nn.Module):
     def forward(self, x):
         # first reshape the input
         x = x.transpose(0, 1).contiguous()
-        x_r = x.view(x.shape[0], -1)
+        if x.shape[0] % self.group != 0:
+            raise RuntimeError("Input shape must be a multiple of group!") 
+        x_r = x.view(x.shape[0]//self.group, -1)
         # compute the output
         x_r = self.op.apply(x_r, self.weight, self.base_type, self.vmin, self.vmax)
         return x_r.view(x.shape).transpose_(0, 1)
@@ -219,7 +236,7 @@ class TrainableActivation(nn.Module):
 
     def extra_repr(self):
         s = "num_channels={num_channels}, num_weights={num_weights}, type={base_type}, vmin={vmin}, vmax={vmax}, init={init}, init_scale={init_scale}"
-        s += " bmin={bmin}, bmax={bmax}, gmin={gmin}, gmax={gmax}"
+        s += " group={group}, bmin={bmin}, bmax={bmax}, gmin={gmin}, gmax={gmax}, symmetric={symmetric}"
         return s.format(**self.__dict__)
 
 
