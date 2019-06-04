@@ -19,6 +19,7 @@ set(OPERATOR_HEADER
     operators/activations/act_linear.h
     operators/nabla_operator.h
     operators/nabla2_operator.h
+    operators/rot_operator.h
     operators/demosaicing_operator.h
 )
 
@@ -27,6 +28,7 @@ set(OPERATOR_SOURCE
     operators/activations/act_linear.cu
     operators/nabla_operator.cu
     operators/nabla2_operator.cu
+    operators/rot_operator.cu
     operators/demosaicing_operator.cu
 )
 
