@@ -159,7 +159,7 @@ class TrainableActivation(nn.Module):
             self.register_buffer('M', torch.tensor(M))
 
             # apply the symmetry constraint
-            self.weight.proj = lambda: self.weight.data - self.weight.data @ self.M / 2
+            self.weight.proj = lambda: self.weight.data.sub_(self.weight.data @ self.M / 2)
 
         elif bmin is not None or bmax is not None or gmin is not None or gmax is not None:
             if bmin is None:
