@@ -7,6 +7,7 @@
 #include "utils.h"
 #include "tensor/d_tensor.h"
 #include "rot_operator.h"
+#include "reduce.cuh"
 
 // template<typename T>
 //  __device__ T interpolate_bilinear(T *in, T idx, T idy, int kernel_width, int kernel_height)
