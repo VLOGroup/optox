@@ -9,108 +9,108 @@
 #include "rot_operator.h"
 #include "reduce.cuh"
 
-// template<typename T>
-//  __device__ T interpolate_bilinear(T *in, T idx, T idy, int kernel_width, int kernel_height)
-//  {
-//     const int idx_f = floorf(idx);
-//     const int idy_f = floorf(idy);
-
-//     const int idx_c = idx_f + 1;
-//     const int idy_c = idy_f + 1;
-
-//     const T w = idx - idx_f;
-//     const T h = idy - idy_f;
-
-//     T i_ff = 0, i_fc = 0;
-//     if (idx_f >= 0 && idx_f < kernel_width)
-//     {
-//         if (idy_f >= 0 && idy_f < kernel_height)
-//             i_ff = in[idx_f+kernel_width*idy_f];
-
-//         if (idy_c >= 0 && idy_c < kernel_height)
-//             i_fc = in[idx_f+kernel_width*idy_c];
-//     }
-
-//     T i_cf = 0, i_cc = 0;
-//     if (idx_c >= 0 && idx_c < kernel_width)
-//     {
-//         if (idy_f >= 0 && idy_f < kernel_height)
-//             i_cf = in[idx_c+kernel_width*idy_f];
-
-//         if (idy_c >= 0 && idy_c < kernel_height)
-//             i_cc = in[idx_c+kernel_width*idy_c];
-//     }
-
-//     T out = (1 - h) * (1 - w) * i_ff;
-//     out += (1 - h) * w * i_cf;
-//     out += h * (1 - w) * i_fc;
-//     out += h * w * i_cc;
-
-//     return out;
-//  }
-
-
 template<typename T>
-inline __device__ T interpolate_cubic(volatile T *in, T idx, int kernel_size)
-{
+ __device__ T interpolate_bilinear(T *in, T idx, T idy, int kernel_width, int kernel_height)
+ {
     const int idx_f = floorf(idx);
-    const int idx_f_1 = idx_f - 1;
-    const int idx_c = idx_f+1;
-    const int idx_c_1 = idx_c+1;
-
-    // get the input values
-    T i_f = 0;
-    if (idx_f >= 0 && idx_f < kernel_size)
-        i_f = in[idx_f];
-    T i_f_1 = 0;
-    if (idx_f_1 >= 0 && idx_f_1 < kernel_size)
-        i_f_1 = in[idx_f_1];
-    T i_c = 0;
-    if (idx_c >= 0 && idx_c < kernel_size)
-        i_c = in[idx_c];
-    T i_c_1 = 0;
-    if (idx_c_1 >= 0 && idx_c_1 < kernel_size)
-        i_c_1 = in[idx_c_1];
-
-    // determine the coefficients
-    const T p_f = i_f;
-    const T p_prime_f = (i_c - i_f_1) / 2;
-    const T p_c = i_c;
-    const T p_prime_c = (i_c_1 - i_f) / 2;
-
-    const T a = 2*p_f - 2*p_c + p_prime_f + p_prime_c;
-    const T b = -3*p_f + 3*p_c - 2*p_prime_f - p_prime_c;
-    const T c = p_prime_f;
-    const T d = p_f;
-
-    const T u = idx - idx_f;
-
-    T out = u*(u*(u*a+b)+c) + d;
-
-    return out;
-}
-
-template<typename T>
- __device__ T interpolate_bicubic(volatile T *in, T idx, T idy, int width, int height)
-{
     const int idy_f = floorf(idy);
 
-    T buff_y[4];
+    const int idx_c = idx_f + 1;
+    const int idy_c = idy_f + 1;
 
-    for (int dy = -1; dy < 3; ++dy)
+    const T w = idx - idx_f;
+    const T h = idy - idy_f;
+
+    T i_ff = 0, i_fc = 0;
+    if (idx_f >= 0 && idx_f < kernel_width)
     {
-        const int c_idx_y = idy_f + dy;
+        if (idy_f >= 0 && idy_f < kernel_height)
+            i_ff = in[idx_f+kernel_width*idy_f];
 
-        if (c_idx_y >= 0 && c_idx_y < height)
-        buff_y[dy+1] = interpolate_cubic<T>(&(in[width*c_idx_y]), idx, width);
-        else
-        buff_y[dy+1] = 0;
+        if (idy_c >= 0 && idy_c < kernel_height)
+            i_fc = in[idx_f+kernel_width*idy_c];
     }
 
-    T out = interpolate_cubic<T>(buff_y, idy - idy_f + 1, 4);
+    T i_cf = 0, i_cc = 0;
+    if (idx_c >= 0 && idx_c < kernel_width)
+    {
+        if (idy_f >= 0 && idy_f < kernel_height)
+            i_cf = in[idx_c+kernel_width*idy_f];
+
+        if (idy_c >= 0 && idy_c < kernel_height)
+            i_cc = in[idx_c+kernel_width*idy_c];
+    }
+
+    T out = (1 - h) * (1 - w) * i_ff;
+    out += (1 - h) * w * i_cf;
+    out += h * (1 - w) * i_fc;
+    out += h * w * i_cc;
 
     return out;
-}
+ }
+
+
+// template<typename T>
+// inline __device__ T interpolate_cubic(volatile T *in, T idx, int kernel_size)
+// {
+//     const int idx_f = floorf(idx);
+//     const int idx_f_1 = idx_f - 1;
+//     const int idx_c = idx_f+1;
+//     const int idx_c_1 = idx_c+1;
+
+//     // get the input values
+//     T i_f = 0;
+//     if (idx_f >= 0 && idx_f < kernel_size)
+//         i_f = in[idx_f];
+//     T i_f_1 = 0;
+//     if (idx_f_1 >= 0 && idx_f_1 < kernel_size)
+//         i_f_1 = in[idx_f_1];
+//     T i_c = 0;
+//     if (idx_c >= 0 && idx_c < kernel_size)
+//         i_c = in[idx_c];
+//     T i_c_1 = 0;
+//     if (idx_c_1 >= 0 && idx_c_1 < kernel_size)
+//         i_c_1 = in[idx_c_1];
+
+//     // determine the coefficients
+//     const T p_f = i_f;
+//     const T p_prime_f = (i_c - i_f_1) / 2;
+//     const T p_c = i_c;
+//     const T p_prime_c = (i_c_1 - i_f) / 2;
+
+//     const T a = 2*p_f - 2*p_c + p_prime_f + p_prime_c;
+//     const T b = -3*p_f + 3*p_c - 2*p_prime_f - p_prime_c;
+//     const T c = p_prime_f;
+//     const T d = p_f;
+
+//     const T u = idx - idx_f;
+
+//     T out = u*(u*(u*a+b)+c) + d;
+
+//     return out;
+// }
+
+// template<typename T>
+//  __device__ T interpolate_bicubic(volatile T *in, T idx, T idy, int width, int height)
+// {
+//     const int idy_f = floorf(idy);
+
+//     T buff_y[4];
+
+//     for (int dy = -1; dy < 3; ++dy)
+//     {
+//         const int c_idx_y = idy_f + dy;
+
+//         if (c_idx_y >= 0 && c_idx_y < height)
+//         buff_y[dy+1] = interpolate_cubic<T>(&(in[width*c_idx_y]), idx, width);
+//         else
+//         buff_y[dy+1] = 0;
+//     }
+
+//     T out = interpolate_cubic<T>(buff_y, idy - idy_f + 1, 4);
+
+//     return out;
+// }
 
 
 template<typename T>
@@ -156,7 +156,7 @@ __global__ void rotate_kernel(
         const T idx_in = idx_in_c + center_x;
         const T idy_in = -idy_in_c + center_y;
 
-        out(ids, angle_idx, idf, idy_out, idx_out) = interpolate_bicubic<T>(x_shared, idx_in,
+        out(ids, angle_idx, idf, idy_out, idx_out) = interpolate_bilinear<T>(x_shared, idx_in,
             idy_in, kernel_width, kernel_height);
     }
 }
@@ -183,95 +183,95 @@ void optox::RotOperator<T>::computeForward(optox::OperatorOutputVector &&outputs
 }
 
 
+template<typename T>
+inline __device__ void backpolate_bilinear(T *out, T val, T idx, T idy, int kernel_width, int kernel_height)
+{
+    const int idx_f = floor(idx);
+    const int idy_f = floor(idy);
+
+    const int idx_c = idx_f + 1;
+    const int idy_c = idy_f + 1;
+
+    const T w = idx - idx_f;
+    const T h = idy - idy_f;
+
+    if (idx_f >= 0 && idx_f < kernel_width)
+    {
+        if (idy_f >= 0 && idy_f < kernel_height)
+            atomicAdd(out + idx_f+kernel_width*idy_f, (1 - h) * (1 - w) * val);
+
+        if (idy_c >= 0 && idy_c < kernel_height)
+            atomicAdd(out + idx_f+kernel_width*idy_c, h * (1 - w) * val);
+    }
+
+    if (idx_c >= 0 && idx_c < kernel_width)
+    {
+        if (idy_f >= 0 && idy_f < kernel_height)
+            atomicAdd(out + idx_c+kernel_width*idy_f, (1 - h) * w * val);
+
+        if (idy_c >= 0 && idy_c < kernel_height)
+            atomicAdd(out + idx_c+kernel_width*idy_c, h * w * val);
+    }
+}
+
+
 // template<typename T>
-// inline __device__ void backpolate_bilinear(T *out, T val, T idx, T idy, int kernel_width, int kernel_height)
+// inline __device__ void backpolate_cubic(T *out, T error, T idx, int kernel_size, bool direct_buf = false)
 // {
 //     const int idx_f = floor(idx);
-//     const int idy_f = floor(idy);
+//     const int idx_f_1 = idx_f - 1;
+//     const int idx_c = idx_f+1;
+//     const int idx_c_1 = idx_c+1;
 
-//     const int idx_c = idx_f + 1;
-//     const int idy_c = idy_f + 1;
+//     const T u = idx - idx_f;
+//     const T uu = u*u;
+//     const T uuu = uu*u;
 
-//     const T w = idx - idx_f;
-//     const T h = idy - idy_f;
+//     // determine the coefficients
+//     T d_out_d_p_f_1 = -uuu/2 + uu - u/2;
+//     T d_out_d_p_f = (3*uuu)/2 - (5*uu)/2 + 1;
+//     T d_out_d_p_c = -(3*uuu)/2 + 2*uu + u/2;
+//     T d_out_d_p_c_1 = uuu/2 - uu/2;
 
-//     if (idx_f >= 0 && idx_f < kernel_width)
+//     if (not direct_buf)
 //     {
-//         if (idy_f >= 0 && idy_f < kernel_height)
-//             atomicAdd(out + idx_f+kernel_width*idy_f, (1 - h) * (1 - w) * val);
-
-//         if (idy_c >= 0 && idy_c < kernel_height)
-//             atomicAdd(out + idx_f+kernel_width*idy_c, h * (1 - w) * val);
+//         if (idx_f >= 0 && idx_f < kernel_size)
+//             atomicAdd(out + idx_f,   d_out_d_p_f   * error);
+//         if (idx_f_1 >= 0 && idx_f_1 < kernel_size)
+//             atomicAdd(out + idx_f_1, d_out_d_p_f_1 * error);
+//         if (idx_c >= 0 && idx_c < kernel_size)
+//             atomicAdd(out + idx_c,   d_out_d_p_c   * error);
+//         if (idx_c_1 >= 0 && idx_c_1 < kernel_size)
+//             atomicAdd(out + idx_c_1, d_out_d_p_c_1 * error);
 //     }
-
-//     if (idx_c >= 0 && idx_c < kernel_width)
+//     else
 //     {
-//         if (idy_f >= 0 && idy_f < kernel_height)
-//             atomicAdd(out + idx_c+kernel_width*idy_f, (1 - h) * w * val);
-
-//         if (idy_c >= 0 && idy_c < kernel_height)
-//             atomicAdd(out + idx_c+kernel_width*idy_c, h * w * val);
+//         if (idx_f >= 0 && idx_f < kernel_size)
+//             out[idx_f]   = d_out_d_p_f   * error;
+//         if (idx_f_1 >= 0 && idx_f_1 < kernel_size)
+//             out[idx_f_1] = d_out_d_p_f_1 * error;
+//         if (idx_c >= 0 && idx_c < kernel_size)
+//             out[idx_c]   = d_out_d_p_c   * error;
+//         if (idx_c_1 >= 0 && idx_c_1 < kernel_size)
+//             out[idx_c_1] = d_out_d_p_c_1 * error;
 //     }
 // }
 
+//  template<typename T>
+//  __device__ void backpolate_bicubic(T *out, T error, T idx, T idy, int width, int height)
+// {
+//     const int idy_f = floor(idy);
 
-template<typename T>
-inline __device__ void backpolate_cubic(T *out, T error, T idx, int kernel_size, bool direct_buf = false)
-{
-    const int idx_f = floor(idx);
-    const int idx_f_1 = idx_f - 1;
-    const int idx_c = idx_f+1;
-    const int idx_c_1 = idx_c+1;
+//     T buff_y[4] = {0,0,0,0};
+//     backpolate_cubic<T>(buff_y, error, idy - idy_f + 1, 4, true);
 
-    const T u = idx - idx_f;
-    const T uu = u*u;
-    const T uuu = uu*u;
-
-    // determine the coefficients
-    T d_out_d_p_f_1 = -uuu/2 + uu - u/2;
-    T d_out_d_p_f = (3*uuu)/2 - (5*uu)/2 + 1;
-    T d_out_d_p_c = -(3*uuu)/2 + 2*uu + u/2;
-    T d_out_d_p_c_1 = uuu/2 - uu/2;
-
-    if (not direct_buf)
-    {
-        if (idx_f >= 0 && idx_f < kernel_size)
-            atomicAdd(out + idx_f,   d_out_d_p_f   * error);
-        if (idx_f_1 >= 0 && idx_f_1 < kernel_size)
-            atomicAdd(out + idx_f_1, d_out_d_p_f_1 * error);
-        if (idx_c >= 0 && idx_c < kernel_size)
-            atomicAdd(out + idx_c,   d_out_d_p_c   * error);
-        if (idx_c_1 >= 0 && idx_c_1 < kernel_size)
-            atomicAdd(out + idx_c_1, d_out_d_p_c_1 * error);
-    }
-    else
-    {
-        if (idx_f >= 0 && idx_f < kernel_size)
-            out[idx_f]   = d_out_d_p_f   * error;
-        if (idx_f_1 >= 0 && idx_f_1 < kernel_size)
-            out[idx_f_1] = d_out_d_p_f_1 * error;
-        if (idx_c >= 0 && idx_c < kernel_size)
-            out[idx_c]   = d_out_d_p_c   * error;
-        if (idx_c_1 >= 0 && idx_c_1 < kernel_size)
-            out[idx_c_1] = d_out_d_p_c_1 * error;
-    }
-}
-
- template<typename T>
- __device__ void backpolate_bicubic(T *out, T error, T idx, T idy, int width, int height)
-{
-    const int idy_f = floor(idy);
-
-    T buff_y[4] = {0,0,0,0};
-    backpolate_cubic<T>(buff_y, error, idy - idy_f + 1, 4, true);
-
-    for (int dy = -1; dy < 3; ++dy)
-    {
-        const int c_idx_y = idy_f + dy;
-        if (c_idx_y >= 0 && c_idx_y < height)
-            backpolate_cubic<T>(&(out[width*c_idx_y]), buff_y[dy+1], idx, width);
-    }
-}
+//     for (int dy = -1; dy < 3; ++dy)
+//     {
+//         const int c_idx_y = idy_f + dy;
+//         if (c_idx_y >= 0 && c_idx_y < height)
+//             backpolate_cubic<T>(&(out[width*c_idx_y]), buff_y[dy+1], idx, width);
+//     }
+// }
 
 
 template<typename T>
@@ -317,7 +317,7 @@ __global__ void rotate_kernel_grad(
         const T idx_out = idx_out_c + center_x;
         const T idy_out = -idy_out_c + center_y;
 
-        backpolate_bicubic<T>(grad_x_shared, grad_out(ids, angle_idx, idf, idy_in, idx_in),
+        backpolate_bilinear<T>(grad_x_shared, grad_out(ids, angle_idx, idf, idy_in, idx_in),
             idx_out, idy_out, kernel_width, kernel_height);
     }
 
