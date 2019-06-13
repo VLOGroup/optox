@@ -16,6 +16,7 @@ set(OPERATOR_HEADER
     operators/ioperator.h
     operators/activations/act.h
     operators/activations/act_rbf.h
+    operators/activations/act_spline.h
     operators/activations/act_linear.h
     operators/nabla_operator.h
     operators/nabla2_operator.h
@@ -25,6 +26,7 @@ set(OPERATOR_HEADER
 
 set(OPERATOR_SOURCE
     operators/activations/act_rbf.cu
+    operators/activations/act_spline.cu
     operators/activations/act_linear.cu
     operators/nabla_operator.cu
     operators/nabla2_operator.cu

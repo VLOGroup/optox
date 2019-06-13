@@ -10,6 +10,7 @@
 #include "operators/activations/act.h"
 #include "operators/activations/act_rbf.h"
 #include "operators/activations/act_linear.h"
+#include "operators/activations/act_spline.h"
 
 #include <torch/extension.h>
 #include <pybind11/pybind11.h>
@@ -170,6 +171,10 @@ void declare_op(py::module &m, const std::string &typestr)
 
     pyclass_name = std::string("LinearAct") + "_" + typestr;
     py::class_<optox::LinearActOperator<T>>(m, pyclass_name.c_str(), i_act)
+    .def(py::init<T, T>());
+
+    pyclass_name = std::string("SplineAct") + "_" + typestr;
+    py::class_<optox::SplineActOperator<T>>(m, pyclass_name.c_str(), i_act)
     .def(py::init<T, T>());
 
     pyclass_name = std::string("IAct2") + "_" + typestr;

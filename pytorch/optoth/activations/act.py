@@ -27,6 +27,13 @@ class ActivationFunction(torch.autograd.Function):
                 return _ext.th_act_operators.LinearAct_double(vmin, vmax)
             else:
                 raise RuntimeError('Unsupported dtype!')
+        elif base_type == 'spline':
+            if dtype == torch.float32:
+                return _ext.th_act_operators.SplineAct_float(vmin, vmax)
+            elif dtype == torch.float64:
+                return _ext.th_act_operators.SplineAct_double(vmin, vmax)
+            else:
+                raise RuntimeError('Unsupported dtype!')
         else:
             raise RuntimeError('Unsupported operator type!')
 
@@ -192,7 +199,7 @@ class TrainableActivation(nn.Module):
                 raise RuntimeError("Gradient bound not supported for base type: '{}'".format(self.base_type))
 
         # determine the operator
-        if self.base_type in ["rbf", "linear"]:
+        if self.base_type in ["rbf", "linear", "spline"]:
             self.op = ActivationFunction
         else:
             raise RuntimeError("Unsupported base type '{}'!".format(base_type))
@@ -283,7 +290,7 @@ class TestActivationFunction(unittest.TestCase):
         np_x = np.tile(np_x, (C, 1))
 
         # perform a gradient check:
-        epsilon = 1e-4
+        epsilon = 1e-6
 
         # prefactors
         a = 1.1
@@ -331,6 +338,9 @@ class TestActivationFunction(unittest.TestCase):
 
     def test_linear_gradient(self):
         self._run_gradient_test("linear")
+
+    def test_spline_gradient(self):
+        self._run_gradient_test("spline")
 
 
 class TestActivation2Function(unittest.TestCase):
