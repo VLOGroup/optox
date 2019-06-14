@@ -94,12 +94,77 @@ class Activation2Function(torch.autograd.Function):
         return x, f_x, f_prime_x
 
 
+def project_l1_ball_last_dim(x, norm_bound):
+    # simplex projection
+    v = np.abs(x)
+    # descending sort
+    mu = -np.sort(-v, axis=-1)
+    cum_mean = (np.cumsum(mu, axis=-1) - norm_bound) / \
+               np.arange(1, mu.shape[-1] + 1, dtype=np.float32)
+    theta_mask = (mu - cum_mean > 0).astype(np.float32)
+    theta = (np.sum(mu * theta_mask, axis=-1, keepdims=True) - norm_bound) / \
+            np.sum(theta_mask, axis=-1, keepdims=True)
+
+    # just project onto the ball
+    theta = np.maximum(theta, 0)
+    # reform the projection
+    return np.maximum(v - theta, 0) * np.sign(x)
+
+
+def projection_onto_tv2_ball(x, b=1, num_max_iter=5000, stopping_value=1e-3):
+    """ projection onto ||TV2(x)||_1 <= b
+    :param x: tf variable that is projected
+    :param b: defines the norm bound
+    :param num_max_iter: defines the maximal number of FISTA iterations
+    :param stopping_value: 
+    :return: tf op applying the projection
+    """
+
+    # transform the input to numpy
+    np_x = x.detach().cpu().numpy().T
+    np_x_bar = np_x.copy()
+
+    # define the operator TV2(x)
+    Nw = np_x.shape[0]
+    A = -2*np.eye(Nw) + np.diag(np.ones(Nw-1), 1) + np.diag(np.ones(Nw-1), -1)
+
+    # compute the Lipschitz constant
+    L = np.linalg.norm(np.dot(A, A.T))
+
+    # define the Lagrange duals
+    np_l = np.zeros((Nw, np_x.shape[1]), dtype=np.float32)
+    # use Fista
+    np_l_old = np_l.copy()
+
+    for k in range(num_max_iter):
+        beta = (k - 1) / (k + 2)
+        np_l_hat = np_l + beta * (np_l - np_l_old)
+        np_l_old = np_l.copy()
+
+        grad_l = np.dot(A, np.dot(A.T, np_l_hat) - np_x_bar)
+        np_l_hat = np_l_hat - grad_l/L
+        # proximal step using extended Moreau identity
+        np_l = np_l_hat - project_l1_ball_last_dim(np_l_hat.T * L, b).T / L
+
+        np_x = np_x_bar - np.dot(A.T, np_l)
+        np_diff = np.abs(np.sum(np.abs(A @ np_x), axis=0) - b)
+
+        if k > 1 and np.all(np_diff <= stopping_value):
+            break
+
+    if np.any(np_diff > stopping_value):
+        print('   Projection onto linear constraints: %d/%d iterations' % (k, num_max_iter))
+
+    x.data = torch.as_tensor(np_x.T, dtype=x.dtype, device=x.device)
+
+
 def projection_onto_grad_bound(x, A, gmin, gmax, num_max_iter=3000, stopping_value=1e-8):
     # compute the Lipschitz constant
     L = np.linalg.norm(np.dot(A, A.T), 2)
 
     # transform the input to numpy
     np_x = x.detach().cpu().numpy().T
+    np_x_bar = np_x.copy()
 
     # define the Lagrange duals
     np_l = np.zeros((A.shape[0], np_x.shape[1]), dtype=np.float32)
@@ -107,15 +172,16 @@ def projection_onto_grad_bound(x, A, gmin, gmax, num_max_iter=3000, stopping_val
     np_l_old = np_l.copy()
 
     for k in range(1,num_max_iter+1):
-        beta = 0.#(k - 1) / (k + 2)
+        beta = (k - 1) / (k + 2)
         np_l_hat = np_l + beta * (np_l - np_l_old)
         np_l_old = np_l.copy()
 
-        np_x_old = np_x.copy()
-        np_x = np_x - np.dot(A.T, np_l_hat)
-        grad_l = np.dot(A, -np_x)
+        grad_l = np.dot(A, np.dot(A.T, np_l_hat) - np_x_bar)
         np_l_hat = np_l_hat - grad_l/L
         np_l = np_l_hat - 1./L * np.maximum(gmin, np.minimum(gmax, np_l_hat * L))
+
+        np_x_old = np_x.copy()
+        np_x = np_x_bar - np.dot(A.T, np_l)
 
         np_diff = np.sqrt(np.mean((np_x_old - np_x) ** 2))
 
@@ -129,7 +195,7 @@ def projection_onto_grad_bound(x, A, gmin, gmax, num_max_iter=3000, stopping_val
 
 class TrainableActivation(nn.Module):
     def __init__(self, num_channels, vmin, vmax, num_weights, base_type="rbf", init="linear", init_scale=1.0,
-                 group=1, bmin=None, bmax=None, gmin=None, gmax=None, symmetric=False):
+                 group=1, bmin=None, bmax=None, gmin=None, gmax=None, norm=None, tv2=None, symmetric=False):
         super(TrainableActivation, self).__init__()
 
         self.num_channels = num_channels
@@ -144,6 +210,8 @@ class TrainableActivation(nn.Module):
         self.bmax = bmax
         self.gmin = gmin
         self.gmax = gmax
+        self.norm = norm
+        self.tv2 = tv2
         self.symmetric = symmetric
 
         # setup the parameters of the layer
@@ -155,7 +223,21 @@ class TrainableActivation(nn.Module):
         # possibly add a projection function
         # self.weight.proj = lambda _: pass
 
-        if self.symmetric:
+        if self.norm == 'l2':
+            def l2_proj():
+                norm = torch.sum(self.weight.data**2, self.weight.reduction_dim, True).sqrt_()
+                self.weight.data.div_(torch.max(norm, torch.ones_like(norm)))
+
+            self.weight.proj = l2_proj
+        elif self.norm == 'l1':
+            def l1_proj():
+                np_weight = self.weight.detach().cpu().numpy() 
+                np_weight = project_l1_ball_last_dim(np_weight, 1)
+                self.weight.data = torch.tensor(np_weight, device=self.weight.device)
+
+            self.weight.proj = l1_proj
+
+        elif self.symmetric:
             # first construct the symmetry matrix
             I = np.eye(self.num_weights // 2, dtype=np.float32)
             I_a = I[:, ::-1]
@@ -167,6 +249,12 @@ class TrainableActivation(nn.Module):
 
             # apply the symmetry constraint
             self.weight.proj = lambda: self.weight.data.sub_(self.weight.data @ self.M / 2)
+
+        elif self.tv2 is not None:
+            if self.base_type == 'spline':
+                self.weight.proj = lambda: projection_onto_tv2_ball(self.weight, self.tv2)
+            else:
+                raise RuntimeError("tv2 bound not supported for base type: '{}'".format(self.base_type))
 
         elif bmin is not None or bmax is not None or gmin is not None or gmax is not None:
             if bmin is None:
@@ -243,7 +331,7 @@ class TrainableActivation(nn.Module):
 
     def extra_repr(self):
         s = "num_channels={num_channels}, num_weights={num_weights}, type={base_type}, vmin={vmin}, vmax={vmax}, init={init}, init_scale={init_scale}"
-        s += " group={group}, bmin={bmin}, bmax={bmax}, gmin={gmin}, gmax={gmax}, symmetric={symmetric}"
+        s += " group={group}, bmin={bmin}, bmax={bmax}, gmin={gmin}, gmax={gmax}, norm={norm}, tv2<={tv2}, symmetric={symmetric}"
         return s.format(**self.__dict__)
 
 
