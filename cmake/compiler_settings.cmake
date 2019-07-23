@@ -5,6 +5,11 @@ option(BUILD_SHARED_LIBS "ON/OFF" ON)
 ## include_directories(${CMAKE_CURRENT_BINARY_DIR}) # to find generated *.h files
 
 if(NOT COMPILER_FLAGS_ALREADY_SET)
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+	add_definitions(-DTHROW_CUDA_ERROR)
+endif()
+
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU" OR ${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
 	# using GCC or using Clang
 	set(CUDA_PROPAGATE_HOST_FLAGS OFF)
@@ -20,6 +25,7 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU" OR ${CMAKE_CXX_COMPILER_ID} STREQUAL
 		add_flags(CMAKE_CXX_FLAGS "-ggdb")
 		# debug and and device code stack range checking
 		add_flags(CUDA_NVCC_FLAGS "-G -g -keep -src-in-ptx -pg -Xptxas -g")
+		
 	endif()
 	if(CUDA_VERSION VERSION_LESS "8.0")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_FORCE_INLINES")

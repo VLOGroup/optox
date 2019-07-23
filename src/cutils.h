@@ -38,10 +38,12 @@ namespace optox
 
 static inline void checkCudaErrorState(const char *file, const char *function, const int line)
 {
+#if defined(THROW_CUDA_ERROR)
   cudaDeviceSynchronize();
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess)
     throw OpToXCudaException(err, file, function, line);
+#endif
 }
 
 static inline void checkCudaErrorState(cudaError_t err, const char *file, const char *function,

@@ -1,12 +1,3 @@
-macro (finish_mex_lib target_lib)
-  target_link_libraries(${target_lib} optox ${MATLAB_LIBRARIES} ${IMAGEUTILITIES_LIBRARIES})
-SET_TARGET_PROPERTIES(${target_lib} PROPERTIES PREFIX "")
-SET_TARGET_PROPERTIES(${target_lib} PROPERTIES SUFFIX ${MATLAB_SUFFIX})
-if(WIN32)
-  SET_TARGET_PROPERTIES(${target_lib} PROPERTIES LINK_FLAGS "/export:mexFunction")
-endif(WIN32)
-endmacro (finish_mex_lib)
-
 macro (finish_python_lib target_lib)
 target_link_libraries(${target_lib} optox ${PYTHON_LIBRARIES} ${Boost_LIBRARIES} ${IMAGEUTILITIES_LIBRARIES})
 # remove lib prefix
