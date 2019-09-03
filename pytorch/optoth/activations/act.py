@@ -302,6 +302,8 @@ class TrainableActivation(nn.Module):
             np_w = np_x * self.init_scale
         elif self.init == "quadratic":
             np_w = np_x**2 * self.init_scale
+        elif self.init == "abs":
+            np_w = np.abs(np_x) * self.init_scale
         elif self.init == "student-t":
             alpha = 100
             np_w = self.init_scale * np.sqrt(alpha) * np_x / (1 + 0.5 * alpha * np_x ** 2)
