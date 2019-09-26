@@ -17,7 +17,7 @@ The source files are organized as follows:
     |   +-- operators   : actual implementation of operator functionality
     +-- python          : python wrappers 
     +-- pytorch         : pytorch wrappers
-    +-- tensorflow      : tensorflow wrappers (TODO: update)
+    +-- tensorflow      : tensorflow wrappers
 
 ## Install instructions
 
@@ -39,6 +39,9 @@ cd build
 cmake .. 
 make install
 ```
+
+### CUDA sync free build
+Use `CMAKE_BUILD_TYPE=Release` to avoid the device synchronization after each CUDA call. Then no CUDA errors are generated but runtime is dramatically improved.
 
 ### `Python` wrappers
 To build the `Python` wrappers `optox` requires `pybind11` which can be installed in an anaconda environment by `conda install pybind11`.

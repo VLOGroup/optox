@@ -46,6 +46,14 @@ setup(
             runtime_library_dirs=["${OPTOX_LIBRARY_DIR}",],
             libraries=["optox", ]
         ),
+        CUDAExtension("th_warp_operator", [
+            os.path.join("${CMAKE_CURRENT_SOURCE_DIR}", "th_warp_operator.cpp"),
+            ],
+            include_dirs=["${OPTOX_INCLUDE_DIR}",],
+            library_dirs=["${OPTOX_LIBRARY_DIR}",],
+            runtime_library_dirs=["${OPTOX_LIBRARY_DIR}",],
+            libraries=["optox", ]
+        ),
     ],
     cmdclass={
         'build_ext': BuildExtension

@@ -33,6 +33,8 @@ if (PYTHON)
         th_demosaicing_operator.cpp
         optoth/rot.py
         th_rot_operator.cpp
+        optoth/warp.py
+        th_warp_operator.cpp
     )
     set(OUTPUT_TH "${CMAKE_CURRENT_BINARY_DIR}/timestamp")
 

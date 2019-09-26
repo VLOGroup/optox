@@ -58,7 +58,7 @@ class OPTOX_DLLAPI IOperator
             THROW_OPTOXEXCEPTION("Provided number of outputs does not match the requied number!");
 
         if (inputs.size() != getNumInputsForward())
-            THROW_OPTOXEXCEPTION("Provided number of outputs does not match the requied number!");
+            THROW_OPTOXEXCEPTION("Provided number of inputs does not match the requied number!");
 
         computeForward(OperatorOutputVector(outputs), OperatorInputVector(inputs));
     }
@@ -76,7 +76,7 @@ class OPTOX_DLLAPI IOperator
             THROW_OPTOXEXCEPTION("Provided number of outputs does not match the requied number!");
 
         if (inputs.size() != getNumInputsAdjoint())
-            THROW_OPTOXEXCEPTION("Provided number of outputs does not match the requied number!");
+            THROW_OPTOXEXCEPTION("Provided number of inputs does not match the requied number!");
 
         computeAdjoint(OperatorOutputVector(outputs), OperatorInputVector(inputs));
     }
