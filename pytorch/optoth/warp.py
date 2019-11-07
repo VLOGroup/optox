@@ -4,7 +4,7 @@ import unittest
 
 import _ext.th_warp_operator
 
-__all__ = ['float_2d', 'double_2d', 'float_3d', 'double_3d']
+__all__ = ['WarpFunction']
 
 
 class WarpFunction(torch.autograd.Function):
