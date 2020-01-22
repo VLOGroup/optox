@@ -35,6 +35,8 @@ if (PYTHON)
         th_rot_operator.cpp
         optoth/warp.py
         th_warp_operator.cpp
+        optoth/pad2d.py
+        th_pad2d_operator.cpp
     )
     set(OUTPUT_TH "${CMAKE_CURRENT_BINARY_DIR}/timestamp")
 
