@@ -15,9 +15,9 @@ inline __device__ int symPixel(int x, int width)
 {
   int x_ = x;
   if (x < 0)
-    x_ = abs(x) - 1;
+    x_ = abs(x);
   else if (x >= width)
-    x_ = 2 * width - 1 - x;
+    x_ = 2 * width - x - 2;
   return x_;
 }
 

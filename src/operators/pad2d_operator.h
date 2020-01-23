@@ -17,7 +17,6 @@ class OPTOX_DLLAPI Pad2dOperator : public IOperator
     Pad2dOperator(int left, int right, int top, int bottom) : IOperator(),
         left_(left), right_(right), top_(top), bottom_(bottom)
     {
-        std::cout << "creating pad op" << std::endl;
     }
 
     /** Destructor */
