@@ -27,7 +27,7 @@ class OPTOX_DLLAPI HTensor : public Tensor<N>
 {
   private:
     T *data_;
-    // flag to indicate if a deep copy occurd or not
+    // flag to indicate if a deep copy occurred or not
     bool wrap_;
 
   public:

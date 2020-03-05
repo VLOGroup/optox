@@ -8,15 +8,21 @@
 namespace optox
 {
 
+enum PaddingMode {symmetric, reflect, replicate};
+
 template <typename T>
 class OPTOX_DLLAPI Pad2dOperator : public IOperator
 {
   public:
     /** Constructor.
-   */
-    Pad2dOperator(int left, int right, int top, int bottom) : IOperator(),
+    */
+    Pad2dOperator(int left, int right, int top, int bottom, const std::string &mode) : IOperator(),
         left_(left), right_(right), top_(top), bottom_(bottom)
     {
+        if (mode == "symmetric") mode_ = PaddingMode::symmetric;
+        else if (mode == "reflect") mode_ = PaddingMode::reflect;
+        else if (mode == "replicate") mode_ = PaddingMode::replicate;
+        else THROW_OPTOXEXCEPTION("Pad2dOperator: invalid mode!");
     }
 
     /** Destructor */
@@ -69,6 +75,7 @@ class OPTOX_DLLAPI Pad2dOperator : public IOperator
     int right_;
     int top_;
     int bottom_;
+    PaddingMode mode_;
 };
 
 } // namespace optox

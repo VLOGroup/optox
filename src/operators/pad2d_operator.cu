@@ -11,18 +11,36 @@
 #include "reduce.cuh"
 
 
-inline __device__ int symPixel(int x, int width)
+template <optox::PaddingMode M>
+inline __device__ int getPixel(int x, int width)
 {
-  int x_ = x;
-  if (x < 0)
-    x_ = abs(x);
-  else if (x >= width)
-    x_ = 2 * width - x - 2;
-  return x_;
+    int x_ = x;
+    switch (M)
+    {
+        case optox::PaddingMode::symmetric:
+            if (x < 0)
+                x_ = abs(x) - 1;
+            else if (x >= width)
+                x_ = 2 * width - x - 1;
+            break;
+        case optox::PaddingMode::reflect:
+            if (x < 0)
+                x_ = abs(x);
+            else if (x >= width)
+                x_ = 2 * width - x - 2;
+            break;
+        case optox::PaddingMode::replicate:
+            if (x < 0)
+                x_ = 0;
+            else if (x >= width)
+                x_ = width - 1;
+            break;
+    }
+    return x_;
 }
 
 
-template <typename T>
+template <typename T, optox::PaddingMode M>
 __global__ void pad2d(
     typename optox::DTensor<T, 3>::Ref out,
     const typename optox::DTensor<T, 3>::ConstRef in,
@@ -35,8 +53,8 @@ __global__ void pad2d(
     if (x < out.size_[2] && y < out.size_[1] && z < out.size_[0])
     {
         // compute the corresponding index 
-        const int x_in = symPixel(x - left, in.size_[2]);
-        const int y_in = symPixel(y - top, in.size_[1]);
+        const int x_in = getPixel<M>(x - left, in.size_[2]);
+        const int y_in = getPixel<M>(y - top, in.size_[1]);
         out(z, y, x) = in(z, y_in, x_in);
     }
 }
@@ -59,13 +77,26 @@ void optox::Pad2dOperator<T>::computeForward(optox::OperatorOutputVector &&outpu
                          divUp(out->size()[1], dim_block.y),
                          divUp(out->size()[0], dim_block.z));
 
-    pad2d<T> <<<dim_grid, dim_block, 0, this->stream_>>>(*out, *x, 
-        this->left_, this->top_);
+    switch (mode_)
+    {
+        case optox::PaddingMode::symmetric:
+            pad2d<T, optox::PaddingMode::symmetric> <<<dim_grid, dim_block, 0, this->stream_>>>(*out, *x, 
+                this->left_, this->top_);
+            break;
+        case optox::PaddingMode::reflect:
+            pad2d<T, optox::PaddingMode::reflect> <<<dim_grid, dim_block, 0, this->stream_>>>(*out, *x, 
+                this->left_, this->top_);
+            break;
+        case optox::PaddingMode::replicate:
+            pad2d<T, optox::PaddingMode::replicate> <<<dim_grid, dim_block, 0, this->stream_>>>(*out, *x, 
+                this->left_, this->top_);
+            break;
+    }
     OPTOX_CUDA_CHECK;
 }
 
 
-template <typename T>
+template <typename T, optox::PaddingMode M>
 __global__ void pad2d_grad(
     typename optox::DTensor<T, 3>::Ref grad_in,
     const typename optox::DTensor<T, 3>::ConstRef grad_out,
@@ -78,8 +109,8 @@ __global__ void pad2d_grad(
     if (x < grad_out.size_[2] && y < grad_out.size_[1] && z < grad_out.size_[0])
     {
         // compute the corresponding index 
-        const int x_in = symPixel(x - left, grad_in.size_[2]);
-        const int y_in = symPixel(y - top, grad_in.size_[1]);
+        const int x_in = getPixel<M>(x - left, grad_in.size_[2]);
+        const int y_in = getPixel<M>(y - top, grad_in.size_[1]);
         atomicAdd(&grad_in(z, y_in, x_in), grad_out(z, y, x));
     }
 }
@@ -106,8 +137,21 @@ void optox::Pad2dOperator<T>::computeAdjoint(optox::OperatorOutputVector &&outpu
                          divUp(grad_out->size()[1], dim_block.y),
                          divUp(grad_out->size()[0], dim_block.z));
 
-    pad2d_grad<T> <<<dim_grid, dim_block, 0, this->stream_>>>(*grad_x, *grad_out, 
-        this->left_, this->top_);
+    switch (mode_)            
+    {
+        case optox::PaddingMode::symmetric:
+            pad2d_grad<T,optox::PaddingMode::symmetric> <<<dim_grid, dim_block, 0, this->stream_>>>(*grad_x, *grad_out, 
+                this->left_, this->top_);
+            break;
+        case optox::PaddingMode::reflect:
+            pad2d_grad<T,optox::PaddingMode::reflect> <<<dim_grid, dim_block, 0, this->stream_>>>(*grad_x, *grad_out, 
+                this->left_, this->top_);
+            break;
+        case optox::PaddingMode::replicate:
+            pad2d_grad<T,optox::PaddingMode::replicate> <<<dim_grid, dim_block, 0, this->stream_>>>(*grad_x, *grad_out, 
+                this->left_, this->top_);
+            break;
+    }
     OPTOX_CUDA_CHECK;
 }
 

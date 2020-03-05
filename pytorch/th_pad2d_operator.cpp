@@ -57,7 +57,7 @@ void declare_op(py::module &m, const std::string &typestr)
 {
     std::string pyclass_name = std::string("Pad2d_") + typestr;
     py::class_<optox::Pad2dOperator<T>>(m, pyclass_name.c_str(), py::buffer_protocol(), py::dynamic_attr())
-    .def(py::init<int,int,int,int>())
+    .def(py::init<int,int,int,int,const std::string&>())
     .def("forward", forward<T>)
     .def("adjoint", adjoint<T>);
 }

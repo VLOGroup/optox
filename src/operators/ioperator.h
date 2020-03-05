@@ -48,17 +48,17 @@ class OPTOX_DLLAPI IOperator
     /** apply the operators
      * \outputs list of the operator outputs `{&out_1, ...}` which are
      *          typically of type `DTensor`
-     * \inputs list of the operator inputs `{&out_1, ...}` which are
+     * \inputs list of the operator inputs `{&in_1, ...}` which are
      *         typically of type `DTensor`
      */
     void forward(std::initializer_list<ITensor *> outputs,
                  std::initializer_list<const ITensor *> inputs)
     {
         if (outputs.size() != getNumOutputsForward())
-            THROW_OPTOXEXCEPTION("Provided number of outputs does not match the requied number!");
+            THROW_OPTOXEXCEPTION("Provided number of outputs does not match the required number!");
 
         if (inputs.size() != getNumInputsForward())
-            THROW_OPTOXEXCEPTION("Provided number of inputs does not match the requied number!");
+            THROW_OPTOXEXCEPTION("Provided number of inputs does not match the required number!");
 
         computeForward(OperatorOutputVector(outputs), OperatorInputVector(inputs));
     }
@@ -66,7 +66,7 @@ class OPTOX_DLLAPI IOperator
     /** apply the operator's adjoint
      * \outputs list of the operator adjoint outputs `{&out_1, ...}` which are
      *          typically of type `DTensor`
-     * \inputs list of the operator adjoint inputs `{&out_1, ...}` which are
+     * \inputs list of the operator adjoint inputs `{&in_1, ...}` which are
      *         typically of type `DTensor`
      */
     void adjoint(std::initializer_list<ITensor *> outputs,

@@ -4,31 +4,41 @@ import unittest
 
 import _ext.th_pad2d_operator
 
-__all__ = ['pad2d_symmetric', 'pad2d_symmetric_transpose']
+__all__ = ['pad2d', 'pad2d_tranpose', 'pad2d_symmetric', 'pad2d_symmetric_transpose']
 
 
+def pad2d(x, padding, mode):
+    return PadFunction().apply(x, padding, mode)
+
+
+def pad2d_transpose(x, padding, mode):
+    return PadFunctionTranspose().apply(x, padding, mode)
+
+
+# legacy
 def pad2d_symmetric(x, padding):
-    return PadFunction().apply(x, padding)
+    return PadFunction().apply(x, padding, 'symmetric')
 
 
 def pad2d_symmetric_transpose(x, padding):
-    return PadFunctionTranspose().apply(x, padding)
+    return PadFunctionTranspose().apply(x, padding, 'symmetric')
+
+
+def get_operator(dtype, pad, mode):
+    if dtype == torch.float32:
+        return _ext.th_pad2d_operator.Pad2d_float(pad[0], pad[1], pad[2], pad[3], mode)
+    elif dtype == torch.float64:
+        return _ext.th_pad2d_operator.Pad2d_double(pad[0], pad[1], pad[2], pad[3], mode)
+    else:
+        raise RuntimeError('Invalid dtype!')
 
 
 class PadFunction(torch.autograd.Function):
     @staticmethod
-    def _get_operator(dtype, pad):
-        if dtype == torch.float32:
-            return _ext.th_pad2d_operator.Pad2d_float(pad[0], pad[1], pad[2], pad[3])
-        elif dtype == torch.float64:
-            return _ext.th_pad2d_operator.Pad2d_double(pad[0], pad[1], pad[2], pad[3])
-        else:
-            raise RuntimeError('Invalid dtype!')
-
-    @staticmethod
-    def forward(ctx, x, pad):
+    def forward(ctx, x, pad, mode):
         assert len(pad) == 4
-        ctx.op = PadFunction._get_operator(x.dtype, pad)
+        assert type(mode) == str
+        ctx.op = get_operator(x.dtype, pad, mode)
         ctx.shape = x.shape
         out = ctx.op.forward(x.reshape(-1, x.shape[2], x.shape[3])).view(x.shape[0], x.shape[1], x.shape[2]+pad[2]+pad[3], x.shape[3]+pad[0]+pad[1])
         return out
@@ -36,23 +46,14 @@ class PadFunction(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad_out):
         grad_x = ctx.op.adjoint(grad_out.reshape(-1, grad_out.shape[2], grad_out.shape[3]))
-        return grad_x.view(ctx.shape), None
+        return grad_x.view(ctx.shape), None, None
 
 
 class PadFunctionTranspose(torch.autograd.Function):
     @staticmethod
-    def _get_operator(dtype, pad):
-        if dtype == torch.float32:
-            return _ext.th_pad2d_operator.Pad2d_float(pad[0], pad[1], pad[2], pad[3])
-        elif dtype == torch.float64:
-            return _ext.th_pad2d_operator.Pad2d_double(pad[0], pad[1], pad[2], pad[3])
-        else:
-            raise RuntimeError('Invalid dtype!')
-
-    @staticmethod
-    def forward(ctx, x, pad):
+    def forward(ctx, x, pad, mode):
         assert len(pad) == 4
-        ctx.op = PadFunction._get_operator(x.dtype, pad)
+        ctx.op = get_operator(x.dtype, pad, mode)
         ctx.shape = x.shape
         out = ctx.op.adjoint(x.reshape(-1, x.shape[2], x.shape[3])).view(x.shape[0], x.shape[1], x.shape[2]-pad[2]-pad[3], x.shape[3]-pad[0]-pad[1])
         return out
@@ -60,12 +61,12 @@ class PadFunctionTranspose(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad_out):
         grad_x = ctx.op.forward(grad_out.reshape(-1, grad_out.shape[2], grad_out.shape[3]))
-        return grad_x.view(ctx.shape), None
+        return grad_x.view(ctx.shape), None, None
 
 # to run execute: python -m unittest [-v] optoth.pad2d
 class Testpad2dFunction(unittest.TestCase):
     
-    def _test_adjointness(self, dtype):
+    def _test_adjointness(self, dtype, mode):
         # setup the hyper parameters for each test
         S, C, M, N =4, 3, 32, 32
 
@@ -76,7 +77,7 @@ class Testpad2dFunction(unittest.TestCase):
         x = torch.randn(S, C, M, N, dtype=dtype, device=cuda).requires_grad_(True)
         p = torch.randn(S, C, M+pad[2]+pad[3], N+pad[0]+pad[1], dtype=dtype, device=cuda).requires_grad_(True)
 
-        Ax = pad2d_symmetric(x, pad)
+        Ax = pad2d(x, pad, mode)
         ATp = torch.autograd.grad(Ax, x, p)[0]
 
 
@@ -86,7 +87,7 @@ class Testpad2dFunction(unittest.TestCase):
         print('forward: dtype={} diff: {}'.format(dtype, np.abs(lhs - rhs)))
         self.assertTrue(np.abs(lhs - rhs) < 1e-3)
 
-        Ap = pad2d_symmetric_transpose(p, pad)
+        Ap = pad2d_transpose(p, pad, mode)
         ATx = torch.autograd.grad(Ap, p, x)[0]
 
         lhs = (Ap * x).sum().item()
@@ -95,11 +96,23 @@ class Testpad2dFunction(unittest.TestCase):
         print('adjoint: dtype={} diff: {}'.format(dtype, np.abs(lhs - rhs)))
         self.assertTrue(np.abs(lhs - rhs) < 1e-3)
 
-    def test_float(self):
-        self._test_adjointness(torch.float32)
+    def test_float_symmetric(self):
+        self._test_adjointness(torch.float32, 'symmetric')
+
+    def test_float_replicate(self):
+        self._test_adjointness(torch.float32, 'replicate')
     
-    def test_double(self):
-        self._test_adjointness(torch.float64)
+    def test_float_reflect(self):
+        self._test_adjointness(torch.float32, 'reflect')
+    
+    def test_double_symmetric(self):
+        self._test_adjointness(torch.float64, 'symmetric')
+
+    def test_double_replicate(self):
+        self._test_adjointness(torch.float64, 'replicate')
+    
+    def test_double_reflect(self):
+        self._test_adjointness(torch.float64, 'reflect')
 
 if __name__ == "__main__":
     unittest.test()
