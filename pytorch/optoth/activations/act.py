@@ -86,8 +86,8 @@ class Activation2Function(torch.autograd.Function):
         return grad_x, grad_weights, None, None, None
 
     @staticmethod
-    def draw(weights, base_type, vmin, vmax):
-        x = torch.linspace(2*vmin, 2*vmax, 1001, dtype=weights.dtype).unsqueeze_(0)
+    def draw(weights, base_type, vmin, vmax, scale=2):
+        x = torch.linspace(scale*vmin, scale*vmax, 1001, dtype=weights.dtype).unsqueeze_(0)
         x = x.repeat(weights.shape[0], 1)
         op = Activation2Function._get_operator(x.dtype, base_type, vmin, vmax)
         f_x, f_prime_x = op.forward(x.to(weights.device), weights)
@@ -338,8 +338,8 @@ class TrainableActivation(nn.Module):
 
 
 class TrainableActivation2(TrainableActivation):
-    def __init__(self, num_channels, vmin, vmax, num_weights, base_type="rbf", init="linear", init_scale=1.0):
-        super(TrainableActivation2, self).__init__(num_channels, vmin, vmax, num_weights, base_type, init, init_scale)
+    def __init__(self, num_channels, vmin, vmax, num_weights, base_type="rbf", init="linear", init_scale=1.0, symmetric=False):
+        super(TrainableActivation2, self).__init__(num_channels, vmin, vmax, num_weights, base_type, init, init_scale, symmetric=symmetric)
 
         # determine the operator
         if self.base_type in ["rbf"]:
