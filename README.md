@@ -110,3 +110,25 @@ Ran 3 tests in 2.263s
 OK
 
 ```
+
+
+### `Tensorflow`
+To perform an adjointness test of the `nabla` operators using the `Tensorflow` wrappers execute
+```bash
+python -m unittest optotf.nabla
+
+```
+If successful the output should be 
+```bash
+(optox) ∂ python -m unittest optotf.nabla
+...
+dtype: <dtype: 'float64'> dim: 2 diff: 1.0658141036401503e-14
+.dtype: <dtype: 'float32'> dim: 2 diff: 0.0
+.
+----------------------------------------------------------------------
+Ran 2 tests in 1.490s
+
+
+OK
+
+```
