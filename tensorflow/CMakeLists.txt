@@ -21,9 +21,11 @@ message(STATUS "python: ${PYTHON}")
 ##----------------------------------------------------------------------------
 execute_process(COMMAND ${PYTHON} -c "import tensorflow as tf; print(tf.sysconfig.get_include(), end='')" OUTPUT_VARIABLE Tensorflow_INCLUDE_DIRS)
 execute_process(COMMAND ${PYTHON} -c "import tensorflow as tf; print(tf.sysconfig.get_lib(), end='')" OUTPUT_VARIABLE Tensorflow_LIB_DIRS)
+execute_process(COMMAND ${PYTHON} -c "import tensorflow as tf; print(tf.sysconfig.get_link_flags()[1], end='')" OUTPUT_VARIABLE Tensorflow_LIB)
 
-message("tensorflow include dir: ${Tensorflow_INCLUDE_DIRS}")
-message("tensorflow link dir: ${Tensorflow_LIB_DIRS}")
+message(STATUS "tensorflow include dir: ${Tensorflow_INCLUDE_DIRS}")
+message(STATUS "tensorflow link dir: ${Tensorflow_LIB_DIRS}")
+message(STATUS "tensorflow lib: ${Tensorflow_LIB}")
 
 include_directories(${Tensorflow_INCLUDE_DIRS})
 link_directories(${Tensorflow_LIB_DIRS})
@@ -40,7 +42,7 @@ set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --expt-relaxed-constexpr -D GOOGLE_CUDA=
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/optotf/nabla)
 cuda_add_library(tf_nabla_operator SHARED tf_nabla_operator.cpp)
 
-target_link_libraries(tf_nabla_operator optox "tensorflow_framework")
+target_link_libraries(tf_nabla_operator optox ${Tensorflow_LIB})
 set_target_properties(tf_nabla_operator PROPERTIES PREFIX "" LINKER_LANGUAGE CXX)
 
 ##----------------------------------------------------------------------------
@@ -49,7 +51,7 @@ set_target_properties(tf_nabla_operator PROPERTIES PREFIX "" LINKER_LANGUAGE CXX
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/optotf/demosaicing)
 cuda_add_library(tf_demosaicing_operator SHARED tf_demosaicing.cpp)
 
-target_link_libraries(tf_demosaicing_operator optox "tensorflow_framework")
+target_link_libraries(tf_demosaicing_operator optox ${Tensorflow_LIB})
 set_target_properties(tf_demosaicing_operator PROPERTIES PREFIX "" LINKER_LANGUAGE CXX)
 
 ##----------------------------------------------------------------------------

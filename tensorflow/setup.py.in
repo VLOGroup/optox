@@ -11,9 +11,9 @@ import tensorflow as tf
 tfCPU = not subprocess.call(["pip","-q","show","tensorflow"] )
 tfGPU = not subprocess.call(["pip","-q","show","tensorflow-gpu"] )
 if tfCPU:
-  tfstr = "tensorflow == {}".format(tf.VERSION)
+  tfstr = "tensorflow == {}".format(tf.version.VERSION)
 if tfGPU:
-  tfstr = "tensorflow-gpu == {}".format(tf.VERSION)
+  tfstr = "tensorflow-gpu == {}".format(tf.version.VERSION)
 if (tfGPU and tfCPU) or not (tfGPU or tfCPU):
   tfstr = ""
   assert False, "\n\nunexpected error, is tensorflow or tensorflow-gpu installed with pip?\n\n"
