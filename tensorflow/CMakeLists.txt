@@ -22,8 +22,10 @@ message(STATUS "python: ${PYTHON}")
 execute_process(COMMAND ${PYTHON} -c "import tensorflow as tf; print(tf.sysconfig.get_include(), end='')" OUTPUT_VARIABLE Tensorflow_INCLUDE_DIRS)
 execute_process(COMMAND ${PYTHON} -c "import tensorflow as tf; print(tf.sysconfig.get_lib(), end='')" OUTPUT_VARIABLE Tensorflow_LIB_DIRS)
 execute_process(COMMAND ${PYTHON} -c "import tensorflow as tf; print(tf.sysconfig.get_link_flags()[1], end='')" OUTPUT_VARIABLE Tensorflow_LIB)
+execute_process(COMMAND ${PYTHON} -c "import tensorflow as tf; print(tf.sysconfig.get_compile_flags()[1], end='')" OUTPUT_VARIABLE Tensorflow_FLAGS)
 
 message(STATUS "tensorflow include dir: ${Tensorflow_INCLUDE_DIRS}")
+message(STATUS "tensorflow flags: ${Tensorflow_FLAGS}")
 message(STATUS "tensorflow link dir: ${Tensorflow_LIB_DIRS}")
 message(STATUS "tensorflow lib: ${Tensorflow_LIB}")
 
@@ -33,8 +35,8 @@ link_directories(${Tensorflow_LIB_DIRS})
 ##-----------------------------------------------------------------------------
 ## compiler flags
 ##-----------------------------------------------------------------------------
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11  -fPIC -O2 -D GOOGLE_CUDA=1")
-set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --expt-relaxed-constexpr -D GOOGLE_CUDA=1")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11  -fPIC -O2 -D GOOGLE_CUDA=1 ${Tensorflow_FLAGS}")
+set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --expt-relaxed-constexpr -D GOOGLE_CUDA=1 ${Tensorflow_FLAGS}")
 
 ##----------------------------------------------------------------------------
 ## nabla operator
