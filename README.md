@@ -6,7 +6,7 @@ Write operators only once and use it **everywhere**.
 Write an operator in `C++/CUDA` and generate wrappers to different languages such as `Python` and machine learning libraries such as `Tensorflow` or `Pytorch`.
 
 `optox` provides a tensor interface to ease data transfer between host tensors `optox::HTensor` and device tensors `optox::DTensor` or any floating type and number of dimensions.
-Using this interface, a operator is only written once in `C++/CUDA` and wrappers for `Python`, `Tensorflow` and `Pytorch` expose the functionality to a higher level application (e.g. iterative reconstruction, custom deep learning reconstruction, ...).
+Using this interface, a operator is only written once in `C++/CUDA` and wrappers for `Python`, `Tensorflow 1.x` and `Pytorch` expose the functionality to a higher level application (e.g. iterative reconstruction, custom deep learning reconstruction, ...).
 
 ## Overview 
 The source files are organized as follows:
