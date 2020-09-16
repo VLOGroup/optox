@@ -4,7 +4,7 @@ import unittest
 
 import _ext.th_pad2d_operator
 
-__all__ = ['pad2d', 'pad2d_tranpose', 'pad2d_symmetric', 'pad2d_symmetric_transpose']
+__all__ = ['pad2d', 'pad2d_transpose', 'pad2d_symmetric', 'pad2d_symmetric_transpose']
 
 
 def pad2d(x, padding, mode):
