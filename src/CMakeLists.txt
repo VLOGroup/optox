@@ -23,6 +23,7 @@ set(OPERATOR_HEADER
     operators/rot_operator.h
     operators/warp_operator.h
     operators/pad2d_operator.h
+    operators/pad3d_operator.h
     operators/demosaicing_operator.h
 )
 
@@ -35,6 +36,7 @@ set(OPERATOR_SOURCE
     operators/rot_operator.cu
     operators/warp_operator.cu
     operators/pad2d_operator.cu
+    operators/pad3d_operator.cu
     operators/demosaicing_operator.cu
 )
 
