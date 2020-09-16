@@ -30,21 +30,34 @@ class BinaryDistribution(Distribution):
     def has_ext_modules(self):
         return True
 
+# define package data
+PACKAGES = ["optotf"]
+PACKAGE_DIR = {"optotf": "./optotf"}
+PACKAGE_DATA = {}
+
+# add new modules here
+ADD_PACKAGES = [
+  "nabla",
+  "demosaicing",
+]
+
+for pkg in ADD_PACKAGES:
+    PACKAGES.append(f"optotf.{pkg}")
+    PACKAGE_DIR.update({f"optotf.{pkg}": f"./optotf/{pkg}"})
+    PACKAGE_DATA.update({f"optotf.{pkg}": [f"./tf_{pkg}_operator.so"]})
+
 setuptools.setup(
     name='optotf',
     version='0.2.0',
     author="Erich Kobler, Markus Hofinger, Kerstin Hamernik",
-    author_email="erich.kobler@icg.tugraz.at, markus.hofinger@icg.tugraz.at, kerstin.hamernik@icg.tugraz.at",
+    author_email="erich.kobler@icg.tugraz.at, markus.hofinger@icg.tugraz.at, k.hammernik@imperial.ac.uk",
     description="TensorFlow wrappers for optoX library",
     # package_dir={"optotf": os.path.join(".", "optotf"),},
     platform=distutils.util.get_platform(),
-    packages=["optotf", "optotf.nabla", "optotf.demosaicing"],
-    package_dir={"optotf": "./optotf",
-                 "optotf.nabla": "./optotf/nabla",
-                 "optotf.demosaicing": "./optotf/demosaicing",},
+    packages=PACKAGES,
+    package_dir=PACKAGE_DIR,
     include_package_data=True,
-    package_data={"optotf.nabla": ["./tf_nabla_operator.so"],
-                  "optotf.demosaicing": ["./tf_demosaicing_operator.so"]},
+    package_data=PACKAGE_DATA,
     install_requires=REQUIRED_PACKAGES,
     distclass=BinaryDistribution,
     zip_safe=False,
