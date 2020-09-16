@@ -39,6 +39,7 @@ PACKAGE_DATA = {}
 ADD_PACKAGES = [
   "nabla",
   "demosaicing",
+  "pad3d",
 ]
 
 for pkg in ADD_PACKAGES:
