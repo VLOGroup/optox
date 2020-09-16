@@ -6,7 +6,7 @@ from tensorflow.python.framework import ops as _ops
 __all__ = ['forward', 'adjoint']
 
 # load operators from the library
-_ext = tf.load_op_library(tf.resource_loader.get_path_to_datafile("tf_demosaicing_operator.so"))
+_ext = tf.load_op_library(tf.compat.v1.resource_loader.get_path_to_datafile("tf_demosaicing_operator.so"))
 
 forward = _ext.demosaicing_operator_forward
 adjoint = _ext.demosaicing_operator_adjoint

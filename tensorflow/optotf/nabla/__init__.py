@@ -7,7 +7,7 @@ import tensorflow as tf
 import unittest
 from tensorflow.python.framework import ops as _ops
 
-_ext = tf.load_op_library(tf.resource_loader.get_path_to_datafile("tf_nabla_operator.so"))
+_ext = tf.load_op_library(tf.compat.v1.resource_loader.get_path_to_datafile("tf_nabla_operator.so"))
 
 __all__ = ['nabla_2d', 'nabla_2d_adjoint']
 
@@ -19,9 +19,8 @@ class TestNablaFunction(unittest.TestCase):
             
     def _test_adjointness(self, dtype, dim):
         # do not allocate entire memory for testing
-        conf = tf.ConfigProto()
-        conf.gpu_options.allow_growth=True
-        tf.enable_eager_execution(config=conf)
+        for gpu_device in tf.config.experimental.list_physical_devices('GPU'):
+            tf.config.experimental.set_memory_growth(gpu_device, True)
 
         # setup the vaiables
         shape = [30 for i in range(dim)]
