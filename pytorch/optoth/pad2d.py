@@ -8,10 +8,38 @@ __all__ = ['pad2d', 'pad2d_transpose', 'pad2d_symmetric', 'pad2d_symmetric_trans
 
 
 def pad2d(x, padding, mode):
+    """Padding of a 2d tensor.
+    
+    This function pads a 2d tensor (rank 4). The tensorformat is [N, C, H, W]. The tensor is
+    padded by values specified in `padding` [W0, W1, H0, H1] where 0 indicates the padding before and 1
+    indicates the padding after. This functions supports the padding modes "reflect", "symmetric" and "replicate".
+
+    Args:
+        tensor: A `Tensor`.
+        padding: A `Tensor` of type `int32`.
+        mode: One of "reflect", "symmetric", or "replicate" (case-insensitive)
+        channel_last: 
+    Returns:
+        A padded `Tensor`. Has the same type as `tensor`.
+    """
     return PadFunction().apply(x, padding, mode)
 
 
 def pad2d_transpose(x, padding, mode):
+    """Transpose padding of a 2d tensor.
+    
+    This function transpose pads a 2d tensor (rank 4). The tensorformat is [N, C, D, H, W]. The tensor is
+    padded by values specified in `padding` [W0, W1, H0, H1, D0, D1] where 0 indicates the padding before and 1
+    indicates the padding after. This functions supports the padding modes "reflect", "symmetric" and "replicate".
+
+    Args:
+        tensor: A `Tensor`.
+        padding: A `Tensor` of type `int32`.
+        mode: One of "reflect", "symmetric", or "replicate" (case-insensitive)
+        channel_last: 
+    Returns:
+        A transposed padded `Tensor`. Has the same type as `tensor`.
+    """
     return PadFunctionTranspose().apply(x, padding, mode)
 
 
