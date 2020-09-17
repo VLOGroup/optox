@@ -35,10 +35,13 @@ https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/framework/s
   https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/ops/array_ops.cc
 */
   // Get the padding size => handed over as attribute
-  int padX, padY, padZ;
-  c->GetAttr("pad_x", &padX);
-  c->GetAttr("pad_y", &padY);
-  c->GetAttr("pad_z", &padZ);
+  int left, right, top, bottom, front, back;
+  c->GetAttr("left", &left);
+  c->GetAttr("right", &right);
+  c->GetAttr("top", &top);
+  c->GetAttr("bottom", &bottom);
+  c->GetAttr("front", &front);
+  c->GetAttr("back", &back);
 
   // Get the padding size => handed over as first input
   ShapeHandle input = c->input(0);
@@ -49,7 +52,7 @@ https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/framework/s
   // create Dimension Handle to store output dimensions
   std::vector<DimensionHandle> dims(4);
   // Safety Check => Input dimensionality must be of rank 4
-  TF_RETURN_IF_ERROR( c->WithRank(input, 4, &input));
+  TF_RETURN_IF_ERROR( c->WithRank(input, 5, &input));
 
   // c->input(idx)  => returns the ShapeHandle for the specified input
   // c->Dim (ShapeHandle, idx)  => returns the size of the dimension as  DimensionHandle 
@@ -65,33 +68,43 @@ https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/framework/s
   if ( c->ValueKnown(in_dim_x) && c->ValueKnown(in_dim_y) && c->ValueKnown(in_dim_z))   {
     //std::cout << "in_dim_y= " << c->Value(in_dim_x)  << ",in_dim_x= " << c->Value(in_dim_x) << ", pad= " << pad;
     if (Transpose){
-      if ( !( ( c->Value(in_dim_x)  >= 3*padX) && ( c->Value(in_dim_y) >= 3*padY) && ( c->Value(in_dim_z)  >= 3*padZ) ) ) {
+      if ( !( ( c->Value(in_dim_x)  >= 1.5 * (left + right)) && 
+              ( c->Value(in_dim_y) >=  1.5 * (top + bottom)) && 
+              ( c->Value(in_dim_z)  >= 1.5 * (front + back)) ) ) {
         // for a given padding size a minimum image size is required => throw error if not satisfied
         TF_RETURN_IF_ERROR(
-          errors::InvalidArgument("PaddingTranspose: The image needs to be bigger than 3x pad (pad+img+pad)! But pad is ",
-                                   padX,",",padY,",",padZ, " and x,y,z =",c->ValueKnown(in_dim_x), ",",c->ValueKnown(in_dim_y),",",c->ValueKnown(in_dim_z))  );
+          errors::InvalidArgument("PaddingTranspose: The image needs to be bigger than 1.5x (pad0+pad1) (pad0+img+pad1)! But pad is ",
+                                   left,",",right,",",
+                                   top,",",bottom,",",
+                                   front,",",back,
+                                   " and x,y,z =",c->ValueKnown(in_dim_x), ",",c->ValueKnown(in_dim_y),",",c->ValueKnown(in_dim_z))  );
       }
     }
     else{
-      if ( !( ( c->Value(in_dim_x)  >= padX) && ( c->Value(in_dim_y) >= padY) && ( c->Value(in_dim_z) >= padZ) ) ) {
+      if ( !( ( c->Value(in_dim_x)  >= (left + right)) && 
+              ( c->Value(in_dim_y) >= (top + bottom)) && 
+              ( c->Value(in_dim_z) >= (front + back)) ) ) {
         // for a given padding size a minimum image size is required => throw error if not satisfied
         TF_RETURN_IF_ERROR(
           errors::InvalidArgument("Padding: The Image needs to be bigger than padding! But pad is ",
-                                   padX,",",padY,",",padZ, " and x,y,z =",c->ValueKnown(in_dim_x), ",",c->ValueKnown(in_dim_y), ",",c->ValueKnown(in_dim_z))  );
+                                   left,",",right,",",
+                                   top,",",bottom,",",
+                                   front,",",back,
+                                   " and x,y,z =",c->ValueKnown(in_dim_x), ",",c->ValueKnown(in_dim_y), ",",c->ValueKnown(in_dim_z))  );
       }
     }
   }
 
 
   if (Transpose){
-    TF_RETURN_IF_ERROR( c->Subtract( c->Dim( input, 1), 2*padZ , &dims[1]) );
-    TF_RETURN_IF_ERROR( c->Subtract( c->Dim( input, 2), 2*padY , &dims[2]) );
-    TF_RETURN_IF_ERROR( c->Subtract( c->Dim( input, 3), 2*padX , &dims[3]) );
+    TF_RETURN_IF_ERROR( c->Subtract( c->Dim( input, 1), (front + back) , &dims[1]) );
+    TF_RETURN_IF_ERROR( c->Subtract( c->Dim( input, 2), (top + bottom) , &dims[2]) );
+    TF_RETURN_IF_ERROR( c->Subtract( c->Dim( input, 3), (left + right) , &dims[3]) );
   }
   else{
-    TF_RETURN_IF_ERROR( c->Add( c->Dim( input, 1), 2*padZ , &dims[1]) );    
-    TF_RETURN_IF_ERROR( c->Add( c->Dim( input, 2), 2*padY , &dims[2]) );    
-    TF_RETURN_IF_ERROR( c->Add( c->Dim( input, 3), 2*padX , &dims[3]) );
+    TF_RETURN_IF_ERROR( c->Add( c->Dim( input, 1), (front + back) , &dims[1]) );    
+    TF_RETURN_IF_ERROR( c->Add( c->Dim( input, 2), (top + bottom) , &dims[2]) );    
+    TF_RETURN_IF_ERROR( c->Add( c->Dim( input, 3), (left + right) , &dims[3]) );
   }
 
 
@@ -115,9 +128,12 @@ REGISTER_OP("Pad3d")
 		.Output("padded_x: T")
 		.Attr("T: {float32, float64}")
         .Attr("mode: {'symmetric','reflect','replicate'}")
-        .Attr("pad_x: int >= 0")
-        .Attr("pad_y: int >= 0")
-        .Attr("pad_z: int >= 0")
+        .Attr("left: int >= 0")
+        .Attr("right: int >= 0")
+        .Attr("top: int >= 0")
+        .Attr("bottom: int >= 0")
+        .Attr("front: int >= 0")
+        .Attr("back: int >= 0")
 		.SetShapeFn(PadShapeFn);
 
 REGISTER_OP("Pad3dTranspose")
@@ -125,9 +141,12 @@ REGISTER_OP("Pad3dTranspose")
 		.Output("x: T")
 		.Attr("T: {float32, float64}")
         .Attr("mode: {'symmetric','reflect','replicate'}")
-        .Attr("pad_x: int >= 0")
-        .Attr("pad_y: int >= 0")
-        .Attr("pad_z: int >= 0")
+        .Attr("left: int >= 0")
+        .Attr("right: int >= 0")
+        .Attr("top: int >= 0")
+        .Attr("bottom: int >= 0")
+        .Attr("front: int >= 0")
+        .Attr("back: int >= 0")
 		.SetShapeFn(PadTransposeShapeFn);
 
 template <typename T>
@@ -138,9 +157,12 @@ public:
 		: OpKernel(context)
 	{
         // Get attributes
-        OP_REQUIRES_OK(context, context->GetAttr("pad_x", &padX_));
-        OP_REQUIRES_OK(context, context->GetAttr("pad_y", &padY_));
-        OP_REQUIRES_OK(context, context->GetAttr("pad_z", &padZ_));
+        OP_REQUIRES_OK(context, context->GetAttr("left", &left_));
+        OP_REQUIRES_OK(context, context->GetAttr("right", &right_));
+        OP_REQUIRES_OK(context, context->GetAttr("top", &top_));
+        OP_REQUIRES_OK(context, context->GetAttr("bottom", &bottom_));
+        OP_REQUIRES_OK(context, context->GetAttr("back", &back_));
+        OP_REQUIRES_OK(context, context->GetAttr("front", &front_));
         OP_REQUIRES_OK(context, context->GetAttr("mode", &mode_));
     }
 
@@ -150,9 +172,9 @@ public:
 
 		TensorShape output_shape = x_tensor.shape();
 
-        output_shape.set_dim(1, output_shape.dim_size(1) + 2*padZ_);
-        output_shape.set_dim(2, output_shape.dim_size(2) + 2*padY_);
-        output_shape.set_dim(3, output_shape.dim_size(3) + 2*padX_);
+        output_shape.set_dim(1, output_shape.dim_size(1) + front_ + back_);
+        output_shape.set_dim(2, output_shape.dim_size(2) + top_ + bottom_);
+        output_shape.set_dim(3, output_shape.dim_size(3) + left_ + right_);
 
 		// allocate the output
 		Tensor* output_tensor = nullptr;
@@ -163,15 +185,18 @@ public:
 		auto input = getDTensorTensorflow<T, 4>(x_tensor);
 		auto output = getDTensorTensorflow<T, 4>(*output_tensor);
 		
-		optox::Pad3dOperator<T> op(padX_, padX_, padY_, padY_, padZ_, padZ_, mode_);
+		optox::Pad3dOperator<T> op(left_, right_, bottom_, top_, front_, back_, mode_);
 		op.setStream(context->eigen_device<GPUDevice>().stream());
 		op.forward({output.get()}, {input.get()});
 	}
 
      private:
-        int padX_;
-        int padY_;
-        int padZ_;
+        int left_;
+        int right_;
+        int bottom_;
+        int top_;
+        int front_;
+        int back_;
         std::string mode_;
 };
 
@@ -197,9 +222,12 @@ public:
 		: OpKernel(context)
 	{
         // Get attributes
-        OP_REQUIRES_OK(context, context->GetAttr("pad_x", &padX_));
-        OP_REQUIRES_OK(context, context->GetAttr("pad_y", &padY_));
-        OP_REQUIRES_OK(context, context->GetAttr("pad_z", &padZ_));
+        OP_REQUIRES_OK(context, context->GetAttr("left", &left_));
+        OP_REQUIRES_OK(context, context->GetAttr("right", &right_));
+        OP_REQUIRES_OK(context, context->GetAttr("top", &top_));
+        OP_REQUIRES_OK(context, context->GetAttr("bottom", &bottom_));
+        OP_REQUIRES_OK(context, context->GetAttr("back", &back_));
+        OP_REQUIRES_OK(context, context->GetAttr("front", &front_));
         OP_REQUIRES_OK(context, context->GetAttr("mode", &mode_));
     }
 
@@ -209,9 +237,9 @@ public:
 
 		TensorShape output_shape = x_tensor.shape();
 
-        output_shape.set_dim(1, output_shape.dim_size(1) - 2*padZ_);
-        output_shape.set_dim(2, output_shape.dim_size(2) - 2*padY_);
-        output_shape.set_dim(3, output_shape.dim_size(3) - 2*padX_);
+        output_shape.set_dim(1, output_shape.dim_size(1) - front_ - back_);
+        output_shape.set_dim(2, output_shape.dim_size(2) - bottom_ - top_);
+        output_shape.set_dim(3, output_shape.dim_size(3) - left_ - right_);
 
 		// allocate the output
 		Tensor* output_tensor = nullptr;
@@ -222,15 +250,18 @@ public:
 		auto input = getDTensorTensorflow<T, 4>(x_tensor);
 		auto output = getDTensorTensorflow<T, 4>(*output_tensor);
 		
-		optox::Pad3dOperator<T> op(padX_, padX_, padY_, padY_, padZ_, padZ_, mode_);
+		optox::Pad3dOperator<T> op(left_, right_, bottom_, top_, front_, back_, mode_);
 		op.setStream(context->eigen_device<GPUDevice>().stream());
 		op.adjoint({output.get()}, {input.get()});
 	}
 
      private:
-        int padX_;
-        int padY_;
-        int padZ_;
+        int left_;
+        int right_;
+        int bottom_;
+        int top_;
+        int front_;
+        int back_;
         std::string mode_;
 };
 
