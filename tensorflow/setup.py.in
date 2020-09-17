@@ -39,6 +39,8 @@ PACKAGE_DATA = {}
 ADD_PACKAGES = [
   "nabla",
   "demosaicing",
+  "activations",
+  "pad2d",
   "pad3d",
 ]
 
