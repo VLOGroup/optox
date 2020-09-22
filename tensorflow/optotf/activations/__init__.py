@@ -106,14 +106,14 @@ class TrainableActivationKeras(tf.keras.layers.Layer):
 
     def __call__(self, x):
         # first reshape the input
-        shape = x.shape
-        x = tf.transpose(tf.reshape(x, (-1, x.shape[-1])), [1, 0])
-        if x.shape[0] % self.group != 0:
-            raise RuntimeError("Input shape must be a multiple of group!") 
-        x_r = tf.reshape(x, (x.shape[0]//self.group, -1))
+        shape = tf.shape(x)
+        x = tf.transpose(tf.reshape(x, (-1, shape[-1])), [1, 0])
+        # if tf.shape(x)[0] % self.group != 0: # TODO move this to cpp code!
+        #     raise RuntimeError("Input shape must be a multiple of group!") 
+        x_r = tf.reshape(x, (tf.shape(x)[0]//self.group, -1))
         # compute the output
         x_r = self.op(x_r, self.weight, vmin=self.vmin, vmax=self.vmax)
-        return tf.reshape(tf.transpose(tf.reshape(x_r, x.shape), [1, 0]), shape)
+        return tf.reshape(tf.transpose(tf.reshape(x_r, tf.shape(x)), [1, 0]), shape)
 
     def extra_repr(self):
         s = "num_channels={num_channels}, num_weights={num_weights}, type={base_type}, vmin={vmin}, vmax={vmax}, init={init}, init_scale={init_scale}"
@@ -175,14 +175,14 @@ class TrainableActivation(tf.Module):
 
     def __call__(self, x):
         # first reshape the input
-        shape = x.shape
-        x = tf.transpose(tf.reshape(x, (-1, x.shape[-1])), [1, 0])
-        if x.shape[0] % self.group != 0:
-            raise RuntimeError("Input shape must be a multiple of group!") 
-        x_r = tf.reshape(x, (x.shape[0]//self.group, -1))
+        shape = tf.shape(x)
+        x = tf.transpose(tf.reshape(x, (-1, tf.shape(x)[-1])), [1, 0])
+        # if tf.shape(x)[0] % self.group != 0:
+        #     raise RuntimeError("Input shape must be a multiple of group!") 
+        x_r = tf.reshape(x, (tf.shape(x)[0]//self.group, -1))
         # compute the output
         x_r = self.op(x_r, self.weight, vmin=self.vmin, vmax=self.vmax)
-        return tf.reshape(tf.transpose(tf.reshape(x_r, x.shape), [1, 0]), shape)
+        return tf.reshape(tf.transpose(tf.reshape(x_r, tf.shape(x)), [1, 0]), shape)
 
     def extra_repr(self):
         s = "num_channels={num_channels}, num_weights={num_weights}, type={base_type}, vmin={vmin}, vmax={vmax}, init={init}, init_scale={init_scale}"
