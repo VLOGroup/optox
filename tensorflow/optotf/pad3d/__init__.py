@@ -31,8 +31,10 @@ def pad3d(x, padding, mode, channel_last=True):
     if channel_last:
         x = tf.transpose(x, [0, 4, 1, 2, 3])
         
-    shape = list(x.shape)
-    x_r = tf.reshape(x, (-1, *shape[2:]))
+    shape = tf.unstack(tf.shape(x))
+    new_shape = [-1, *shape[2:]]
+    new_shape = tf.stack(new_shape)
+    x_r = tf.reshape(x, new_shape)
 
     # compute the output
     x_r = _ext.pad3d(x_r, left=padding[0], right=padding[1], bottom=padding[2], top=padding[3], front=padding[4], back=padding[5], mode=mode)
@@ -41,6 +43,7 @@ def pad3d(x, padding, mode, channel_last=True):
     padded_shape[-3] += padding[4] + padding[5]
     padded_shape[-2] += padding[2] + padding[3]
     padded_shape[-1] += padding[0] + padding[1]
+    padded_shape = tf.stack(padded_shape)
 
     if channel_last:
         return tf.transpose(tf.reshape(x_r, padded_shape), [0, 2, 3, 4, 1])
@@ -67,8 +70,10 @@ def pad3d_transpose(x, padding, mode, channel_last=True):
     if channel_last:
         x = tf.transpose(x, [0, 4, 1, 2, 3])
 
-    shape = list(x.shape)
-    x_r = tf.reshape(x, (-1, *shape[2:]))
+    shape = tf.unstack(tf.shape(x))
+    new_shape = [-1, *shape[2:]]
+    new_shape = tf.stack(new_shape)
+    x_r = tf.reshape(x, new_shape)
 
     # compute the output
     x_r = _ext.pad3d_transpose(x_r, left=padding[0], right=padding[1], bottom=padding[2], top=padding[3], front=padding[4], back=padding[5], mode=mode)
@@ -77,6 +82,7 @@ def pad3d_transpose(x, padding, mode, channel_last=True):
     paddedT_shape[-3] -= padding[4] + padding[5]
     paddedT_shape[-2] -= padding[2] + padding[3]
     paddedT_shape[-1] -= padding[0] + padding[1]
+    paddedT_shape = tf.stack(paddedT_shape)
 
     if channel_last:
         return tf.transpose(tf.reshape(x_r, paddedT_shape), [0, 2, 3, 4, 1])

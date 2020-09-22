@@ -52,7 +52,7 @@ https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/framework/s
   // create Dimension Handle to store output dimensions
   std::vector<DimensionHandle> dims(4);
   // Safety Check => Input dimensionality must be of rank 4
-  TF_RETURN_IF_ERROR( c->WithRank(input, 5, &input));
+  TF_RETURN_IF_ERROR( c->WithRank(input, 4, &input));
 
   // c->input(idx)  => returns the ShapeHandle for the specified input
   // c->Dim (ShapeHandle, idx)  => returns the size of the dimension as  DimensionHandle 
