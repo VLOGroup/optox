@@ -51,11 +51,10 @@ def _get_operator(base_type):
         raise ValueError(f"Unsupported type {base_type}")
 
 class TrainableActivationKeras(tf.keras.layers.Layer):
-    def __init__(self, num_channels, vmin, vmax, num_weights, base_type="rbf", init="linear", init_scale=1.0,
-                 group=1):
+    def __init__(self, vmin, vmax, num_weights, base_type="rbf", init="linear", init_scale=1.0,
+                 group=1, **kwargs):
         super(TrainableActivationKeras, self).__init__()
 
-        self.num_channels = num_channels
         self.vmin = vmin
         self.vmax = vmax
         self.num_weights = num_weights
@@ -64,6 +63,17 @@ class TrainableActivationKeras(tf.keras.layers.Layer):
         self.init_scale = init_scale
         self.group = group
 
+        # determine the operator
+        if self.base_type in ["rbf", "linear", "spline"]:
+            self.op = _get_operator(self.base_type)
+        else:
+            raise RuntimeError("Unsupported base type '{}'!".format(base_type))
+
+    def build(self, input_shape):
+        super().build(input_shape)
+
+        self.num_channels = input_shape[-1]
+        
         # setup the parameters of the layer
         initializer = tf.keras.initializers.RandomNormal(mean=0., stddev=1.)
         self.weight = self.add_weight('weight', shape=(self.num_channels, self.num_weights), initializer=initializer)
@@ -71,12 +81,6 @@ class TrainableActivationKeras(tf.keras.layers.Layer):
 
         # define the reduction index
         self.weight.reduction_dim = (1, )
-
-        # determine the operator
-        if self.base_type in ["rbf", "linear", "spline"]:
-            self.op = _get_operator(self.base_type)
-        else:
-            raise RuntimeError("Unsupported base type '{}'!".format(base_type))
 
     def reset_parameters(self):
         # define the bins
@@ -104,7 +108,7 @@ class TrainableActivationKeras(tf.keras.layers.Layer):
 
         self.weight.assign(np_w)
 
-    def __call__(self, x):
+    def call(self, x):
         # first reshape the input
         shape = tf.shape(x)
         x = tf.transpose(tf.reshape(x, (-1, shape[-1])), [1, 0])
