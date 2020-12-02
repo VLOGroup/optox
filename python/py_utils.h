@@ -33,8 +33,7 @@ std::unique_ptr<optox::DTensor<T, N>> getDTensorNp(py::array &array)
     std::unique_ptr<optox::DTensor<T, N>> p(new optox::DTensor<T, N>(size));
     p->copyFromHostPtr(reinterpret_cast<const T *>(array.data()));
 
-    // do not return a copy but rather move its value
-    return move(p);
+    return p;
 }
 
 template <typename T, unsigned int N>

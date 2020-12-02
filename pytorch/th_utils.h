@@ -9,8 +9,8 @@
 #include "tensor/h_tensor.h"
 #include "tensor/d_tensor.h"
 
-#define CHECK_CUDA(x) AT_ASSERTM(x.type().is_cuda(), #x " must be a CUDA tensor")
-#define CHECK_NOT_CUDA(x) AT_ASSERTM(!x.type().is_cuda(), #x " must be a CPU tensor")
+#define CHECK_CUDA(x) AT_ASSERTM(x.device().type() == torch::kCUDA, #x " must be a CUDA tensor")
+#define CHECK_NOT_CUDA(x) AT_ASSERTM(tensor.device().type() != torch::kCUDA, #x " must be a CPU tensor")
 #define CHECK_CONTIGUOUS(x) AT_ASSERTM(x.is_contiguous(), #x " must be contiguous")
 
 // wrappers for iu
@@ -27,10 +27,9 @@ std::unique_ptr<optox::DTensor<T, N>> getDTensorTorch(at::Tensor tensor)
     optox::Shape<N> size;
     for (unsigned int i = 0; i < N; ++i)
         size[i] = tensor.size(i);
-    std::unique_ptr<optox::DTensor<T, N>> p(new optox::DTensor<T, N>(tensor.data<T>(), size, true));
+    std::unique_ptr<optox::DTensor<T, N>> p(new optox::DTensor<T, N>(tensor.data_ptr<T>(), size, true));
 
-    // do not return a copy but rather move its value
-    return move(p);
+    return p;
 }
 
 template <typename T, unsigned int N>
@@ -46,8 +45,7 @@ std::unique_ptr<optox::HTensor<T, N>> getHTensorTorch(at::Tensor tensor)
     optox::Shape<N> size;
     for (unsigned int i = 0; i < N; ++i)
         size[i] = tensor.size(i);
-    std::unique_ptr<optox::HTensor<T, N>> p(new optox::HTensor<T, N>(tensor.data<T>(), size, true));
+    std::unique_ptr<optox::HTensor<T, N>> p(new optox::HTensor<T, N>(tensor.data_ptr<T>(), size, true));
 
-    // do not return a copy but rather move its value
-    return move(p);
+    return p;
 }

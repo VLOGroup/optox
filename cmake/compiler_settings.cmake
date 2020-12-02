@@ -14,8 +14,8 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU" OR ${CMAKE_CXX_COMPILER_ID} STREQUAL
 	# using GCC or using Clang
 	set(CUDA_PROPAGATE_HOST_FLAGS OFF)
 	#
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC -fmax-errors=3 -fpermissive -ggdb -Wall -Wc++11-compat")
-	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -expt-extended-lambda -ftemplate-backtrace-limit=2 -lineinfo -std=c++11 -Xcompiler -fPIC")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -fPIC -fmax-errors=3 -fpermissive -ggdb -Wall -Wc++11-compat")
+	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -expt-extended-lambda -ftemplate-backtrace-limit=2 -lineinfo -std=c++14 -Xcompiler -fPIC")
         if(BUILD_RELEASE OR CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo" OR NOT CMAKE_BUILD_TYPE) #RELEASE
 		add_flags(CMAKE_CXX_FLAGS "-O2 -ffast-math -DNDEBUG")
 		add_flags(CUDA_NVCC_FLAGS "-O2 -keep -src-in-ptx -DNDEBUG")

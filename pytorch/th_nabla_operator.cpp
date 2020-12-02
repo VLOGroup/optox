@@ -60,7 +60,7 @@ at::Tensor forward2(optox::Nabla2Operator<T, N> &op, at::Tensor th_input)
     shape.push_back(N*N);
     auto in_shape = th_input.sizes().vec();
     shape.insert(shape.end(), in_shape.begin()+1, in_shape.end());
-    auto th_output = at::empty(shape, th_input.type());
+    auto th_output = at::empty(shape, th_input.options());
     auto output = getDTensorTorch<T, N+1>(th_output);
 
     op.forward({output.get()}, {input.get()});
@@ -79,7 +79,7 @@ at::Tensor adjoint2(optox::Nabla2Operator<T, N> &op, at::Tensor th_input)
     shape.push_back(N);
     auto in_shape = th_input.sizes().vec();
     shape.insert(shape.end(), in_shape.begin()+1, in_shape.end());
-    auto th_output = at::empty(shape, th_input.type());
+    auto th_output = at::empty(shape, th_input.options());
     auto output = getDTensorTorch<T, N+1>(th_output);
     
     op.adjoint({output.get()}, {input.get()});
