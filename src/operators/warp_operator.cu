@@ -7,6 +7,7 @@
 #include "utils.h"
 #include "tensor/d_tensor.h"
 #include "warp_operator.h"
+#include "reduce.cuh"
 
 
 template <typename T>
