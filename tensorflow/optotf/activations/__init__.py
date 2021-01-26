@@ -50,6 +50,42 @@ def _get_operator(base_type):
     else:
         raise ValueError(f"Unsupported type {base_type}")
 
+class TrainableActivationKerasInitializer(tf.keras.initializers.Initializer):
+    def __init__(self, vmin, vmax, num_weights, init, init_scale, num_channels):
+        self.initializer = tf.keras.initializers.RandomNormal(mean=0., stddev=1.)
+        self.vmin = vmin
+        self.vmax = vmax
+        self.num_weights = num_weights
+        self.init = init
+        self.init_scale = init_scale
+        self.num_channels = num_channels
+    
+    def __call__(self, shape, dtype=None):
+        # define the bins
+        np_x = np.linspace(self.vmin, self.vmax, self.num_weights, dtype=np.float32)[np.newaxis, :]
+        # initialize the weights
+        if self.init == "constant":
+            np_w = np.ones_like(np_x) * self.init_scale
+        elif self.init == "linear":
+            np_w = np_x * self.init_scale
+        elif self.init == "quadratic":
+            np_w = np_x**2 * self.init_scale
+        elif self.init == "abs":
+            np_w = np.abs(np_x) * self.init_scale
+        elif self.init == "student-t":
+            alpha = 100
+            np_w = self.init_scale * np.sqrt(alpha) * np_x / (1 + 0.5 * alpha * np_x ** 2)
+        elif self.init == "invert":
+            np_w = self.init_scale / np_x
+            if not np.all(np.isfinite(np_w)):
+                raise RuntimeError("Invalid value encountered in weight init!")
+        else:
+            raise RuntimeError("Unsupported init type '{}'!".format(self.init))
+        # tile to proper size
+        np_w = np.tile(np_w, (self.num_channels, 1))
+
+        return np_w
+
 class TrainableActivationKeras(tf.keras.layers.Layer):
     def __init__(self, vmin, vmax, num_weights, base_type="rbf", init="linear", init_scale=1.0,
                  group=1, **kwargs):
@@ -75,38 +111,11 @@ class TrainableActivationKeras(tf.keras.layers.Layer):
         self.num_channels = input_shape[-1]
         
         # setup the parameters of the layer
-        initializer = tf.keras.initializers.RandomNormal(mean=0., stddev=1.)
+        initializer = TrainableActivationKerasInitializer(self.vmin, self.vmax, self.num_weights, self.init, self.init_scale, self.num_channels)
         self.weight = self.add_weight('weight', shape=(self.num_channels, self.num_weights), initializer=initializer)
-        self.reset_parameters()
-
         # define the reduction index
         self.weight.reduction_dim = (1, )
 
-    def reset_parameters(self):
-        # define the bins
-        np_x = np.linspace(self.vmin, self.vmax, self.num_weights, dtype=np.float32)[np.newaxis, :]
-        # initialize the weights
-        if self.init == "constant":
-            np_w = np.ones_like(np_x) * self.init_scale
-        elif self.init == "linear":
-            np_w = np_x * self.init_scale
-        elif self.init == "quadratic":
-            np_w = np_x**2 * self.init_scale
-        elif self.init == "abs":
-            np_w = np.abs(np_x) * self.init_scale
-        elif self.init == "student-t":
-            alpha = 100
-            np_w = self.init_scale * np.sqrt(alpha) * np_x / (1 + 0.5 * alpha * np_x ** 2)
-        elif self.init == "invert":
-            np_w = self.init_scale / np_x
-            if not np.all(np.isfinite(np_w)):
-                raise RuntimeError("Invalid value encountered in weight init!")
-        else:
-            raise RuntimeError("Unsupported init type '{}'!".format(self.init))
-        # tile to proper size
-        np_w = np.tile(np_w, (self.num_channels, 1))
-
-        self.weight.assign(np_w)
 
     def call(self, x):
         # first reshape the input
