@@ -38,23 +38,35 @@ link_directories(${Tensorflow_LIB_DIRS})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11  -fPIC -O2 -D GOOGLE_CUDA=1 ${Tensorflow_FLAGS}")
 set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --expt-relaxed-constexpr -D GOOGLE_CUDA=1 ${Tensorflow_FLAGS}")
 
-##----------------------------------------------------------------------------
-## nabla operator
-##----------------------------------------------------------------------------
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/optotf/nabla)
-cuda_add_library(tf_nabla_operator SHARED tf_nabla_operator.cpp)
+##-----------------------------------------------------------------------------
+## define macro to finish lib
+##-----------------------------------------------------------------------------
+macro (finish_tensorflow_lib opname)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/optotf/${opname})
+cuda_add_library(tf_${opname}_operator SHARED tf_${opname}_operator.cpp)
 
-target_link_libraries(tf_nabla_operator optox ${Tensorflow_LIB})
-set_target_properties(tf_nabla_operator PROPERTIES PREFIX "" LINKER_LANGUAGE CXX)
+target_link_libraries(tf_${opname}_operator optox ${Tensorflow_LIB})
+set_target_properties(tf_${opname}_operator PROPERTIES PREFIX "" LINKER_LANGUAGE CXX)
+set(DEPS_TF
+    ${DEPS_TF}
+    optotf/${opname}/__init__.py
+    tf_${opname}_operator.cpp
+)
+set(DEPS_BUILD
+    ${DEPS_BUILD}
+    tf_${opname}_operator
+)
+endmacro (finish_tensorflow_lib)
+##-----------------------------------------------------------------------------
 
-##----------------------------------------------------------------------------
-## demosaicing operator
-##----------------------------------------------------------------------------
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/optotf/demosaicing)
-cuda_add_library(tf_demosaicing_operator SHARED tf_demosaicing.cpp)
-
-target_link_libraries(tf_demosaicing_operator optox ${Tensorflow_LIB})
-set_target_properties(tf_demosaicing_operator PROPERTIES PREFIX "" LINKER_LANGUAGE CXX)
+##-----------------------------------------------------------------------------
+## add new modules
+##-----------------------------------------------------------------------------
+finish_tensorflow_lib(nabla)
+finish_tensorflow_lib(demosaicing)
+finish_tensorflow_lib(activations)
+finish_tensorflow_lib(pad2d)
+finish_tensorflow_lib(pad3d)
 
 ##----------------------------------------------------------------------------
 ## packageing using python setup
@@ -65,10 +77,7 @@ if (PYTHON)
     set(DEPS_TF
         optotf/__init__.py
         tf_utils.h
-        optotf/nabla/__init__.py
-        tf_nabla_operator.cpp
-        optotf/demosaicing/__init__.py
-        tf_demosaicing.cpp
+        ${DEPS_TF}
     )
     set(OUTPUT_TF "${CMAKE_CURRENT_BINARY_DIR}/timestamp")
 
@@ -82,7 +91,7 @@ if (PYTHON)
 
     add_custom_target(setup_tf ALL DEPENDS ${OUTPUT_TF} ${DEPS_TF} WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-    add_dependencies(setup_tf optox tf_nabla_operator)
+    add_dependencies(setup_tf optox ${DEPS_BUILD})
 
     install(CODE "execute_process(COMMAND ${PYTHON} ${SETUP_TF} install WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})")
 endif()

@@ -17,26 +17,49 @@ find_program(PYTHON "python")
 
 message(STATUS "python: ${PYTHON}")
 
+##-----------------------------------------------------------------------------
+## define macro to finish lib
+##-----------------------------------------------------------------------------
+macro (add_deps_th opname)
+set(DEPS_TH
+    ${DEPS_TH}
+    optoth/${opname}.py
+    th_${opname}_operator.cpp
+)
+endmacro (add_deps_th)
+
+##-----------------------------------------------------------------------------
+## add new modules
+##-----------------------------------------------------------------------------
+# activations
+set(DEPS_TH
+    ${DEPS_TH}
+    optoth/activations/__init__.py
+    optoth/activations/act.py
+    th_act_operator.cpp
+)
+
+# nabla & nabla2
+add_deps_th(nabla)
+set(DEPS_TH
+    ${DEPS_TH}
+    optoth/nabla2.py
+)
+
+# other
+add_deps_th(demosaicing)
+add_deps_th(rot)
+add_deps_th(warp)
+add_deps_th(pad2d)
+add_deps_th(pad3d)
+
 if (PYTHON)
     set(SETUP_TH_IN setup.py.in)
     set(SETUP_TH "${CMAKE_CURRENT_BINARY_DIR}/setup.py")
     set(DEPS_TH
         optoth/__init__.py
-        optoth/activations/__init__.py
-        optoth/activations/act.py
-        th_act_operator.cpp
         th_utils.h
-        optoth/nabla.py
-        optoth/nabla2.py
-        th_nabla_operator.cpp
-        optoth/demosaicing.py
-        th_demosaicing_operator.cpp
-        optoth/rot.py
-        th_rot_operator.cpp
-        optoth/warp.py
-        th_warp_operator.cpp
-        optoth/pad2d.py
-        th_pad2d_operator.cpp
+        ${DEPS_TH}
     )
     set(OUTPUT_TH "${CMAKE_CURRENT_BINARY_DIR}/timestamp")
 

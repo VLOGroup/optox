@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-import _ext.th_act_operators
+import _ext.th_act_operator
 
 import unittest
 
@@ -15,23 +15,23 @@ class ActivationFunction(torch.autograd.Function):
     def _get_operator(dtype, base_type, vmin, vmax):
         if base_type == 'rbf':
             if dtype == torch.float32:
-                return _ext.th_act_operators.RbfAct_float(vmin, vmax)
+                return _ext.th_act_operator.RbfAct_float(vmin, vmax)
             elif dtype == torch.float64:
-                return _ext.th_act_operators.RbfAct_double(vmin, vmax)
+                return _ext.th_act_operator.RbfAct_double(vmin, vmax)
             else:
                 raise RuntimeError('Unsupported dtype!')
         elif base_type == 'linear':
             if dtype == torch.float32:
-                return _ext.th_act_operators.LinearAct_float(vmin, vmax)
+                return _ext.th_act_operator.LinearAct_float(vmin, vmax)
             elif dtype == torch.float64:
-                return _ext.th_act_operators.LinearAct_double(vmin, vmax)
+                return _ext.th_act_operator.LinearAct_double(vmin, vmax)
             else:
                 raise RuntimeError('Unsupported dtype!')
         elif base_type == 'spline':
             if dtype == torch.float32:
-                return _ext.th_act_operators.SplineAct_float(vmin, vmax)
+                return _ext.th_act_operator.SplineAct_float(vmin, vmax)
             elif dtype == torch.float64:
-                return _ext.th_act_operators.SplineAct_double(vmin, vmax)
+                return _ext.th_act_operator.SplineAct_double(vmin, vmax)
             else:
                 raise RuntimeError('Unsupported dtype!')
         else:
@@ -63,9 +63,9 @@ class Activation2Function(torch.autograd.Function):
     def _get_operator(dtype, base_type, vmin, vmax):
         if base_type == 'rbf':
             if dtype == torch.float32:
-                return _ext.th_act_operators.RbfAct2_float(vmin, vmax)
+                return _ext.th_act_operator.RbfAct2_float(vmin, vmax)
             elif dtype == torch.float64:
-                return _ext.th_act_operators.RbfAct2_double(vmin, vmax)
+                return _ext.th_act_operator.RbfAct2_double(vmin, vmax)
             else:
                 raise RuntimeError('Unsupported dtype!')
         else:
