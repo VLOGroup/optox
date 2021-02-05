@@ -202,7 +202,7 @@ class TrainableActivation(tf.Module):
         s += " group={group}"
         return s.format(**self.__dict__)
 
-# to run execute: python -m unittest [-v] optoth.activations
+# to run execute: python -m unittest [-v] optotf.activations
 class TestFunction(unittest.TestCase):
     def _run_gradient_test(self, base_type):
         # setup the hyper parameters for each test
