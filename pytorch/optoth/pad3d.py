@@ -72,12 +72,12 @@ class PadFunction(torch.autograd.Function):
         pad_shape[-3] += pad[4]+pad[5]
         pad_shape[-2] += pad[2]+pad[3]
         pad_shape[-1] += pad[0]+pad[1]
-        out = ctx.op.forward(x.reshape(-1, x.shape[-3], x.shape[-2], x.shape[-1])).view(pad_shape)
+        out = ctx.op.forward(x.reshape(-1, x.shape[-3], x.shape[-2], x.shape[-1]).contiguous()).view(pad_shape)
         return out
 
     @staticmethod
     def backward(ctx, grad_out):
-        grad_x = ctx.op.adjoint(grad_out.reshape(-1, grad_out.shape[-3], grad_out.shape[-2], grad_out.shape[-1]))
+        grad_x = ctx.op.adjoint(grad_out.reshape(-1, grad_out.shape[-3], grad_out.shape[-2], grad_out.shape[-1]).contiguous())
         return grad_x.view(ctx.shape), None, None
 
 
@@ -91,12 +91,12 @@ class PadFunctionTranspose(torch.autograd.Function):
         padT_shape[-3] += -pad[4]-pad[5]
         padT_shape[-2] += -pad[2]-pad[3]
         padT_shape[-1] += -pad[0]-pad[1]
-        out = ctx.op.adjoint(x.reshape(-1, x.shape[-3], x.shape[-2], x.shape[-1])).view(padT_shape)
+        out = ctx.op.adjoint(x.reshape(-1, x.shape[-3], x.shape[-2], x.shape[-1]).contiguous()).view(padT_shape)
         return out
 
     @staticmethod
     def backward(ctx, grad_out):
-        grad_x = ctx.op.forward(grad_out.reshape(-1, grad_out.shape[-3], grad_out.shape[-2], grad_out.shape[-1]))
+        grad_x = ctx.op.forward(grad_out.reshape(-1, grad_out.shape[-3], grad_out.shape[-2], grad_out.shape[-1]).contiguous())
         return grad_x.view(ctx.shape), None, None
 
 # to run execute: python -m unittest [-v] optoth.pad3d

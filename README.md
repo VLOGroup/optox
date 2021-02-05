@@ -5,7 +5,7 @@ Write operators only once and use it **everywhere**.
 ## Concept
 Write an operator in `C++/CUDA` and generate wrappers to different languages such as `Python` and machine learning libraries such as `Tensorflow` or `Pytorch`.
 
-`optox` provides a tensor interface to ease data transfer between host tensors `optox::HTensor` and device tensors `optox::DTensor` or any floating type and number of dimensions.
+`optox` provides a tensor interface to ease data transfer between host tensors `optox::HTensor` and device tensors `optox::DTensor` of any floating type and number of dimensions.
 Using this interface, an operator is only written once in `C++/CUDA` and wrappers for `Python`, `Tensorflow 2.x` and `Pytorch` expose the functionality to a higher level application (e.g. iterative reconstruction, custom deep learning reconstruction, ...).
 
 ## Overview 
@@ -41,7 +41,7 @@ make install
 ```
 
 ### CUDA sync free build
-Use `CMAKE_BUILD_TYPE=Release` to avoid the device synchronization after each CUDA call. Then no CUDA errors are generated but runtime is dramatically improved.
+Use `CMAKE_BUILD_TYPE=Release` to avoid the device synchronization after each CUDA call. Then, no CUDA errors are generated but runtime is strongly reduced.
 
 ### `Python` wrappers
 To build the `Python` wrappers `optox` requires `pybind11` which can be installed in an anaconda environment by `conda install pybind11`.
@@ -61,7 +61,7 @@ To build it, the `tensorflow` package must be installed.
 cmake .. -DWITH_TENSORFLOW=ON
 ```
 
-Note to multiple combinations are supported.
+Note that multiple combinations are supported.
 
 
 ## Testing
