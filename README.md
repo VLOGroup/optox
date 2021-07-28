@@ -132,3 +132,6 @@ Ran 2 tests in 1.490s
 OK
 
 ```
+
+### `Keras` support
+The keras layers can be found in `optotf.keras.xxx`.
