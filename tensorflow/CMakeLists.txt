@@ -67,6 +67,7 @@ finish_tensorflow_lib(nabla)
 finish_tensorflow_lib(demosaicing)
 finish_tensorflow_lib(activations)
 finish_tensorflow_lib(pad)
+finish_tensorflow_lib(warp)
 
 ##----------------------------------------------------------------------------
 ## packageing using python setup

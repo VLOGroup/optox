@@ -41,6 +41,7 @@ ADD_PACKAGES = [
   "demosaicing",
   "activations",
   "pad",
+  "warp",
 ]
 
 for pkg in ADD_PACKAGES:

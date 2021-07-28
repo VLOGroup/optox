@@ -19,14 +19,14 @@ class WarpFunction(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, x, u):
-        ctx.save_for_backward(x, u)
+        ctx.save_for_backward(u)
         ctx.op = WarpFunction._get_operator(x.dtype)
         return ctx.op.forward(x, u)
 
     @staticmethod
     def backward(ctx, grad_out):
-        x, u = ctx.saved_tensors
-        grad_x = ctx.op.adjoint(x, u, grad_out)
+        u = ctx.saved_tensors[0]
+        grad_x = ctx.op.adjoint(grad_out, u)
         return grad_x, None
 
 # to run execute: python -m unittest [-v] optoth.warp
@@ -47,7 +47,7 @@ class TestWarpFunction(unittest.TestCase):
         # transfer to torch
         cuda = torch.device('cuda')
         th_x = torch.randn(S, C, M, N, dtype=dtype, device=cuda)
-        th_u = torch.randn(S, M, N, 2, dtype=dtype, device=cuda) * 0.1
+        th_u = torch.randn(S, M, N, 2, dtype=dtype, device=cuda) * 10.0
         th_a = torch.tensor(a, requires_grad=True, dtype=th_x.dtype, device=cuda)
         op = WarpFunction()
 

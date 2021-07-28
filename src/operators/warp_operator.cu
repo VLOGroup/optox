@@ -34,8 +34,8 @@ __global__ void warp(
         const int ix_c = ix_f + 1;
         const int iy_c = iy_f + 1;
 
-        const T w = ix - ix_f;
-        const T h = iy - iy_f;
+        const T w = ix + dx - ix_f;
+        const T h = iy + dy - iy_f;
 
         T i_ff = 0, i_fc = 0;
         if (ix_f >= 0 && ix_f < x.size_[3])
@@ -93,16 +93,15 @@ void optox::WarpOperator<T>::computeForward(optox::OperatorOutputVector &&output
 template <typename T>
 __global__ void warp_grad(
     typename optox::DTensor<T, 4>::Ref grad_x,
-    const typename optox::DTensor<T, 4>::ConstRef x,
-    const typename optox::DTensor<T, 4>::ConstRef u,
     const typename optox::DTensor<T, 4>::ConstRef grad_out,
+    const typename optox::DTensor<T, 4>::ConstRef u,
     int is)
 {
     int ix = threadIdx.x + blockIdx.x * blockDim.x;
     int iy = threadIdx.y + blockIdx.y * blockDim.y;
     int iz = threadIdx.z + blockIdx.z * blockDim.z;
 
-    if (ix < x.size_[3] && iy < x.size_[2] && iz < x.size_[1])
+    if (ix < grad_x.size_[3] && iy < grad_x.size_[2] && iz < grad_x.size_[1])
     {
         // first get the flow
         const T dx = u(is, iy, ix, 0);
@@ -118,24 +117,24 @@ __global__ void warp_grad(
         const int ix_c = ix_f + 1;
         const int iy_c = iy_f + 1;
 
-        const T w = ix - ix_f;
-        const T h = iy - iy_f;
+        const T w = ix + dx - ix_f;
+        const T h = iy + dy - iy_f;
 
-        if (ix_f >= 0 && ix_f < x.size_[3])
+        if (ix_f >= 0 && ix_f < grad_x.size_[3])
         {
-            if (iy_f >= 0 && iy_f < x.size_[2])
+            if (iy_f >= 0 && iy_f < grad_x.size_[2])
                 atomicAdd(&grad_x(is, iz, iy_f, ix_f), (1 - h) * (1 - w) * grad_val);
 
-            if (iy_c >= 0 && iy_c < x.size_[2])
+            if (iy_c >= 0 && iy_c < grad_x.size_[2])
                 atomicAdd(&grad_x(is, iz, iy_c, ix_f), h * (1 - w) * grad_val);
         }
 
-        if (ix_c >= 0 && ix_c < x.size_[3])
+        if (ix_c >= 0 && ix_c < grad_x.size_[3])
         {
-            if (iy_f >= 0 && iy_f < x.size_[2])
+            if (iy_f >= 0 && iy_f < grad_x.size_[2])
                 atomicAdd(&grad_x(is, iz, iy_f, ix_c), (1 - h) * w * grad_val);
 
-            if (iy_c >= 0 && iy_c < x.size_[2])
+            if (iy_c >= 0 && iy_c < grad_x.size_[2])
                 atomicAdd(&grad_x(is, iz, iy_c, ix_c), h * w * grad_val);
         }
     }
@@ -146,27 +145,26 @@ template<typename T>
 void optox::WarpOperator<T>::computeAdjoint(optox::OperatorOutputVector &&outputs,
     const optox::OperatorInputVector &inputs)
 {
-    auto x = this->template getInput<T, 4>(0, inputs);
+    auto grad_out = this->template getInput<T, 4>(0, inputs);
     auto u = this->template getInput<T, 4>(1, inputs);
-    auto grad_out = this->template getInput<T, 4>(2, inputs);
 
     auto grad_x = this->template getOutput<T, 4>(0, outputs);
 
     // clear the weights gradient
     grad_x->fill(0);
 
-    if (x->size() != grad_x->size() || x->size() != grad_out->size() || 
-        x->size()[0] != u->size()[0] || x->size()[2] != u->size()[1] || 
-        x->size()[3] != u->size()[2] || u->size()[3] != 2)
+    if (grad_x->size() != grad_out->size() || 
+        grad_x->size()[0] != u->size()[0] || grad_x->size()[2] != u->size()[1] || 
+        grad_x->size()[3] != u->size()[2] || u->size()[3] != 2)
         THROW_OPTOXEXCEPTION("WarpOperator: unsupported size");
 
     dim3 dim_block = dim3(32, 32, 1);
-    dim3 dim_grid = dim3(divUp(x->size()[3], dim_block.x),
-                         divUp(x->size()[2], dim_block.y),
-                         divUp(x->size()[1], dim_block.z));
+    dim3 dim_grid = dim3(divUp(grad_out->size()[3], dim_block.x),
+                         divUp(grad_out->size()[2], dim_block.y),
+                         divUp(grad_out->size()[1], dim_block.z));
 
-    for (unsigned int s = 0; s < x->size()[0]; ++s)
-        warp_grad<T> <<<dim_grid, dim_block, 0, this->stream_>>>(*grad_x, *x, *u, *grad_out, s);
+    for (unsigned int s = 0; s < grad_out->size()[0]; ++s)
+        warp_grad<T> <<<dim_grid, dim_block, 0, this->stream_>>>(*grad_x, *grad_out, *u, s);
     OPTOX_CUDA_CHECK;
 }
 

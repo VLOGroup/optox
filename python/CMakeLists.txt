@@ -25,9 +25,11 @@ if (PYTHON)
         py_utils.h
         optopy/nabla.py
 	optopy/nabla2.py
+	optopy/warp.py
 	optopy/pad.py
         py_nabla_operator.cpp
-	py_pad_operator.cpp
+        py_warp_operator.cpp
+        py_pad_operator.cpp
     )
     set(OUTPUT_PY "${CMAKE_CURRENT_BINARY_DIR}/timestamp")
 

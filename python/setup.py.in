@@ -108,6 +108,7 @@ def add_module(opname, inc_dir=[]):
     )
 
 add_module("nabla")
+add_module("warp")
 add_module("pad")
 
 setup(

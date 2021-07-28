@@ -29,18 +29,17 @@ at::Tensor forward(optox::WarpOperator<T> &op, at::Tensor th_x, at::Tensor th_u)
 }
 
 template<typename T>
-at::Tensor adjoint(optox::WarpOperator<T> &op, at::Tensor th_x, at::Tensor th_u, at::Tensor th_grad_out)
+at::Tensor adjoint(optox::WarpOperator<T> &op, at::Tensor th_grad_out, at::Tensor th_u)
 {
     // parse the tensors
-    auto x = getDTensorTorch<T, 4>(th_x);
-    auto u = getDTensorTorch<T, 4>(th_u);
     auto grad_out = getDTensorTorch<T, 4>(th_grad_out);
+    auto u = getDTensorTorch<T, 4>(th_u);
 
     // allocate the output tensor
-    at::Tensor th_grad_x = at::empty_like(th_x);
+    at::Tensor th_grad_x = at::empty_like(th_grad_out);
     auto grad_x = getDTensorTorch<T, 4>(th_grad_x);
     
-    op.adjoint({grad_x.get()}, {x.get(), u.get(), grad_out.get()});
+    op.adjoint({grad_x.get()}, {grad_out.get(), u.get()});
 
     return th_grad_x;
 }

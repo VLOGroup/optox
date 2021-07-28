@@ -50,7 +50,7 @@ class OPTOX_DLLAPI WarpOperator : public IOperator
 
     virtual unsigned int getNumInputsAdjoint()
     {
-        return 3;
+        return 2;
     }
 };
 
