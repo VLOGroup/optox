@@ -65,8 +65,7 @@ endmacro (finish_tensorflow_lib)
 finish_tensorflow_lib(nabla)
 finish_tensorflow_lib(demosaicing)
 finish_tensorflow_lib(activations)
-finish_tensorflow_lib(pad2d)
-finish_tensorflow_lib(pad3d)
+finish_tensorflow_lib(pad)
 
 ##----------------------------------------------------------------------------
 ## packageing using python setup

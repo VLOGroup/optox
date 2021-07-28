@@ -40,8 +40,7 @@ ADD_PACKAGES = [
   "nabla",
   "demosaicing",
   "activations",
-  "pad2d",
-  "pad3d",
+  "pad",
 ]
 
 for pkg in ADD_PACKAGES:

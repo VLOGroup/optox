@@ -50,8 +50,7 @@ set(DEPS_TH
 add_deps_th(demosaicing)
 add_deps_th(rot)
 add_deps_th(warp)
-add_deps_th(pad2d)
-add_deps_th(pad3d)
+add_deps_th(pad)
 
 if (PYTHON)
     set(SETUP_TH_IN setup.py.in)
