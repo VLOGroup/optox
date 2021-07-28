@@ -51,6 +51,7 @@ set(DEPS_TF
     ${DEPS_TF}
     optotf/${opname}/__init__.py
     tf_${opname}_operator.cpp
+    optotf/keras/${opname}.py
 )
 set(DEPS_BUILD
     ${DEPS_BUILD}

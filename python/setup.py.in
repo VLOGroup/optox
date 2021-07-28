@@ -110,7 +110,6 @@ def add_module(opname, inc_dir=[]):
 add_module("nabla")
 add_module("pad")
 
-
 setup(
     name='optopy',
     version='0.2.0',
