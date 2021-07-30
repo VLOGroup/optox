@@ -32,6 +32,11 @@ Thus, we recommend building both deep learning frameworks from source.
 Install dependencies using `anaconda`:
 - `conda install pybind11` for `Python` wrappers
 
+[Update July 2021] We provide an anaconda environment with `Tensorflow 2.4`, `Pytorch 1.9`, `Cuda 11.1`. The environment `optox` can be created via
+```
+conda env create -f environment.yml
+```
+
 To build the basic optox library perform the following steps:
 ```bash
 mkdir build
