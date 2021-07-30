@@ -28,10 +28,6 @@ def _warp_transpose_grad(op, grad):
 
 class TestWarpFunction(unittest.TestCase):            
     def _test_adjointness(self, dtype):
-        # do not allocate entire memory for testing
-        # for gpu_device in tf.config.experimental.list_physical_devices('GPU'):
-        #     tf.config.experimental.set_memory_growth(gpu_device, True)
-
         # setup the vaiables
         tf_x = tf.random.normal([10, 5, 20, 20,], dtype=dtype)
         tf_u = tf.random.normal([10, 20, 20, 2,],  dtype=dtype)*2
