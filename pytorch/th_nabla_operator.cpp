@@ -92,7 +92,7 @@ void declare_op(py::module &m, const std::string &typestr)
 {
     std::string pyclass_name = std::string("Nabla_") + std::to_string(N) + "d_" + typestr;
     py::class_<optox::NablaOperator<T, N>>(m, pyclass_name.c_str(), py::buffer_protocol(), py::dynamic_attr())
-    .def(py::init<const T&, const T&, const T&>(), py::arg("hx") = 1.0, py::arg("hy") = 1.0, py::arg("hz") = 1.0)
+    .def(py::init<const T&, const T&, const T&, const T&>(), py::arg("hx") = 1.0, py::arg("hy") = 1.0, py::arg("hz") = 1.0, py::arg("ht") = 1.0)
     .def("forward", forward<T, N>)
     .def("adjoint", adjoint<T, N>);
 
@@ -110,4 +110,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 
     declare_op<float, 3>(m, "float");
     declare_op<double, 3>(m, "double");
+
+    declare_op<float, 4>(m, "float");
+    declare_op<double, 4>(m, "double");
 }

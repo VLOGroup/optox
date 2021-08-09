@@ -20,13 +20,6 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 
 ##-----------------------------------------------------------------------------
-## ImageUtilities
-##-----------------------------------------------------------------------------
-# set(ImageUtilities_DIR $ENV{IMAGEUTILITIES_ROOT})
-# find_package(ImageUtilities REQUIRED COMPONENTS iucore iumath)
-# include_directories(${IMAGEUTILITIES_INCLUDE_DIR})
-
-##-----------------------------------------------------------------------------
 # CUDA
 ##-----------------------------------------------------------------------------
 find_package(CUDA 5.0 REQUIRED)
@@ -34,23 +27,14 @@ find_package(CUDA 5.0 REQUIRED)
 cuda_include_directories(${CUDA_INCLUDE_DIRS})
 include_directories(${CUDA_INCLUDE_DIRS})
 
+set(CUDA_SDK_ROOT_DIR $ENV{CUDA_SDK_ROOT_DIR}/common/inc)
+cuda_include_directories(${CUDA_SDK_ROOT_DIR})
+include_directories(${CUDA_SDK_ROOT_DIR})
+
 ##-----------------------------------------------------------------------------
 # Compiler flags
 ##-----------------------------------------------------------------------------
 include(${CMAKE_CURRENT_LIST_DIR}/settings.cmake)
-
-##-----------------------------------------------------------------------------
-## gpuNUFFT
-##-----------------------------------------------------------------------------
-# option(WITH_GPUNUFFT "Use gpuNUFFT for non-uniform MRI operator. Requires GPUNUFFT_ROOT to be set." OFF)
-
-# if(WITH_GPUNUFFT)
-#     message(STATUS "Use gpuNUFFT (required for non-uniform MRI operator)")
-#     find_package(GPUNUFFT REQUIRED)
-#     include_directories(${GPUNUFFT_INCLUDE_DIRS})
-# else(WITH_GPUNUFFT)
-#     message(STATUS "Disable gpuNUFFT (required for non-uniform MRI operator)")
-# endif(WITH_GPUNUFFT)
 
 ##-----------------------------------------------------------------------------
 ## sources

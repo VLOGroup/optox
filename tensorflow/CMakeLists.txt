@@ -51,6 +51,7 @@ set(DEPS_TF
     ${DEPS_TF}
     optotf/${opname}/__init__.py
     tf_${opname}_operator.cpp
+    optotf/keras/${opname}.py
 )
 set(DEPS_BUILD
     ${DEPS_BUILD}
@@ -65,8 +66,8 @@ endmacro (finish_tensorflow_lib)
 finish_tensorflow_lib(nabla)
 finish_tensorflow_lib(demosaicing)
 finish_tensorflow_lib(activations)
-finish_tensorflow_lib(pad2d)
-finish_tensorflow_lib(pad3d)
+finish_tensorflow_lib(pad)
+finish_tensorflow_lib(warp)
 
 ##----------------------------------------------------------------------------
 ## packageing using python setup

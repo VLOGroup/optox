@@ -14,7 +14,7 @@ class OPTOX_DLLAPI NablaOperator : public IOperator
   public:
     /** Constructor.
    */
-    NablaOperator(const T& hx = 1.0, const T& hy = 1.0, const T& hz = 1.0) : IOperator(), hx_(hx), hy_(hy), hz_(hz)
+    NablaOperator(const T& hx = 1.0, const T& hy = 1.0, const T& hz = 1.0, const T& ht = 1.0) : IOperator(), hx_(hx), hy_(hy), hz_(hz), ht_(ht)
     {
     }
 
@@ -56,6 +56,7 @@ class OPTOX_DLLAPI NablaOperator : public IOperator
     T hx_;
     T hy_;
     T hz_;
+    T ht_;
 };
 
 } // namespace optox

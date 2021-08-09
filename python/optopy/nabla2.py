@@ -3,7 +3,7 @@ import unittest
 
 import _ext.py_nabla_operator
 
-__all__ = ['float_2d', 'double_2d', 'float_3d', 'double_3d']
+__all__ = ['float_2d', 'double_2d', 'float_3d', 'double_3d', 'float_4d', 'double_4d']
 
 float_2d = _ext.py_nabla_operator.Nabla2_2d_float
 double_2d = _ext.py_nabla_operator.Nabla2_2d_double
@@ -11,6 +11,8 @@ double_2d = _ext.py_nabla_operator.Nabla2_2d_double
 float_3d = _ext.py_nabla_operator.Nabla2_3d_float
 double_3d = _ext.py_nabla_operator.Nabla2_3d_double
 
+float_4d = _ext.py_nabla_operator.Nabla2_4d_float
+double_4d = _ext.py_nabla_operator.Nabla2_4d_double
 
 # to run execute: python -m unittest [-v] optopy.nabla2
 class TestNabla2Function(unittest.TestCase):
@@ -21,6 +23,8 @@ class TestNabla2Function(unittest.TestCase):
                 return float_2d()
             elif dim == 3:
                 return float_3d()
+            elif dim == 4:
+                return float_4d()
             else:
                 raise RuntimeError('Invalid number of dimensions!')
         elif dtype == np.float64:
@@ -28,6 +32,8 @@ class TestNabla2Function(unittest.TestCase):
                 return double_2d()
             elif dim == 3:
                 return double_3d()
+            elif dim == 4:
+                return double_4d()
             else:
                 raise RuntimeError('Invalid number of dimensions!')
         else:
@@ -57,12 +63,17 @@ class TestNabla2Function(unittest.TestCase):
     def test_float3_gradient(self):
         self._test_adjointness(np.float32, 3)
 
+    def test_float4_gradient(self):
+        self._test_adjointness(np.float32, 4)
+
     def test_double2_gradient(self):
         self._test_adjointness(np.float64, 2)
 
     def test_double3_gradient(self):
         self._test_adjointness(np.float64, 3)
 
+    def test_double4_gradient(self):
+        self._test_adjointness(np.float64, 4)
 
 if __name__ == "__main__":
     unittest.test()

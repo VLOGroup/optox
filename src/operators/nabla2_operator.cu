@@ -55,6 +55,43 @@ __global__ void forward_differences(
     }
 }
 
+template<typename T>
+__global__ void forward_differences(
+    typename optox::DTensor<T, 5>::Ref y,
+    const typename optox::DTensor<T, 5>::ConstRef x)
+{
+    int ix = blockDim.x * blockIdx.x + threadIdx.x;
+    int iy = blockDim.y * blockIdx.y + threadIdx.y;
+    int N = blockDim.z * blockIdx.z + threadIdx.z;
+    int iz = N % x.size_[2];
+    int it = N / x.size_[2];
+
+    if (ix < x.size_[4] && iy < x.size_[3] && iz < x.size_[2] && it < x.size_[1])
+    {
+        const int xp = ix + (ix < x.size_[4] - 1);
+        const int yp = iy + (iy < x.size_[3] - 1);
+        const int zp = iz + (iz < x.size_[2] - 1);
+        const int tp = it + (it < x.size_[1] - 1);
+
+        y(0, it, iz, iy, ix) = x(0, it, iz, iy, xp) - x(0, it, iz, iy, ix);
+        y(1, it, iz, iy, ix) = x(1, it, iz, iy, xp) - x(1, it, iz, iy, ix);
+        y(2, it, iz, iy, ix) = x(2, it, iz, iy, xp) - x(2, it, iz, iy, ix);
+        y(3, it, iz, iy, ix) = x(3, it, iz, iy, xp) - x(3, it, iz, iy, ix);
+        y(4, it, iz, iy, ix) = x(0, it, iz, yp, ix) - x(0, it, iz, iy, ix);
+        y(5, it, iz, iy, ix) = x(1, it, iz, yp, ix) - x(1, it, iz, iy, ix);
+        y(6, it, iz, iy, ix) = x(2, it, iz, yp, ix) - x(2, it, iz, iy, ix);
+        y(7, it, iz, iy, ix) = x(3, it, iz, yp, ix) - x(3, it, iz, iy, ix);
+        y(8, it, iz, iy, ix) = x(0, it, zp, iy, ix) - x(0, it, iz, iy, ix);
+        y(9, it, iz, iy, ix) = x(1, it, zp, iy, ix) - x(1, it, iz, iy, ix);
+        y(10, it, iz, iy, ix) = x(2, it, zp, iy, ix) - x(2, it, iz, iy, ix);
+        y(11, it, iz, iy, ix) = x(3, it, zp, iy, ix) - x(3, it, iz, iy, ix);
+        y(12, it, iz, iy, ix) = x(0, tp, iz, iy, ix) - x(0, it, iz, iy, ix);
+        y(13, it, iz, iy, ix) = x(1, tp, iz, iy, ix) - x(1, it, iz, iy, ix);
+        y(14, it, iz, iy, ix) = x(2, tp, iz, iy, ix) - x(2, it, iz, iy, ix);
+        y(15, it, iz, iy, ix) = x(3, tp, iz, iy, ix) - x(3, it, iz, iy, ix);
+    }
+}
+
 template<typename T, unsigned int N>
 void optox::Nabla2Operator<T, N>::computeForward(optox::OperatorOutputVector &&outputs,
     const optox::OperatorInputVector &inputs)
@@ -79,6 +116,13 @@ void optox::Nabla2Operator<T, N>::computeForward(optox::OperatorOutputVector &&o
         dim_grid = dim3(divUp(x->size()[3], dim_block.x),
                         divUp(x->size()[2], dim_block.y),
                         divUp(x->size()[1], dim_block.z));
+    }
+    else if (N == 4)
+    {
+        dim_block = dim3(16, 16, 3);
+        dim_grid = dim3(divUp(x->size()[4], dim_block.x),
+                        divUp(x->size()[3], dim_block.y),
+                        divUp(x->size()[1]*x->size()[2], dim_block.z));
     }
     else
         THROW_OPTOXEXCEPTION("Nabla2Operator: unsupported dimension");
@@ -218,6 +262,147 @@ __global__ void backward_differences(
     }
 }
 
+template<typename T>
+__global__ void backward_differences(
+    typename optox::DTensor<T, 5>::Ref x,
+    const typename optox::DTensor<T, 5>::ConstRef y)
+{
+    int ix = blockDim.x * blockIdx.x + threadIdx.x;
+    int iy = blockDim.y * blockIdx.y + threadIdx.y;
+    int N = blockDim.z * blockIdx.z + threadIdx.z;
+    int iz = N % x.size_[2];
+    int it = N / x.size_[2];
+
+    if (ix < x.size_[4] && iy < x.size_[3] && iz < x.size_[2] && it < x.size_[1])
+    {
+        T div_xx_x = (ix > 0) ? 
+                        (ix < x.size_[4] - 1) ?
+                                            -y(0, it, iz, iy, ix) + y(0, it, iz, iy, ix - 1)
+                                            :
+                                            y(0, it, iz, iy, ix - 1)
+                        :
+                        -y(0, it, iz, iy, ix);
+        T div_xy_x = (ix > 0) ? 
+                        (ix < x.size_[4] - 1) ?
+                                            -y(1, it, iz, iy, ix) + y(1, it, iz, iy, ix - 1)
+                                            :
+                                            y(1, it, iz, iy, ix - 1)
+                        :
+                        -y(1, it, iz, iy, ix);
+        T div_xz_x = (ix > 0) ? 
+                        (ix < x.size_[4] - 1) ?
+                                            -y(2, it, iz, iy, ix) + y(2, it, iz, iy, ix - 1)
+                                            :
+                                            y(2, it, iz, iy, ix - 1)
+                        :
+                        -y(2, it, iz, iy, ix);
+
+        T div_xt_x = (ix > 0) ?
+                        (ix < x.size_[4] - 1) ?
+                                            -y(3, it, iz, iy, ix) + y(3, it, iz, iy, ix - 1)
+                                            :
+                                            y(3, it, iz, iy, ix - 1)
+                        :
+                        -y(3, it, iz, iy, ix);
+
+        T div_yx_y = (iy > 0) ? 
+                        (iy < x.size_[3] - 1) ?
+                                            -y(4, it, iz, iy, ix) + y(4, it,  iz, iy - 1, ix)
+                                            :
+                                            y(4, it, iz, iy - 1, ix)
+                        :
+                        -y(4, it, iz, iy, ix);
+        T div_yy_y = (iy > 0) ? 
+                        (iy < x.size_[3] - 1) ?
+                                            -y(5, it, iz, iy, ix) + y(5, it, iz, iy - 1, ix)
+                                            :
+                                            y(5, it, iz, iy - 1, ix)
+                        :
+                        -y(5, it, iz, iy, ix);
+        T div_yz_y = (iy > 0) ? 
+                        (iy < x.size_[3] - 1) ?
+                                            -y(6, it, iz, iy, ix) + y(6, it, iz, iy - 1, ix)
+                                            :
+                                            y(6, it, iz, iy - 1, ix)
+                        :
+                        -y(6, it, iz, iy, ix);
+        T div_yt_y = (iy > 0) ? 
+                (iy < x.size_[3] - 1) ?
+                                    -y(7, it, iz, iy, ix) + y(7, it, iz, iy - 1, ix)
+                                    :
+                                    y(7, it, iz, iy - 1, ix)
+                :
+                -y(7, it, iz, iy, ix);
+
+        T div_zx_z = (iz > 0) ? 
+                        (iz < x.size_[2] - 1) ?
+                                            -y(8, it, iz, iy, ix) + y(8, it, iz - 1, iy, ix)
+                                            :
+                                            y(8, it, iz - 1, iy, ix)
+                        :
+                        -y(8, it, iz, iy, ix);
+        T div_zy_z = (iz > 0) ? 
+                        (iz < x.size_[2] - 1) ?
+                                            -y(9, it, iz, iy, ix) + y(9, it, iz - 1, iy, ix)
+                                            :
+                                            y(9, it, iz - 1, iy, ix)
+                        :
+                        -y(9, it, iz, iy, ix);
+        T div_zz_z = (iz > 0) ? 
+                        (iz < x.size_[2] - 1) ?
+                                            -y(10, it, iz, iy, ix) + y(10, it, iz - 1, iy, ix)
+                                            :
+                                            y(10, it, iz - 1, iy, ix)
+                        :
+                        -y(10, it, iz, iy, ix);
+        T div_zt_z = (iz > 0) ? 
+                        (iz < x.size_[2] - 1) ?
+                                            -y(11, it, iz, iy, ix) + y(11, it, iz - 1, iy, ix)
+                                            :
+                                            y(11, it, iz - 1, iy, ix)
+                        :
+                        -y(11, it, iz, iy, ix);
+
+        T div_tx_t = (it > 0) ? 
+                        (it < x.size_[1] - 1) ?
+                                            -y(12, it, iz, iy, ix) + y(12, it - 1, iz, iy, ix)
+                                            :
+                                            y(12, it - 1, iz, iy, ix)
+                        :
+                        -y(12, it, iz, iy, ix);
+
+        T div_ty_t = (it > 0) ? 
+                        (it < x.size_[1] - 1) ?
+                                            -y(13, it, iz, iy, ix) + y(13, it - 1, iz, iy, ix)
+                                            :
+                                            y(13, it - 1, iz, iy, ix)
+                        :
+                        -y(13, it, iz, iy, ix);
+
+        T div_tz_t = (it > 0) ? 
+                        (it < x.size_[1] - 1) ?
+                                            -y(14, it, iz, iy, ix) + y(14, it - 1, iz, iy, ix)
+                                            :
+                                            y(14, it - 1, iz, iy, ix)
+                        :
+                        -y(14, it, iz, iy, ix);
+
+        T div_tt_t = (it > 0) ? 
+                        (it < x.size_[1] - 1) ?
+                                            -y(15, it, iz, iy, ix) + y(15, it - 1, iz, iy, ix)
+                                            :
+                                            y(15, it - 1, iz, iy, ix)
+                        :
+                        -y(15, it, iz, iy, ix);
+
+        x(0, it, iz, iy, ix) = div_xx_x + div_yx_y + div_zx_z + div_tx_t;
+        x(1, it, iz, iy, ix) = div_xy_x + div_yy_y + div_zy_z + div_ty_t;
+        x(2, it, iz, iy, ix) = div_xz_x + div_yz_y + div_zz_z + div_tz_t;
+        x(3, it, iz, iy, ix) = div_xt_x + div_yt_y + div_zt_z + div_tt_t;
+    }
+}
+
+
 template<typename T, unsigned int N>
 void optox::Nabla2Operator<T, N>::computeAdjoint(optox::OperatorOutputVector &&outputs,
     const optox::OperatorInputVector &inputs)
@@ -243,6 +428,13 @@ void optox::Nabla2Operator<T, N>::computeAdjoint(optox::OperatorOutputVector &&o
                         divUp(x->size()[2], dim_block.y),
                         divUp(x->size()[1], dim_block.z));
     }
+    else if (N == 4)
+    {
+        dim_block = dim3(16, 16, 3);
+        dim_grid = dim3(divUp(x->size()[4], dim_block.x),
+                        divUp(x->size()[3], dim_block.y),
+                        divUp(x->size()[1]*x->size()[2], dim_block.z));
+    }
     else
         THROW_OPTOXEXCEPTION("Nabla2Operator: unsupported dimension");
 
@@ -256,7 +448,8 @@ void optox::Nabla2Operator<T, N>::computeAdjoint(optox::OperatorOutputVector &&o
 
 #define REGISTER_OP(T) \
     REGISTER_OP_T(T, 2) \
-    REGISTER_OP_T(T, 3)
+    REGISTER_OP_T(T, 3) \
+    REGISTER_OP_T(T, 4) \
 
 OPTOX_CALL_REAL_NUMBER_TYPES(REGISTER_OP);
 #undef REGISTER_OP

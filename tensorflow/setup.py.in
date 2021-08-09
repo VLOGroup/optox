@@ -31,8 +31,8 @@ class BinaryDistribution(Distribution):
         return True
 
 # define package data
-PACKAGES = ["optotf"]
-PACKAGE_DIR = {"optotf": "./optotf"}
+PACKAGES = ["optotf", "optotf.keras"]
+PACKAGE_DIR = {"optotf": "./optotf", "optotf.keras": "./optotf/keras"}
 PACKAGE_DATA = {}
 
 # add new modules here
@@ -40,8 +40,8 @@ ADD_PACKAGES = [
   "nabla",
   "demosaicing",
   "activations",
-  "pad2d",
-  "pad3d",
+  "pad",
+  "warp",
 ]
 
 for pkg in ADD_PACKAGES:

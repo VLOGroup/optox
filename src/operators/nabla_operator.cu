@@ -12,7 +12,7 @@ template<typename T>
 __global__ void forward_differences(
     typename optox::DTensor<T, 3>::Ref y,
     const typename optox::DTensor<T, 2>::ConstRef x,
-    T hx, T hy, T hz)
+    T hx, T hy, T hz, T ht)
 {
     int ix = blockDim.x * blockIdx.x + threadIdx.x;
     int iy = blockDim.y * blockIdx.y + threadIdx.y;
@@ -32,7 +32,7 @@ template<typename T>
 __global__ void forward_differences(
     typename optox::DTensor<T, 4>::Ref y,
     const typename optox::DTensor<T, 3>::ConstRef x,
-    T hx, T hy, T hz)
+    T hx, T hy, T hz, T ht)
 {
     int ix = blockDim.x * blockIdx.x + threadIdx.x;
     int iy = blockDim.y * blockIdx.y + threadIdx.y;
@@ -47,6 +47,32 @@ __global__ void forward_differences(
         y(0, iz, iy , ix) = (x(iz, iy, xp) - x(iz, iy, ix)) / hx;
         y(1, iz, iy , ix) = (x(iz, yp, ix) - x(iz, iy, ix)) / hy;
         y(2, iz, iy , ix) = (x(zp, iy, ix) - x(iz, iy, ix)) / hz;
+    }
+}
+
+template<typename T>
+__global__ void forward_differences(
+    typename optox::DTensor<T, 5>::Ref y,
+    const typename optox::DTensor<T, 4>::ConstRef x,
+    T hx, T hy, T hz, T ht)
+{
+    int ix = blockDim.x * blockIdx.x + threadIdx.x;
+    int iy = blockDim.y * blockIdx.y + threadIdx.y;
+    int N = blockDim.z * blockIdx.z + threadIdx.z;
+    int iz = N % x.size_[1];
+    int it = N / x.size_[1];
+  
+    if (ix < x.size_[3] && iy < x.size_[2] && iz < x.size_[1] && it < x.size_[0])
+    {
+        const int xp = ix + (ix < x.size_[3] - 1);
+        const int yp = iy + (iy < x.size_[2] - 1);
+        const int zp = iz + (iz < x.size_[1] - 1);
+        const int tp = it + (it < x.size_[0] - 1);
+        
+        y(0, it, iz, iy, ix) = (x(it, iz, iy, xp) - x(it, iz, iy, ix)) / hx;
+        y(1, it, iz, iy, ix) = (x(it, iz, yp, ix) - x(it, iz, iy, ix)) / hy;
+        y(2, it, iz, iy, ix) = (x(it, zp, iy, ix) - x(it, iz, iy, ix)) / hz;
+        y(3, it, iz, iy, ix) = (x(tp, iz, iy, ix) - x(it, iz, iy, ix)) / ht;
     }
 }
 
@@ -75,16 +101,17 @@ void optox::NablaOperator<T, N>::computeForward(optox::OperatorOutputVector &&ou
                         divUp(x->size()[1], dim_block.y),
                         divUp(x->size()[0], dim_block.z));
     }
+    else if (N == 4)
+    {
+        dim_block = dim3(16, 16, 3);
+        dim_grid = dim3(divUp(x->size()[3], dim_block.x),
+                        divUp(x->size()[2], dim_block.y),
+                        divUp(x->size()[0]*x->size()[1], dim_block.z));
+    }
     else
         THROW_OPTOXEXCEPTION("NablaOperator: unsupported dimension");
 
-    if (N == 2)
-        forward_differences<T> <<<dim_grid, dim_block, 0, this->stream_>>>(*y, *x, hx_, hy_, hz_);
-    else if (N == 3)
-        forward_differences<T> <<<dim_grid, dim_block, 0, this->stream_>>>(*y, *x, hx_, hy_, hz_);
-    else
-        THROW_OPTOXEXCEPTION("NablaOperator: unsupported dimension");
-
+    forward_differences<T> <<<dim_grid, dim_block, 0, this->stream_>>>(*y, *x, hx_, hy_, hz_, ht_);
     OPTOX_CUDA_CHECK;
 }
 
@@ -93,7 +120,7 @@ template<typename T>
 __global__ void backward_differences(
     typename optox::DTensor<T, 2>::Ref x,
     const typename optox::DTensor<T, 3>::ConstRef y,
-    T hx, T hy, T hz)
+    T hx, T hy, T hz, T ht)
 {
     int ix = blockDim.x * blockIdx.x + threadIdx.x;
     int iy = blockDim.y * blockIdx.y + threadIdx.y;
@@ -129,7 +156,7 @@ template<typename T>
 __global__ void backward_differences(
     typename optox::DTensor<T, 3>::Ref x,
     const typename optox::DTensor<T, 4>::ConstRef y,
-    T hx, T hy, T hz)
+    T hx, T hy, T hz, T ht)
 {
     int ix = blockDim.x * blockIdx.x + threadIdx.x;
     int iy = blockDim.y * blockIdx.y + threadIdx.y;
@@ -173,6 +200,66 @@ __global__ void backward_differences(
     }
 }
 
+template<typename T>
+__global__ void backward_differences(
+    typename optox::DTensor<T, 4>::Ref x,
+    const typename optox::DTensor<T, 5>::ConstRef y,
+    T hx, T hy, T hz, T ht)
+{
+    int ix = blockDim.x * blockIdx.x + threadIdx.x;
+    int iy = blockDim.y * blockIdx.y + threadIdx.y;
+    int N = blockDim.z * blockIdx.z + threadIdx.z;
+    int iz = N % x.size_[1];
+    int it = N / x.size_[1];
+    if (ix < x.size_[3] && iy < x.size_[2] && iz < x.size_[1] && it < x.size_[0])
+    {
+        //printf("t=%d\n", it);
+        T div = T(0.0);
+
+        // x
+        T div_x = (ix > 0) ? 
+                        (ix < x.size_[3] - 1) ?
+                                            -y(0, it, iz, iy, ix) + y(0, it, iz, iy, ix - 1)
+                                            :
+                                            y(0, it, iz, iy, ix - 1)
+                        :
+                        -y(0, it, iz, iy, ix);
+        div += div_x / hx;
+
+        // y
+        T div_y = (iy > 0) ? 
+                        (iy < x.size_[2] - 1) ?
+                                            -y(1, it, iz, iy, ix) + y(1, it, iz, iy - 1, ix)
+                                            :
+                                            y(1, it, iz, iy - 1, ix)
+                        :
+                        -y(1, it, iz, iy, ix);
+        div += div_y / hy;
+
+        // z
+        T div_z = (iz > 0) ? 
+                        (iz < x.size_[1] - 1) ?
+                                            -y(2, it, iz, iy, ix) + y(2, it, iz - 1, iy, ix)
+                                            :
+                                            y(2, it, iz - 1, iy, ix)
+                        :
+                        -y(2, it, iz, iy, ix);
+        div += div_z / hz;
+
+        // t
+        T div_t = (it > 0) ? 
+        (it < x.size_[0] - 1) ?
+                            -y(3, it, iz, iy, ix) + y(3, it - 1, iz, iy, ix)
+                            :
+                            y(3, it - 1, iz, iy, ix)
+        :
+        -y(3, it, iz, iy, ix);
+        div += div_t / ht;
+
+        x(it, iz, iy, ix) = div;
+    }
+}
+
 template<typename T, unsigned int N>
 void optox::NablaOperator<T, N>::computeAdjoint(optox::OperatorOutputVector &&outputs,
     const optox::OperatorInputVector &inputs)
@@ -198,15 +285,17 @@ void optox::NablaOperator<T, N>::computeAdjoint(optox::OperatorOutputVector &&ou
                         divUp(x->size()[1], dim_block.y),
                         divUp(x->size()[0], dim_block.z));
     }
+    else if (N == 4)
+    {
+        dim_block = dim3(16, 16, 3);
+        dim_grid = dim3(divUp(x->size()[3], dim_block.x),
+                        divUp(x->size()[2], dim_block.y),
+                        divUp(x->size()[0]*x->size()[1], dim_block.z));
+    }
     else
         THROW_OPTOXEXCEPTION("NablaOperator: unsupported dimension");
 
-    if (N == 2)
-        backward_differences<T> <<<dim_grid, dim_block, 0, this->stream_>>>(*x, *y, hx_, hy_, hz_);
-    else if (N == 3)
-        backward_differences<T> <<<dim_grid, dim_block, 0, this->stream_>>>(*x, *y, hx_, hy_, hz_);
-    else
-        THROW_OPTOXEXCEPTION("NablaOperator: unsupported dimension");
+    backward_differences<T> <<<dim_grid, dim_block, 0, this->stream_>>>(*x, *y, hx_, hy_, hz_, ht_);
     OPTOX_CUDA_CHECK;
 }
 
@@ -216,7 +305,8 @@ void optox::NablaOperator<T, N>::computeAdjoint(optox::OperatorOutputVector &&ou
 
 #define REGISTER_OP(T) \
     REGISTER_OP_T(T, 2) \
-    REGISTER_OP_T(T, 3)
+    REGISTER_OP_T(T, 3) \
+    REGISTER_OP_T(T, 4)
 
 OPTOX_CALL_REAL_NUMBER_TYPES(REGISTER_OP);
 #undef REGISTER_OP

@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import tensorflow as _tf
+import tensorflow as tf
 from tensorflow.python.framework import ops as _ops
 
 __all__ = ['forward', 'adjoint']
